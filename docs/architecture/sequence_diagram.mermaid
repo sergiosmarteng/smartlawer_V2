@@ -1,0 +1,142 @@
+sequenceDiagram
+    participant Client
+    participant FE as Frontend (Next.js)
+    participant API as Backend API (FastAPI)
+    participant Auth as AuthService
+    participant DocCtrl as DocumentController
+    participant DocProc as DocumentProcessor
+    participant TaskQ as TaskQueue
+    participant Worker as Celery Worker
+    participant AI as AIService
+    participant DB as Database
+    participant Storage as Object Storage (S3/Azure)
+    participant TempProc as TemplateProcessor
+    
+    %% Upload and Analysis of Legal Petition Flow
+    Client->>FE: Upload Petition PDF
+    FE->>API: POST /api/documents/upload
+    API->>Auth: Verify user token
+    Auth-->>API: User authenticated
+    API->>DocCtrl: upload_document(file, user_id)
+    DocCtrl->>Storage: Store PDF file
+    Storage-->>DocCtrl: Return file_path
+    DocCtrl->>DB: Create Document record
+    DB-->>DocCtrl: Return Document
+    DocCtrl-->>API: Return Document metadata
+    API-->>FE: Return Document ID and status
+    FE-->>Client: Display upload success
+    
+    Client->>FE: Request document analysis
+    FE->>API: POST /api/analyses/create
+    API->>Auth: Verify user token
+    Auth-->>API: User authenticated
+    API->>DocCtrl: get_document(doc_id, user_id)
+    DocCtrl->>DB: Query Document
+    DB-->>DocCtrl: Return Document
+    API->>TaskQ: Enqueue analysis task
+    TaskQ->>DB: Create Task record (PENDING)
+    DB-->>TaskQ: Return Task
+    TaskQ-->>API: Return Task ID
+    API-->>FE: Return Task ID and status
+    FE-->>Client: Display analysis in progress
+    
+    TaskQ->>Worker: Delegate analysis task
+    Worker->>Storage: Get document file
+    Storage-->>Worker: Return PDF file
+    Worker->>DocProc: process_pdf(file_path)
+    DocProc->>DocProc: Check if OCR needed
+    alt OCR required
+        DocProc->>DocProc: apply_ocr(file_path)
+    end
+    DocProc-->>Worker: Return extracted text
+    Worker->>DocProc: chunk_document(text)
+    DocProc-->>Worker: Return text chunks
+    Worker->>AI: analyze_petition(text_chunks)
+    AI-->>Worker: Return analysis results
+    Worker->>DB: Create Analysis record
+    DB-->>Worker: Return Analysis
+    Worker->>TaskQ: Update task (COMPLETED)
+    TaskQ->>DB: Update Task record
+    
+    Client->>FE: Poll for task status
+    FE->>API: GET /api/tasks/{task_id}
+    API->>TaskQ: get_task_status(task_id)
+    TaskQ->>DB: Query Task
+    DB-->>TaskQ: Return Task
+    TaskQ-->>API: Return Task status
+    API-->>FE: Return Task status (COMPLETED)
+    FE->>API: GET /api/analyses/{analysis_id}
+    API->>DB: Query Analysis
+    DB-->>API: Return Analysis
+    API-->>FE: Return Analysis data
+    FE-->>Client: Display petition analysis results
+    
+    %% Document Generation Flow
+    Client->>FE: Select template for defense
+    FE->>API: GET /api/templates
+    API->>Auth: Verify user token
+    Auth-->>API: User authenticated
+    API->>DB: Query Templates
+    DB-->>API: Return Templates
+    API-->>FE: Return available templates
+    FE-->>Client: Display template options
+    
+    Client->>FE: Upload custom template (optional)
+    FE->>API: POST /api/templates/upload
+    API->>Auth: Verify user token
+    Auth-->>API: User authenticated
+    API->>Storage: Store template file
+    Storage-->>API: Return file_path
+    API->>TempProc: parse_template(file_path)
+    TempProc->>TempProc: extract_placeholders(content)
+    TempProc-->>API: Return placeholders
+    API->>DB: Create Template record
+    DB-->>API: Return Template
+    API-->>FE: Return Template metadata
+    FE-->>Client: Display upload success
+    
+    Client->>FE: Request defense generation
+    FE->>API: POST /api/documents/generate
+    API->>Auth: Verify user token
+    Auth-->>API: User authenticated
+    API->>TaskQ: Enqueue generation task
+    TaskQ->>DB: Create Task record (PENDING)
+    DB-->>TaskQ: Return Task
+    TaskQ-->>API: Return Task ID
+    API-->>FE: Return Task ID and status
+    FE-->>Client: Display generation in progress
+    
+    TaskQ->>Worker: Delegate generation task
+    Worker->>DB: Get Template and Analysis
+    DB-->>Worker: Return Template and Analysis
+    Worker->>Storage: Get template file
+    Storage-->>Worker: Return DOCX template
+    Worker->>TempProc: parse_template(template_path)
+    TempProc-->>Worker: Return template structure
+    Worker->>AI: generate_defense_content(analysis, template_info)
+    AI-->>Worker: Return content for placeholders
+    Worker->>TempProc: fill_template(template_path, data)
+    TempProc-->>Worker: Return filled document
+    Worker->>Storage: Save generated document
+    Storage-->>Worker: Return file_path
+    Worker->>DB: Create GeneratedDocument record
+    DB-->>Worker: Return GeneratedDocument
+    Worker->>TaskQ: Update task (COMPLETED)
+    TaskQ->>DB: Update Task record
+    
+    Client->>FE: Poll for task status
+    FE->>API: GET /api/tasks/{task_id}
+    API->>TaskQ: get_task_status(task_id)
+    TaskQ->>DB: Query Task
+    DB-->>TaskQ: Return Task
+    TaskQ-->>API: Return Task status
+    API-->>FE: Return Task status (COMPLETED)
+    FE->>API: GET /api/documents/generated/{doc_id}
+    API->>DB: Query GeneratedDocument
+    DB-->>API: Return GeneratedDocument
+    API-->>FE: Return document metadata
+    FE->>API: GET /api/documents/download/{doc_id}
+    API->>Storage: Get generated document
+    Storage-->>API: Return DOCX file
+    API-->>FE: Return DOCX file
+    FE-->>Client: Download DOCX document
