@@ -215,3 +215,12 @@
 - [ ] Verify: results stored in memory-mock
 - [ ] Verify: heartbeats publishing with correct state
 - [ ] Test graceful shutdown: `docker compose stop harness`, verify partial result stored
+
+---
+
+## Phase 12: Multi-Agent Squad Setup (SmartLawer V2)
+
+- [ ] Modify `src/microharness/agent_loader.py` to auto-load 8 specialized agents
+- [ ] Implement Orchestrator iteration limits and routing (`project_leader`)
+- [ ] Configure `software_architect`, `frontend_engineer`, `backend_engineer`, `integration_engineer`, `db_specialist`, `designer`, `reviewer` in `config/agents/`
+- [ ] Test the pipeline routing task assignments among multiple agents

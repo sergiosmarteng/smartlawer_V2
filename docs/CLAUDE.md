@@ -1,107 +1,118 @@
-# Microharness — Orchestrator
+# CLAUDE.md
 
-You are the orchestrator for the microharness project. You drive a **builder→evaluator loop** using two sub-agents until all implementation phases are complete.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## How It Works
+## Commands
 
-You invoke two sub-agents in a loop:
-- **`task-builder`** — implements code (fresh session each invocation)
-- **`task-evaluator`** — validates the work independently (fresh session each invocation)
+### Development
+- `npm run dev` - Start development server
+- `npm run build` - Build production bundle
+- `npm run start` - Start production server
+- `npm run lint` - Run ESLint
+- `npm run test` - Run tests
 
-You read the **memory files** between invocations to track state. You never implement or evaluate code yourself — you only coordinate.
+### Testing
+- `npm run test:unit` - Run unit tests
+- `npm run test:e2e` - Run end-to-end tests
 
-## Startup: Load State
+## Architecture
 
-Read these files to understand where things stand:
-
-1. `CHANGELOG.md` — latest entry tells you the current state
-2. `TASKS.md` — find the current phase and its sub-task statuses
-
-Determine the current situation:
-- **All phases `[x]` and approved** → Report "All done." and stop.
-- **A phase has `[ ]` items with `❌ REJECTED`** → The evaluator rejected. Call task-builder to fix.
-- **A phase has all `[x]` but no approval in CHANGELOG** → Call task-evaluator to validate.
-- **A phase has `[ ]` items (no rejection notes)** → Normal flow. Call task-builder to implement.
-
-## The Loop
-
+### Project Structure
 ```
-WHILE tasks remain in TASKS.md:
-
-    1. Invoke the task-builder agent
-       → It reads memory files, implements the next phase, updates TASKS.md and CHANGELOG.md
-
-    2. Re-read TASKS.md and CHANGELOG.md
-       → Verify the phase is complete (all sub-tasks [x])
-       → If incomplete or blocked, report to user and stop
-
-    3. Invoke the task-evaluator agent
-       → It reads memory files, validates the phase, produces verdict
-       → Updates TASKS.md (reverts on rejection) and CHANGELOG.md
-
-    4. Re-read TASKS.md and CHANGELOG.md
-       → Check verdict:
-         ✅ APPROVED → Continue loop (next phase, go to step 1)
-         ❌ REJECTED → Go to step 1 (builder will see rejection notes and fix)
-
-    5. If same phase rejected 3+ times in a row:
-       → Stop and report to user: "Phase N stuck after 3 rejections. Human review needed."
+├── src/
+│   ├── components/
+│   ├── lib/
+│   ├── hooks/
+│   ├── types/
+│   └── styles/
+├── next.config.js
+├── tsconfig.js
+├── .env
+└── .github/
+    ├── ISSUE_TEMPLATE/
+    │   └── feature_request.md
+    └── PULL_REQUEST_TEMPLATE.md
 ```
 
-## Rules
+### Key Directories
+- `src/components` - Reusable UI components
+- `src/lib` - Utility functions and services
+- `src/hooks` - Custom React hooks
+- `src/types` - TypeScript type definitions
 
-1. **You do NOT write code.** You only invoke agents and read memory files.
-2. **Always re-read memory files between agent invocations.** Never assume — check the files.
-3. **Each agent invocation is a fresh context.** The agents get their state from memory files only.
-4. **Stop on blockers.** If TASKS.md has `[BLOCKED]` items, report to user and wait.
-5. **Stop after 3 consecutive rejections** of the same phase. Something needs human attention.
-6. **Log your loop iterations.** After each agent invocation, briefly report:
-   - Which agent ran
-   - Which phase
-   - Outcome (completed / approved / rejected / blocked)
+## GitHub Integration
 
-## Example Session
+All tasks must be created and tracked on GitHub using Issues and Projects.
 
+### GitHub Setup
+- Repository: `schinasergio/smartlawer_V2`
+- Owner: `schinasergio`
+- Token: Configured via `GITHUB_TOKEN` in `.env`
+
+### Task Management
+1. Create issues via GitHub interface for all features, bugs, and tasks
+2. Use issue templates for consistency:
+   - Feature Request
+   - Bug Report
+   - Enhancement
+3. Assign issues to team members based on roles:
+   - Orchestrator: Process flow management
+   - Architecture: System design and documentation
+   - Developers: Implementation and coding
+   - QA: Testing and validation
+   - Supervisor: Code quality control
+
+### Workflow
+- Issues → In Progress → Review → Done
+- Use GitHub Projects board to visualize workflow
+- Link commits to issues using references (e.g., "Fixes #123")
+- Create pull requests for all changes
+- Require approval before merging to main branch
+
+## Environment Setup
+
+### .env File
 ```
-Orchestrator: Reading memory files...
-  → CHANGELOG.md: Phase 0 (Planning) complete.
-  → TASKS.md: Phase 1 has 6 uncompleted sub-tasks.
-  → Current state: Phase 1 needs implementation.
+# SuperTokens Authentication
+NEXT_PUBLIC_SUPERTOKENS_PUBLISHABLE_KEY=
+SUPERTOKENS_SECRET_KEY=
+SUPERTOKENS_API_DOMAIN=
+SUPERTOKENS_APP_INFO={}
 
-Orchestrator: Invoking task-builder agent for Phase 1...
-  [task-builder runs, implements Phase 1, updates memory files]
+# SuperTokens Configuration (can be left as defaults if running locally)
+SUPERTOKENS_CONNECTION_URI=http://localhost:3567
+SUPERTOKENS_API_KEY=
 
-Orchestrator: Reading memory files...
-  → TASKS.md: Phase 1 — all 6 sub-tasks marked [x].
-  → CHANGELOG.md: Phase 1 entry added.
-  → Current state: Phase 1 ready for evaluation.
-
-Orchestrator: Invoking task-evaluator agent for Phase 1...
-  [task-evaluator runs, validates Phase 1]
-
-Orchestrator: Reading memory files...
-  → CHANGELOG.md: Phase 1 — ❌ REJECTED. 2 failures.
-  → TASKS.md: 2 sub-tasks reverted to [ ] with ❌ notes.
-  → Current state: Phase 1 needs fixes (rejection #1).
-
-Orchestrator: Invoking task-builder agent to fix Phase 1...
-  [task-builder runs, fixes rejected items]
-
-Orchestrator: Reading memory files...
-  → TASKS.md: Phase 1 — all sub-tasks [x] again.
-  → Re-invoking task-evaluator...
-
-Orchestrator: Invoking task-evaluator agent for Phase 1...
-  [task-evaluator runs, validates Phase 1]
-
-Orchestrator: Reading memory files...
-  → CHANGELOG.md: Phase 1 — ✅ APPROVED.
-  → Moving to Phase 2.
-
-Orchestrator: Invoking task-builder agent for Phase 2...
-  ...
+# GitHub Integration (for MCP)
+GITHUB_TOKEN=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
+GITHUB_OWNER=schinasergio
+GITHUB_REPO=smartlawer_V2
 ```
 
-## Start Now
+### Next.js Configuration
+```js
+// next.config.js
+module.exports = {
+  images: {
+    domains: ['your-domain.com'],
+  },
+};
+```
 
-Read `CHANGELOG.md` and `TASKS.md`. Determine the current state. Begin the loop.
+## Quick Start
+1. Clone repository
+2. Install dependencies: `npm install`
+3. Create .env file with SuperTokens and GitHub credentials
+4. Start development: `npm run dev`
+
+## Notes
+- Use `npm run lint` before committing
+- All environment variables are stored in .env (ignored by Git)
+- TypeScript configuration ensures type safety
+- Next.js provides server-side rendering and static site generation
+- All tasks must be tracked via GitHub Issues
+- Pull requests must be reviewed before merging
+
+---
+
+This file was generated to help Claude Code understand the project structure and development workflow. It should be updated as the project evolves.
