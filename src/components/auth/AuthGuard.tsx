@@ -1,4 +1,4 @@
-import { useAuth } from '@clerk/nextjs';
+import { useAuth } from './AuthProvider';
 import { useRouter } from 'next/router';
 import { useEffect } from 'react';
 
@@ -8,26 +8,26 @@ interface AuthGuardProps {
 }
 
 export default function AuthGuard({ children, fallback }: AuthGuardProps) {
-  const { isLoaded, isSignedIn } = useAuth();
+  const { user, isLoading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (isLoaded && !isSignedIn) {
+    if (!isLoading && !user) {
       router.push('/sign-in');
     }
-  }, [isLoaded, isSignedIn, router]);
+  }, [isLoading, user, router]);
 
-  if (!isLoaded) {
+  if (isLoading) {
     return (
       fallback ?? (
-        <div className="flex items-center justify-center min-h-screen-2">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
         </div>
       )
     );
   }
 
-  if (!isSignedIn) {
+  if (!user) {
     return null;
   }
 

@@ -6,6 +6,9 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     SECRET_KEY: str = "supersecretkey-dev-replace-in-prod"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7 # 7 days
+    OPENAI_API_KEY: str = ""
+    OPENROUTER_API_KEY: str = ""
+    AI_PROVIDER: str = "openai" # 'openai' or 'openrouter'
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
