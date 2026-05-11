@@ -4,6 +4,7 @@ import Link from 'next/link';
 
 export default function Home() {
   const { user, isLoading } = useAuth();
+  const userLabel = user?.username || user?.email || 'Esquire';
 
   return (
     <Layout>
@@ -33,7 +34,7 @@ export default function Home() {
           {!isLoading && user && (
             <div className="p-8 rounded-2xl bg-zinc-900 border border-zinc-800 shadow-2xl backdrop-blur-md">
               <h2 className="text-2xl font-semibold mb-4 text-slate-100 tracking-wide">
-                Welcome, {user.firstName || 'Esquire'}
+                Welcome, {userLabel}
               </h2>
               <p className="text-slate-400 mb-6">
                 Your legal workspace is ready.

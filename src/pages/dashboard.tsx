@@ -30,6 +30,7 @@ export default function DashboardPage() {
   const processingCount = processes.filter((process) => ACTIVE_STATUSES.has(process.status.toUpperCase())).length;
   const readyCount = processes.filter((process) => SUCCESS_STATUSES.has(process.status.toUpperCase()) && process.analysis_id).length;
   const failedCount = processes.filter((process) => FAILURE_STATUSES.has(process.status.toUpperCase())).length;
+  const userLabel = user?.username || user?.email || 'Advogado';
 
   const fetchProcesses = async (backgroundRefresh = false) => {
     if (backgroundRefresh) {
@@ -68,7 +69,7 @@ export default function DashboardPage() {
               <div className="max-w-3xl">
                 <p className="text-xs uppercase tracking-[0.32em] text-sky-400">Operations dashboard</p>
                 <h1 className="mt-4 text-4xl font-light tracking-tight text-slate-100">
-                  Welcome back, <span className="font-medium text-white">{user?.firstName || 'Advogado'}</span>
+                  Welcome back, <span className="font-medium text-white">{userLabel}</span>
                 </h1>
                 <p className="mt-3 text-sm leading-7 text-zinc-400">
                   This view is wired to the live `/processes` contract. Documents without an `analysis_id` stay in the queue state here until the backend finishes the record.

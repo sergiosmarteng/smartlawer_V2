@@ -17,6 +17,8 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, logout } = useAuth();
   const router = useRouter();
+  const userLabel = user?.username || user?.email || 'Advogado';
+  const userInitials = userLabel.slice(0, 2).toUpperCase();
 
   return (
     <header className="sticky top-0 z-30 border-b border-zinc-800 bg-zinc-950/95 backdrop-blur">
@@ -68,11 +70,11 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
             <>
               <div className="hidden items-center gap-3 rounded-full border border-zinc-800 bg-zinc-900/80 px-4 py-2 sm:flex">
                 <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/15 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-300">
-                  {(user.firstName || user.email).slice(0, 2)}
+                  {userInitials}
                 </span>
                 <div className="text-right">
                   <p className="text-xs uppercase tracking-[0.24em] text-zinc-500">Signed in</p>
-                  <p className="max-w-[12rem] truncate text-sm text-slate-200">{user.firstName || user.email}</p>
+                  <p className="max-w-[12rem] truncate text-sm text-slate-200">{userLabel}</p>
                 </div>
               </div>
               <button
