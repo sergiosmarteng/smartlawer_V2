@@ -1,24 +1,41 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
-const isPublicRoute = createRouteMatcher([
-  '/',
-  '/sign-in(.*)',
-  '/sign-up(.*)',
-  '/api/webhooks(.*)',
-  '/privacy',
-  '/terms',
-  '/support',
-]);
+const ACCESS_TOKEN_COOKIE = 'smartlawer_access_token';
+const PROTECTED_PATH_PREFIXES = ['/dashboard', '/upload', '/analysis', '/user-profile'];
 
-export default clerkMiddleware(async (auth, request) => {
-  if (!isPublicRoute(request)) {
-    await auth.protect();
+function isProtectedPath(pathname: string) {
+  return PROTECTED_PATH_PREFIXES.some((prefix) => {
+    return pathname === prefix || pathname.startsWith(`${prefix}/`);
+  });
+}
+
+export default function middleware(request: NextRequest) {
+  if (!isProtectedPath(request.nextUrl.pathname)) {
+    return NextResponse.next();
   }
-});
+
+  const accessToken = request.cookies.get(ACCESS_TOKEN_COOKIE)?.value;
+
+  if (accessToken) {
+    return NextResponse.next();
+  }
+
+  const signInUrl = request.nextUrl.clone();
+  signInUrl.pathname = '/sign-in';
+  signInUrl.searchParams.set(
+    'next',
+    `${request.nextUrl.pathname}${request.nextUrl.search}`
+  );
+
+  return NextResponse.redirect(signInUrl);
+}
 
 export const config = {
   matcher: [
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
-    '/(api|trpc)(.*)',
+    '/dashboard/:path*',
+    '/upload/:path*',
+    '/analysis/:path*',
+    '/user-profile/:path*',
   ],
 };

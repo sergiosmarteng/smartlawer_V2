@@ -1,61 +1,177 @@
 import logging
+import re
+from typing import Any
 from typing import List
-from pydantic import BaseModel, Field
-from langchain_openai import ChatOpenAI
-from langchain.prompts import PromptTemplate
+
 from langchain.output_parsers import PydanticOutputParser
+from langchain.prompts import PromptTemplate
+from langchain_openai import ChatOpenAI
+from pydantic import BaseModel, Field
+
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
+
 class AnalysisResult(BaseModel):
-    summary: str = Field(description="Um resumo detalhado e profissional da petição.")
-    requests: List[str] = Field(description="Lista de pedidos primários exigidos pelo autor na petição.")
-    laws: List[str] = Field(description="Lista de leis, artigos e jurisprudências citadas pelo autor.")
-    evidence: str = Field(description="Descrição agregada das provas que o autor diz possuir ou anexa.")
-    defense_theses: List[str] = Field(description="Possíveis teses preliminares e de mérito para a defesa usar contra a petição.")
+    summary: str = Field(description="Um resumo detalhado e profissional da peticao.")
+    requests: List[str] = Field(description="Lista de pedidos primarios exigidos pelo autor na peticao.")
+    laws: List[str] = Field(description="Lista de leis, artigos e jurisprudencias citadas pelo autor.")
+    evidence: Any = Field(description="Descricao agregada das provas que o autor diz possuir ou anexa.")
+    defense_theses: List[str] = Field(description="Possiveis teses preliminares e de merito para a defesa.")
+
 
 class LegalAnalyzer:
+    FALLBACK_THESES = [
+        "Exigir comprovacao documental integral dos fatos constitutivos alegados pelo autor.",
+        "Questionar o nexo entre os fatos narrados e o pedido final com base nas lacunas do material extraido.",
+        "Avaliar preliminares processuais e inconsistencias formais antes do enfrentamento do merito.",
+    ]
+
     def __init__(self):
         self.provider = settings.AI_PROVIDER.lower()
-        
+        self.api_key = ""
+        self.llm = None
+
         if self.provider == "openrouter":
             self.api_key = settings.OPENROUTER_API_KEY
             if not self.api_key:
-                logger.warning("OPENROUTER_API_KEY is not set. Inference will fail.")
-            self.llm = ChatOpenAI(
-                model="anthropic/claude-3-opus", # Default good model on openrouter, or you can switch
-                openai_api_base="https://openrouter.ai/api/v1",
-                openai_api_key=self.api_key,
-                temperature=0.0
-            )
-        else: # Default is openai
+                logger.warning("OPENROUTER_API_KEY is not set. Falling back to heuristic summary.")
+            else:
+                self.llm = ChatOpenAI(
+                    model="anthropic/claude-3-opus",
+                    openai_api_base="https://openrouter.ai/api/v1",
+                    openai_api_key=self.api_key,
+                    temperature=0.0,
+                )
+        else:
             self.api_key = settings.OPENAI_API_KEY
             if not self.api_key:
-                logger.warning("OPENAI_API_KEY is not set. Inference will fail.")
-            self.llm = ChatOpenAI(
-                model="gpt-4-turbo", 
-                temperature=0.0, 
-                api_key=self.api_key
-            )
-            
+                logger.warning("OPENAI_API_KEY is not set. Falling back to heuristic summary.")
+            else:
+                self.llm = ChatOpenAI(
+                    model="gpt-4-turbo",
+                    temperature=0.0,
+                    api_key=self.api_key,
+                )
+
         self.parser = PydanticOutputParser(pydantic_object=AnalysisResult)
-        
+
+    @staticmethod
+    def _first_non_empty_lines(text: str, *, limit: int, max_lines: int) -> list[str]:
+        lines: list[str] = []
+        for line in text.splitlines():
+            cleaned = line.strip(" -\t")
+            if cleaned:
+                lines.append(cleaned)
+            if len(lines) >= max_lines:
+                break
+        return [line[:limit].strip() for line in lines if line.strip()]
+
+    @staticmethod
+    def _deduplicate(items: list[str]) -> list[str]:
+        seen: set[str] = set()
+        normalized: list[str] = []
+        for item in items:
+            key = item.casefold()
+            if key in seen:
+                continue
+            seen.add(key)
+            normalized.append(item)
+        return normalized
+
+    def _fallback_analysis(self, text: str, *, reason: str) -> dict[str, Any]:
+        trimmed_text = (text or "").strip()
+        if not trimmed_text:
+            logger.warning("Fallback analysis generated with empty petition text (%s).", reason)
+            return {
+                "summary": "Nao foi possivel extrair texto util do documento enviado.",
+                "requests": ["Validar a extracao do PDF e reenviar o arquivo, se necessario."],
+                "laws": [],
+                "evidence": "Nenhuma prova estruturada foi identificada no texto extraido.",
+                "defense_theses": self.FALLBACK_THESES,
+            }
+
+        paragraphs = re.split(r"\n\s*\n", trimmed_text)
+        summary_source = next((paragraph.strip() for paragraph in paragraphs if paragraph.strip()), trimmed_text)
+        summary = summary_source[:1500].strip()
+
+        request_candidates = [
+            line
+            for line in self._first_non_empty_lines(trimmed_text, limit=240, max_lines=80)
+            if any(marker in line.lower() for marker in ("requer", "pedido", "pleiteia", "postula"))
+        ]
+        if not request_candidates:
+            request_candidates = ["Pedidos nao estruturados automaticamente; revisar o texto integral da peticao."]
+
+        law_candidates = re.findall(
+            r"(art\.?\s*\d+[A-Za-z0-9.,/-]*|lei\s*n[.o]*\s*\d+[./-]?\d*|codigo\s+[A-Za-z ]+)",
+            trimmed_text,
+            flags=re.IGNORECASE,
+        )
+        normalized_laws = self._deduplicate([item.strip() for item in law_candidates if item.strip()])[:8]
+
+        evidence_candidates = [
+            line
+            for line in self._first_non_empty_lines(trimmed_text, limit=240, max_lines=120)
+            if any(marker in line.lower() for marker in ("prova", "document", "anex", "comprov", "contrato", "email", "laudo"))
+        ]
+        if evidence_candidates:
+            evidence = evidence_candidates[:5]
+        else:
+            evidence = "Nenhuma prova estruturada foi identificada automaticamente."
+
+        logger.warning("Using heuristic fallback analysis because %s", reason)
+        return {
+            "summary": summary or "Resumo indisponivel para o documento analisado.",
+            "requests": self._deduplicate(request_candidates)[:6],
+            "laws": normalized_laws,
+            "evidence": evidence,
+            "defense_theses": self.FALLBACK_THESES,
+        }
+
+    def _normalize_analysis_payload(self, payload: dict[str, Any]) -> dict[str, Any]:
+        summary = str(payload.get("summary") or "").strip()
+        requests = payload.get("requests") or []
+        laws = payload.get("laws") or []
+        defense_theses = payload.get("defense_theses") or []
+        evidence = payload.get("evidence")
+
+        if not isinstance(requests, list):
+            requests = [str(requests)]
+        if not isinstance(laws, list):
+            laws = [str(laws)]
+        if not isinstance(defense_theses, list):
+            defense_theses = [str(defense_theses)]
+
+        normalized = {
+            "summary": summary or "Resumo indisponivel para o documento analisado.",
+            "requests": [str(item).strip() for item in requests if str(item).strip()],
+            "laws": [str(item).strip() for item in laws if str(item).strip()],
+            "evidence": evidence if evidence not in (None, "", []) else "Nenhuma prova estruturada foi identificada.",
+            "defense_theses": [str(item).strip() for item in defense_theses if str(item).strip()],
+        }
+
+        if not normalized["requests"]:
+            normalized["requests"] = ["Pedidos nao estruturados automaticamente; revisar o texto integral da peticao."]
+        if not normalized["defense_theses"]:
+            normalized["defense_theses"] = self.FALLBACK_THESES
+
+        return normalized
+
     def analyze_petition(self, text: str) -> dict:
-        """
-        Submete o texto extraído do OCR para LLM analisá-lo e inferir estruturação.
-        """
-        if not self.api_key:
-             raise ValueError("API Key ausente na configuração")
+        if not self.api_key or self.llm is None:
+            return self._fallback_analysis(text, reason="AI provider is not configured")
 
         prompt = PromptTemplate(
-            template="""Você é um Especialista de Inteligência Artificial Jurídica de alto padrão (Arquiteto de Defesas do SmartLawer V2).
-Sua tarefa é analisar o texto extraído da petição inicial abaixo e organizá-lo.
-Extraia: O resumo dos fatos, os pedidos finais do autor, as leis ou artigos invocados, as evidências citadas, e construa 3 ou mais teses preliminares/mérito que a defesa pode usar frente a essas arguições.
+            template="""Voce e um Especialista de Inteligencia Artificial Juridica.
+Sua tarefa e analisar o texto extraido da peticao inicial abaixo e organiza-lo.
+Extraia o resumo dos fatos, os pedidos finais do autor, as leis ou artigos invocados,
+as evidencias citadas, e construa 3 ou mais teses preliminares ou de merito.
 
 {format_instructions}
 
-TEXTO DA PETIÇÃO:
+TEXTO DA PETICAO:
 {petition_text}
 """,
             input_variables=["petition_text"],
@@ -63,11 +179,10 @@ TEXTO DA PETIÇÃO:
         )
 
         chain = prompt | self.llm | self.parser
-        
+
         try:
-            # Invoking Langchain Pipeline
-            result: AnalysisResult = chain.invoke({"petition_text": text[:20000]}) # limiting chars just to be safe
-            return result.model_dump()
-        except Exception as e:
-            logger.error(f"Erro no processamento da OpenAI: {e}")
-            raise e
+            result: AnalysisResult = chain.invoke({"petition_text": text[:20000]})
+            return self._normalize_analysis_payload(result.model_dump())
+        except Exception as exc:
+            logger.error("Erro no processamento da IA: %s", exc)
+            return self._fallback_analysis(text, reason=str(exc))

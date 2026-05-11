@@ -1,16 +1,12 @@
-import { SuperTokensConfig } from 'supertokens-auth-react/lib/build/recipe/session';
+import { ReactNode } from 'react';
 
-export const authConfig: SuperTokensConfig = {
-  appInfo: {
-    appName: 'SmartLawer_V2',
-    apiDomain: process.env.NEXT_PUBLIC_SUPERTOKENS_API_DOMAIN || 'http://localhost:3000',
-    websiteDomain: process.env.NEXT_PUBLIC_SUPERTOKENS_WEBSITE_DOMAIN || 'http://localhost:3000',
-    apiBasePath: '/api/auth',
-    websiteBasePath: '/auth',
-  },
-  recipeList: [],
+export const authConfig = {
+  signInPath: '/sign-in',
+  signUpPath: '/sign-up',
+  userProfilePath: '/user-profile',
 };
 
-export default function SuperTokensProvider({ children }: { children: React.ReactNode }) {
+export default function SuperTokensProvider({ children }: { children: ReactNode }) {
+  // Compatibility wrapper kept while older imports are phased out of the app.
   return <>{children}</>;
 }

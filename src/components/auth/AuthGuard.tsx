@@ -12,10 +12,17 @@ export default function AuthGuard({ children, fallback }: AuthGuardProps) {
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading && !user) {
-      router.push('/sign-in');
+    if (!router.isReady || isLoading || user) {
+      return;
     }
-  }, [isLoading, user, router]);
+
+    const nextPath = router.asPath.startsWith('/') ? router.asPath : '/dashboard';
+
+    void router.replace({
+      pathname: '/sign-in',
+      query: { next: nextPath },
+    });
+  }, [isLoading, router, user]);
 
   if (isLoading) {
     return (
@@ -28,7 +35,13 @@ export default function AuthGuard({ children, fallback }: AuthGuardProps) {
   }
 
   if (!user) {
-    return null;
+    return (
+      fallback ?? (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+        </div>
+      )
+    );
   }
 
   return <>{children}</>;

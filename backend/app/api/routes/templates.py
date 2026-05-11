@@ -1,55 +1,101 @@
-import os
+from pathlib import Path
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
+
 from app.api import deps
-from app.crud.document import get_document
 from app.core.doc_generator import DocxGenerator
+from app.models.analysis import Analysis
+from app.models.document import Document
+from app.models.user import User
 
 router = APIRouter()
 
-# Pasta onde ficam os originais do escritorio
-TEMPLATE_DIR = os.path.join(os.getcwd(), "backend", "templates")
-BASE_TEMPLATE_PATH = os.path.join(TEMPLATE_DIR, "base_template.docx")
+TEMPLATE_DIR = Path(__file__).resolve().parents[3] / "templates"
+BASE_TEMPLATE_PATH = TEMPLATE_DIR / "base_template.docx"
 
-@router.get("/{document_id}/generate")
-def generate_docx_document(
-    document_id: str,
-    db: Session = Depends(deps.get_db),
-    # Descomente a linha abaixo quando for travar a rota com auth:
-    # current_user = Depends(deps.get_current_active_user) 
-):
-    """
-    Dada a extração/análise de um documento prévio, gera a documentação do word cruzada
-    e emite num Attachment Stream pro usuário salvar fisicamente no PC.
-    """
-    doc = get_document(db, id=document_id)
-    if not doc:
-        raise HTTPException(status_code=404, detail="Documento original não encontrado")
 
-    if not doc.analysis:
-        raise HTTPException(status_code=400, detail="Processo OpenAI ainda não gerou as teses ou falhou. Tente novamente.")
-    
-    # Extrai as informações serializando as colunas (summary, laws, requests, type)
-    # Como as tipagens do Pydantic gravam arrays nas colunas JSON do Analysis, temos conversoes lisas
+def _get_owned_analysis(
+    db: Session,
+    *,
+    identifier: UUID,
+    current_user: User,
+) -> Analysis | None:
+    analysis = (
+        db.query(Analysis)
+        .options(selectinload(Analysis.document))
+        .join(Document, Analysis.document_id == Document.id)
+        .filter(Analysis.id == identifier, Document.user_id == current_user.id)
+        .first()
+    )
+    if analysis:
+        return analysis
+
+    document = (
+        db.query(Document)
+        .options(
+            selectinload(Document.analysis),
+            selectinload(Document.user),
+        )
+        .filter(Document.id == identifier, Document.user_id == current_user.id)
+        .first()
+    )
+    if not document:
+        return None
+
+    return document.analysis
+
+
+def _build_download_filename(analysis: Analysis) -> str:
+    source_name = Path(analysis.document.filename or "defense").stem
+    safe_name = source_name.replace(" ", "_")
+    return f"{safe_name}_defense_strategy.docx"
+
+
+def _build_docx_file_response(analysis: Analysis) -> FileResponse:
     analysis_data = {
-        "summary": doc.analysis[0].summary,
-        "requests": doc.analysis[0].requests,
-        "laws": doc.analysis[0].laws,
-        "evidence": doc.analysis[0].evidence,
-        "defense_theses": doc.analysis[0].defense_theses
+        "summary": analysis.summary or "",
+        "requests": analysis.requests or [],
+        "laws": analysis.laws or [],
+        "evidence": analysis.evidence or "",
+        "defense_theses": analysis.defense_theses or [],
     }
 
+    output_path = DocxGenerator.generate_defense(
+        analysis_dict=analysis_data,
+        template_path=str(BASE_TEMPLATE_PATH),
+    )
+    return FileResponse(
+        path=output_path,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        filename=_build_download_filename(analysis),
+    )
+
+
+@router.get("/{analysis_id}/generate")
+def generate_docx_document(
+    analysis_id: UUID,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_active_user),
+):
+    analysis = _get_owned_analysis(
+        db,
+        identifier=analysis_id,
+        current_user=current_user,
+    )
+    if not analysis:
+        raise HTTPException(status_code=404, detail="Analysis not found")
+
     try:
-        # Puxa o template local
-        output_path = DocxGenerator.generate_defense(analysis_dict=analysis_data, template_path=BASE_TEMPLATE_PATH)
-        
-        return FileResponse(
-            path=output_path,
-            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            filename=f"Defesa_{doc.id}.docx"
-        )
-    except FileNotFoundError:
-         raise HTTPException(status_code=500, detail="A Base Documental (.docx template) do sistema não foi localizada.")
-    except Exception as e:
-         raise HTTPException(status_code=500, detail=f"Erro interno de geração do DOCX: {str(e)}")
+        return _build_docx_file_response(analysis)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro interno de geracao do DOCX: {exc}",
+        ) from exc

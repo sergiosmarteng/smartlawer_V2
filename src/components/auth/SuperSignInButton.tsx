@@ -1,15 +1,19 @@
-import { SignIn } from 'supertokens-auth-react';
+import Link from 'next/link';
+import { useRouter } from 'next/router';
 
 export default function SuperSignInButton() {
+  const router = useRouter();
+  const href =
+    router.asPath && router.asPath !== '/sign-in'
+      ? { pathname: '/sign-in', query: { next: router.asPath } }
+      : '/sign-in';
+
   return (
-    <SignIn
-      appearance={{
-        theme: 'supertokens',
-        primaryColor: '#2563eb',
-      }}
-      className="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg shadow-md"
+    <Link
+      href={href}
+      className="rounded-lg bg-blue-500 px-4 py-2 font-medium text-white shadow-md transition hover:bg-blue-600"
     >
       Sign In
-    </SignIn>
+    </Link>
   );
 }

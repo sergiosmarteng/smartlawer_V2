@@ -1,6 +1,8 @@
 import axios from 'axios';
 
 const baseURL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1').replace(/\/+$/, '');
+const ACCESS_TOKEN_KEY = 'access_token';
+const ACCESS_TOKEN_COOKIE = 'smartlawer_access_token';
 
 const api = axios.create({
   baseURL,
@@ -28,7 +30,8 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401 || error.response?.status === 403) {
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('access_token');
+        localStorage.removeItem(ACCESS_TOKEN_KEY);
+        document.cookie = `${ACCESS_TOKEN_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`;
         window.location.href = '/sign-in';
       }
     }
@@ -42,6 +45,13 @@ export function getApiErrorMessage(error: unknown, fallback: string) {
     const detail = error.response?.data?.detail;
     if (typeof detail === 'string' && detail.trim()) {
       return detail;
+    }
+
+    if (detail && typeof detail === 'object' && 'message' in detail) {
+      const message = detail.message;
+      if (typeof message === 'string' && message.trim()) {
+        return message;
+      }
     }
 
     if (Array.isArray(detail) && detail.length > 0) {

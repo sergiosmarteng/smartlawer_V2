@@ -2,6 +2,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
+import axios from 'axios';
 import AuthGuard from '../../components/auth/AuthGuard';
 import Layout from '../../components/layout';
 import api, { getApiErrorMessage, normalizeApiPath } from '../../lib/axios';
@@ -40,6 +41,13 @@ interface NormalizedAnalysis {
   docxDownloadUrl: string | null;
 }
 
+interface AnalysisNotReadyDetail {
+  message?: string;
+  task_id?: string;
+  status?: string;
+  status_detail?: string;
+}
+
 export default function AnalysisPage() {
   const router = useRouter();
   const routeId = Array.isArray(router.query.id) ? router.query.id[0] : router.query.id;
@@ -48,6 +56,7 @@ export default function AnalysisPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
   const [error, setError] = useState('');
+  const [notReadyDetail, setNotReadyDetail] = useState<AnalysisNotReadyDetail | null>(null);
 
   useEffect(() => {
     if (!routeId) {
@@ -61,8 +70,10 @@ export default function AnalysisPage() {
       try {
         const response = await api.get<AnalysisDetailResponse>(`/analysis/${routeId}`);
         setAnalysis(normalizeAnalysis(response.data));
+        setNotReadyDetail(null);
       } catch (fetchError) {
         setAnalysis(null);
+        setNotReadyDetail(getAnalysisNotReadyDetail(fetchError));
         setError(getApiErrorMessage(fetchError, 'Failed to load analysis data.'));
       } finally {
         setIsLoading(false);
@@ -132,6 +143,13 @@ export default function AnalysisPage() {
                 <p className="text-xs uppercase tracking-[0.32em] text-rose-300">Analysis unavailable</p>
                 <h1 className="mt-4 text-3xl font-light text-rose-50">We could not open this analysis yet</h1>
                 <p className="mt-4 max-w-2xl text-sm leading-7 text-rose-100/90">{error}</p>
+                {notReadyDetail && (
+                  <div className="mt-5 rounded-2xl border border-rose-900/80 bg-black/10 p-4 text-sm text-rose-100/90">
+                    <p>Status: {notReadyDetail.status || 'PENDING'}</p>
+                    {notReadyDetail.status_detail && <p className="mt-2">Worker detail: {notReadyDetail.status_detail}</p>}
+                    {notReadyDetail.task_id && <p className="mt-2">Task ID: {notReadyDetail.task_id}</p>}
+                  </div>
+                )}
                 <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                   <button
                     type="button"
@@ -146,6 +164,14 @@ export default function AnalysisPage() {
                   >
                     Back to dashboard
                   </Link>
+                  {notReadyDetail?.task_id && (
+                    <Link
+                      href="/upload"
+                      className="inline-flex items-center justify-center rounded-full border border-zinc-700 px-5 py-3 text-sm font-medium text-zinc-200 transition-colors hover:border-zinc-500 hover:bg-zinc-900"
+                    >
+                      Back to processing
+                    </Link>
+                  )}
                 </div>
               </div>
             ) : !analysis ? (
@@ -278,6 +304,24 @@ function normalizeAnalysis(payload: AnalysisDetailResponse): NormalizedAnalysis 
     defenseTheses: payload.defense_theses || [],
     generatedDefenseStrategy: payload.generatedDefenseStrategy || payload.generated_defense_strategy || '',
     docxDownloadUrl: payload.docxDownloadUrl || payload.docx_download_url || null,
+  };
+}
+
+function getAnalysisNotReadyDetail(error: unknown): AnalysisNotReadyDetail | null {
+  if (!axios.isAxiosError(error)) {
+    return null;
+  }
+
+  const detail = error.response?.data?.detail;
+  if (!detail || typeof detail !== 'object') {
+    return null;
+  }
+
+  return {
+    message: typeof detail.message === 'string' ? detail.message : undefined,
+    task_id: typeof detail.task_id === 'string' ? detail.task_id : undefined,
+    status: typeof detail.status === 'string' ? detail.status : undefined,
+    status_detail: typeof detail.status_detail === 'string' ? detail.status_detail : undefined,
   };
 }
 
