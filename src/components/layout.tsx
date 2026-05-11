@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useAuth } from '@clerk/nextjs';
+import { useAuth } from './auth/AuthProvider';
 import Header from './Header';
 import Sidebar from './Sidebar';
 import Footer from './Footer';
@@ -11,22 +11,18 @@ interface LayoutProps {
 
 export default function Layout({ children, hideSidebar = false }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { isSignedIn } = useAuth();
-  const showSidebar = isSignedIn && !hideSidebar;
+  const { user } = useAuth();
+  const showSidebar = Boolean(user) && !hideSidebar;
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
-      <Header onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
+    <div className="min-h-screen bg-zinc-950 text-slate-100">
+      <Header onToggleSidebar={() => setSidebarOpen((current) => !current)} />
 
-      <div className="flex flex-1">
-        {showSidebar && (
-          <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-        )}
+      <div className="flex min-h-[calc(100vh-4rem)]">
+        {showSidebar && <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />}
 
-        <main className="flex-1 min-w-0">
-          <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-            {children}
-          </div>
+        <main className="min-w-0 flex-1">
+          {children}
         </main>
       </div>
 

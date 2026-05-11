@@ -1,114 +1,173 @@
 import Link from 'next/link';
-import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/nextjs';
+import { useRouter } from 'next/router';
 import { useState } from 'react';
+import { useAuth } from './auth/AuthProvider';
 
 interface HeaderProps {
   onToggleSidebar?: () => void;
 }
 
+const primaryLinks = [
+  { href: '/dashboard', label: 'Dashboard' },
+  { href: '/upload', label: 'New Analysis' },
+  { href: '/user-profile', label: 'Profile' },
+];
+
 export default function Header({ onToggleSidebar }: HeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { user, logout } = useAuth();
+  const router = useRouter();
 
   return (
-    <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-30">
-      <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
-          {/* Left side: hamburger + logo */}
-          <div className="flex items-center">
-            <button
-              type="button"
-              className="inline-flex items-center justify-center p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 lg:hidden"
-              onClick={onToggleSidebar}
-              aria-label="Toggle sidebar"
+    <header className="sticky top-0 z-30 border-b border-zinc-800 bg-zinc-950/95 backdrop-blur">
+      <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            className="inline-flex items-center justify-center rounded-xl border border-zinc-800 p-2 text-slate-300 transition-colors hover:border-zinc-700 hover:bg-zinc-900 lg:hidden"
+            onClick={onToggleSidebar}
+            aria-label="Toggle sidebar"
+          >
+            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+
+          <Link href={user ? '/dashboard' : '/'} className="flex items-center gap-3">
+            <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-sky-500/30 bg-sky-500/10 text-sm font-semibold tracking-[0.3em] text-sky-300">
+              SL
+            </span>
+            <div>
+              <p className="text-sm uppercase tracking-[0.3em] text-zinc-500">SmartLawer</p>
+              <p className="text-base font-medium text-slate-100">Legal workflow cockpit</p>
+            </div>
+          </Link>
+        </div>
+
+        <div className="hidden items-center gap-2 md:flex">
+          {user &&
+            primaryLinks.map((link) => {
+              const isActive = router.pathname === link.href || router.asPath.startsWith(`${link.href}/`);
+              return (
+                <NavLink key={link.href} href={link.href} active={isActive}>
+                  {link.label}
+                </NavLink>
+              );
+            })}
+        </div>
+
+        <div className="flex items-center gap-3">
+          {!user ? (
+            <Link
+              href="/sign-in"
+              className="inline-flex items-center rounded-full border border-sky-400/30 bg-sky-400/10 px-4 py-2 text-sm font-medium text-sky-200 transition-colors hover:border-sky-300/40 hover:bg-sky-400/20"
             >
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-            <Link href="/" className="ml-2 lg:ml-0 text-xl font-bold text-primary-700 tracking-tight">
-              SmartLawer
+              Sign In
             </Link>
-          </div>
+          ) : (
+            <>
+              <div className="hidden items-center gap-3 rounded-full border border-zinc-800 bg-zinc-900/80 px-4 py-2 sm:flex">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/15 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-300">
+                  {(user.firstName || user.email).slice(0, 2)}
+                </span>
+                <div className="text-right">
+                  <p className="text-xs uppercase tracking-[0.24em] text-zinc-500">Signed in</p>
+                  <p className="max-w-[12rem] truncate text-sm text-slate-200">{user.firstName || user.email}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={logout}
+                className="hidden rounded-full border border-zinc-800 px-4 py-2 text-sm font-medium text-slate-300 transition-colors hover:border-zinc-700 hover:bg-zinc-900 sm:inline-flex"
+              >
+                Logout
+              </button>
+            </>
+          )}
 
-          {/* Center: desktop nav links */}
-          <div className="hidden sm:flex sm:items-center sm:space-x-6">
-            <SignedIn>
-              <NavLink href="/dashboard">Dashboard</NavLink>
-              <NavLink href="/documents">Documents</NavLink>
-              <NavLink href="/cases">Cases</NavLink>
-            </SignedIn>
-          </div>
-
-          {/* Right side: auth */}
-          <div className="flex items-center space-x-3">
-            <SignedOut>
-              <SignInButton mode="modal">
-                <button className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
-                  Sign In
-                </button>
-              </SignInButton>
-            </SignedOut>
-            <SignedIn>
-              <UserButton
-                afterSignOutUrl="/"
-                appearance={{
-                  elements: {
-                    avatarBox: 'h-9 w-9',
-                  },
-                }}
-              />
-            </SignedIn>
-
-            {/* Mobile menu button */}
+          {user && (
             <button
               type="button"
-              className="sm:hidden inline-flex items-center justify-center p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="inline-flex items-center justify-center rounded-xl border border-zinc-800 p-2 text-slate-300 transition-colors hover:border-zinc-700 hover:bg-zinc-900 md:hidden"
+              onClick={() => setMobileMenuOpen((current) => !current)}
               aria-label="Toggle menu"
             >
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 {mobileMenuOpen ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
                 ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6h16M4 12h16M4 18h16" />
                 )}
               </svg>
             </button>
-          </div>
+          )}
         </div>
-
-        {/* Mobile nav menu */}
-        {mobileMenuOpen && (
-          <div className="sm:hidden pb-3 pt-2 space-y-1">
-            <SignedIn>
-              <MobileNavLink href="/dashboard" onClick={() => setMobileMenuOpen(false)}>Dashboard</MobileNavLink>
-              <MobileNavLink href="/documents" onClick={() => setMobileMenuOpen(false)}>Documents</MobileNavLink>
-              <MobileNavLink href="/cases" onClick={() => setMobileMenuOpen(false)}>Cases</MobileNavLink>
-            </SignedIn>
-          </div>
-        )}
       </nav>
+
+      {mobileMenuOpen && user && (
+        <div className="border-t border-zinc-800 bg-zinc-950 px-4 py-4 md:hidden">
+          <div className="space-y-2">
+            {primaryLinks.map((link) => {
+              const isActive = router.pathname === link.href || router.asPath.startsWith(`${link.href}/`);
+              return (
+                <MobileNavLink
+                  key={link.href}
+                  href={link.href}
+                  active={isActive}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {link.label}
+                </MobileNavLink>
+              );
+            })}
+          </div>
+
+          <button
+            type="button"
+            onClick={logout}
+            className="mt-4 inline-flex w-full items-center justify-center rounded-xl border border-zinc-800 px-4 py-3 text-sm font-medium text-slate-300 transition-colors hover:border-zinc-700 hover:bg-zinc-900"
+          >
+            Logout
+          </button>
+        </div>
+      )}
     </header>
   );
 }
 
-function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
+function NavLink({ href, children, active }: { href: string; children: React.ReactNode; active: boolean }) {
   return (
     <Link
       href={href}
-      className="text-sm font-medium text-gray-600 hover:text-primary-700 transition-colors px-1 py-2 border-b-2 border-transparent hover:border-primary-500"
+      className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+        active
+          ? 'bg-zinc-900 text-slate-100 shadow-[inset_0_0_0_1px_rgba(63,63,70,0.9)]'
+          : 'text-zinc-400 hover:bg-zinc-900/80 hover:text-slate-100'
+      }`}
     >
       {children}
     </Link>
   );
 }
 
-function MobileNavLink({ href, children, onClick }: { href: string; children: React.ReactNode; onClick: () => void }) {
+function MobileNavLink({
+  href,
+  children,
+  onClick,
+  active,
+}: {
+  href: string;
+  children: React.ReactNode;
+  onClick: () => void;
+  active: boolean;
+}) {
   return (
     <Link
       href={href}
       onClick={onClick}
-      className="block px-3 py-2 text-base font-medium text-gray-600 hover:text-primary-700 hover:bg-gray-50 rounded-md"
+      className={`block rounded-xl px-4 py-3 text-base font-medium transition-colors ${
+        active ? 'bg-zinc-900 text-slate-100' : 'text-zinc-300 hover:bg-zinc-900 hover:text-slate-100'
+      }`}
     >
       {children}
     </Link>

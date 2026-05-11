@@ -1,53 +1,102 @@
 import Head from 'next/head';
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
-import Layout from '../../components/layout';
 import AuthGuard from '../../components/auth/AuthGuard';
-import api from '../../lib/axios';
+import Layout from '../../components/layout';
+import api, { getApiErrorMessage, normalizeApiPath } from '../../lib/axios';
+
+interface AnalysisDetailResponse {
+  id: string;
+  document_id: string;
+  documentName?: string;
+  document_name?: string;
+  title: string;
+  summary: string;
+  keyArguments?: string[];
+  key_arguments?: string[];
+  requests?: string[];
+  laws?: string[];
+  evidence?: unknown;
+  defense_theses?: string[];
+  generatedDefenseStrategy?: string;
+  generated_defense_strategy?: string;
+  docxDownloadUrl?: string | null;
+  docx_download_url?: string | null;
+}
+
+interface NormalizedAnalysis {
+  id: string;
+  documentId: string;
+  documentName: string;
+  title: string;
+  summary: string;
+  keyArguments: string[];
+  requests: string[];
+  laws: string[];
+  evidence: string[];
+  defenseTheses: string[];
+  generatedDefenseStrategy: string;
+  docxDownloadUrl: string | null;
+}
 
 export default function AnalysisPage() {
   const router = useRouter();
-  const { id } = router.query;
+  const routeId = Array.isArray(router.query.id) ? router.query.id[0] : router.query.id;
 
-  const [analysis, setAnalysis] = useState<any>(null);
+  const [analysis, setAnalysis] = useState<NormalizedAnalysis | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDownloading, setIsDownloading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!id) return;
+    if (!routeId) {
+      return;
+    }
 
     const fetchAnalysis = async () => {
       setIsLoading(true);
       setError('');
+
       try {
-        const response = await api.get(`/analysis/${id}`);
-        setAnalysis(response.data);
-      } catch (err: any) {
-        console.error('Error fetching analysis:', err);
-        setError('Failed to load analysis data.');
+        const response = await api.get<AnalysisDetailResponse>(`/analysis/${routeId}`);
+        setAnalysis(normalizeAnalysis(response.data));
+      } catch (fetchError) {
+        setAnalysis(null);
+        setError(getApiErrorMessage(fetchError, 'Failed to load analysis data.'));
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchAnalysis();
-  }, [id]);
+  }, [routeId]);
 
   const handleDownloadTemplate = async () => {
+    if (!analysis || !routeId || isDownloading) {
+      return;
+    }
+
+    setIsDownloading(true);
+
     try {
-      const response = await api.get(`/templates/${id}/generate`, {
+      const downloadPath = normalizeApiPath(analysis.docxDownloadUrl || `/analysis/${routeId}/docx`);
+      const response = await api.get(downloadPath, {
         responseType: 'blob',
       });
+
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `Defense_Strategy_${id}.docx`);
+      link.setAttribute('download', getFilenameFromHeaders(response.headers['content-disposition'], analysis.id));
       document.body.appendChild(link);
       link.click();
       link.remove();
-    } catch (err) {
-      console.error('Download error:', err);
-      alert('Failed to generate template. Please try again.');
+      window.URL.revokeObjectURL(url);
+    } catch (downloadError) {
+      setError(getApiErrorMessage(downloadError, 'Failed to generate the DOCX defense file.'));
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -57,105 +106,273 @@ export default function AnalysisPage() {
         <Head>
           <title>AI Analysis - SmartLawer</title>
         </Head>
-        
-        <div className="bg-zinc-950 min-h-screen text-slate-300 py-10 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-7xl mx-auto space-y-8 animate-fade-in-up">
-            
-            {/* Header Content */}
+
+        <div className="min-h-[calc(100vh-4rem)] bg-zinc-950 px-4 py-10 text-slate-300 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-7xl">
             {isLoading ? (
-              <div className="py-20 flex justify-center items-center">
-                <div className="animate-pulse text-slate-400 tracking-widest uppercase font-light text-sm">Translating Legalese...</div>
+              <div className="overflow-hidden rounded-[2rem] border border-zinc-800 bg-zinc-900 px-8 py-16 shadow-2xl shadow-black/20">
+                <div className="animate-pulse space-y-5">
+                  <div className="h-3 w-40 rounded bg-zinc-800" />
+                  <div className="h-10 w-3/5 rounded bg-zinc-800" />
+                  <div className="h-4 w-2/5 rounded bg-zinc-800" />
+                  <div className="grid gap-6 pt-8 lg:grid-cols-2">
+                    <div className="space-y-4 rounded-[1.75rem] border border-zinc-800 bg-zinc-950/60 p-6">
+                      <div className="h-5 w-36 rounded bg-zinc-800" />
+                      <div className="h-24 rounded bg-zinc-900" />
+                    </div>
+                    <div className="space-y-4 rounded-[1.75rem] border border-zinc-800 bg-zinc-950/60 p-6">
+                      <div className="h-5 w-44 rounded bg-zinc-800" />
+                      <div className="h-24 rounded bg-zinc-900" />
+                    </div>
+                  </div>
+                </div>
               </div>
             ) : error ? (
-              <div className="py-20 text-center text-rose-400 font-light">{error}</div>
+              <div className="overflow-hidden rounded-[2rem] border border-rose-900/80 bg-rose-950/50 px-8 py-12 shadow-2xl shadow-black/20">
+                <p className="text-xs uppercase tracking-[0.32em] text-rose-300">Analysis unavailable</p>
+                <h1 className="mt-4 text-3xl font-light text-rose-50">We could not open this analysis yet</h1>
+                <p className="mt-4 max-w-2xl text-sm leading-7 text-rose-100/90">{error}</p>
+                <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                  <button
+                    type="button"
+                    onClick={() => router.reload()}
+                    className="inline-flex items-center justify-center rounded-full border border-rose-800 px-5 py-3 text-sm font-medium text-rose-100 transition-colors hover:bg-rose-900/40"
+                  >
+                    Retry fetch
+                  </button>
+                  <Link
+                    href="/dashboard"
+                    className="inline-flex items-center justify-center rounded-full bg-slate-100 px-5 py-3 text-sm font-medium uppercase tracking-[0.24em] text-zinc-950"
+                  >
+                    Back to dashboard
+                  </Link>
+                </div>
+              </div>
             ) : !analysis ? (
-              <div className="py-20 text-center text-slate-500 font-light tracking-wide">Analysis record not found.</div>
+              <div className="overflow-hidden rounded-[2rem] border border-zinc-800 bg-zinc-900 px-8 py-12 shadow-2xl shadow-black/20">
+                <p className="text-xs uppercase tracking-[0.32em] text-zinc-500">No analysis record</p>
+                <h1 className="mt-4 text-3xl font-light text-slate-100">This analysis was not found</h1>
+                <p className="mt-4 max-w-2xl text-sm leading-7 text-zinc-400">
+                  The dashboard may still be waiting for an `analysis_id` from the backend. Return to the queue and refresh the process list.
+                </p>
+                <Link
+                  href="/dashboard"
+                  className="mt-8 inline-flex items-center justify-center rounded-full bg-slate-100 px-5 py-3 text-sm font-medium uppercase tracking-[0.24em] text-zinc-950"
+                >
+                  Back to dashboard
+                </Link>
+              </div>
             ) : (
-              <>
-                <div className="flex flex-col md:flex-row justify-between md:items-end border-b border-zinc-800 pb-6">
-                  <div>
-                    <p className="text-sm font-medium text-blue-400 uppercase tracking-widest mb-2">LangChain Intelligence Panel</p>
-                    <h1 className="text-3xl font-light text-slate-100 tracking-tight">
-                      Analysis Report #{id}
-                    </h1>
-                    <p className="mt-2 text-sm text-zinc-500 font-light truncate max-w-xl">
-                      Source: {analysis.documentName || analysis.title || 'Extracted Document'}
-                    </p>
-                  </div>
-                  <div className="mt-6 md:mt-0">
-                    {/* O botão reluzente final! */}
-                    <button
-                      onClick={handleDownloadTemplate}
-                      className="relative group overflow-hidden px-8 py-3 rounded-lg flex items-center justify-center font-medium tracking-widest uppercase transition-all duration-300 transform hover:-translate-y-1"
-                    >
-                      <span className="absolute inset-0 bg-gradient-to-r from-blue-600 via-emerald-500 to-blue-600 opacity-80 group-hover:opacity-100 transition-opacity duration-300 animate-gradient-x shadow-[0_0_30px_rgba(59,130,246,0.5)] group-hover:shadow-[0_0_50px_rgba(16,185,129,0.8)]"></span>
-                      <span className="absolute inset-0 bg-zinc-900 opacity-20 rounded-lg"></span>
-                      <div className="relative flex items-center text-white drop-shadow-md">
-                        <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                        Generate .DOCX Defense
+              <div className="space-y-8">
+                <section className="overflow-hidden rounded-[2rem] border border-zinc-800 bg-zinc-900 shadow-2xl shadow-black/20">
+                  <div className="border-b border-zinc-800 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.14),_transparent_26%),radial-gradient(circle_at_top_right,_rgba(56,189,248,0.14),_transparent_24%)] px-8 py-10 sm:px-10">
+                    <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+                      <div className="max-w-3xl">
+                        <p className="text-xs uppercase tracking-[0.32em] text-emerald-300">Analysis detail</p>
+                        <h1 className="mt-4 text-3xl font-light tracking-tight text-slate-100 sm:text-4xl">{analysis.title}</h1>
+                        <p className="mt-3 text-sm leading-7 text-zinc-400">
+                          Source document: <span className="text-slate-200">{analysis.documentName}</span>
+                        </p>
                       </div>
-                    </button>
-                  </div>
-                </div>
 
-                {/* Split View */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  
-                  {/* Left Column: Context */}
-                  <div className="space-y-8">
-                    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8 shadow-xl">
-                      <h2 className="text-lg font-medium text-slate-100 uppercase tracking-widest border-b border-zinc-800 pb-4 mb-6">Execution Summary</h2>
-                      <p className="text-slate-400 font-light leading-relaxed">
-                        {analysis.summary || 'Summary is still being compiled or was not provided.'}
-                      </p>
-                    </div>
-
-                    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8 shadow-xl">
-                      <h2 className="text-lg font-medium text-slate-100 uppercase tracking-widest border-b border-zinc-800 pb-4 mb-6">Key Extracted Arguments</h2>
-                      <ul className="space-y-4">
-                        {(analysis.keyArguments || []).map((arg: string, idx: number) => (
-                          <li key={idx} className="flex items-start">
-                            <span className="flex-shrink-0 h-6 w-6 rounded-full bg-blue-900/40 border border-blue-800 flex items-center justify-center text-blue-400 text-xs mr-4 mt-0.5">{idx + 1}</span>
-                            <p className="text-slate-400 font-light">{arg}</p>
-                          </li>
-                        ))}
-                        {(!analysis.keyArguments || analysis.keyArguments.length === 0) && (
-                          <p className="text-zinc-600 font-light italic">No arguments extracted.</p>
-                        )}
-                      </ul>
+                      <div className="flex flex-col gap-3 sm:flex-row">
+                        <Link
+                          href="/dashboard"
+                          className="inline-flex items-center justify-center rounded-full border border-zinc-800 px-5 py-3 text-sm font-medium text-zinc-300 transition-colors hover:border-zinc-700 hover:bg-zinc-900 hover:text-slate-100"
+                        >
+                          Back to queue
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={handleDownloadTemplate}
+                          disabled={isDownloading}
+                          className={`inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-medium uppercase tracking-[0.24em] transition-all ${
+                            isDownloading
+                              ? 'cursor-not-allowed bg-zinc-800 text-zinc-500'
+                              : 'bg-slate-100 text-zinc-950 shadow-[0_0_24px_rgba(255,255,255,0.08)] hover:-translate-y-0.5 hover:shadow-[0_0_36px_rgba(255,255,255,0.14)]'
+                          }`}
+                        >
+                          {isDownloading ? 'Generating DOCX...' : 'Download DOCX defense'}
+                        </button>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Right Column: AI Output */}
-                  <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8 shadow-xl relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none group-hover:bg-blue-500/10 transition-colors duration-500"></div>
-                    <h2 className="text-lg font-medium text-blue-400 uppercase tracking-widest flex items-center pb-4 mb-6 border-b border-zinc-800">
-                      <svg className="w-5 h-5 mr-3 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                      AI Generated Defense Strategy
-                    </h2>
-                    <div className="prose prose-invert max-w-none">
-                      <p className="text-slate-300 font-light leading-loose text-lg border-l-4 border-blue-600/50 pl-6 space-y-4 whitespace-pre-wrap">
-                        {analysis.generatedDefenseStrategy || 'The AI Model has not formulated a defense strategy yet.'}
-                      </p>
+                  <div className="grid gap-8 px-8 py-8 sm:px-10 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+                    <div className="space-y-6">
+                      <Panel title="Execution summary" accent="sky">
+                        <p className="text-sm leading-7 text-slate-300">
+                          {analysis.summary || 'The backend returned an empty summary for this analysis.'}
+                        </p>
+                      </Panel>
+
+                      <Panel title="Requests and arguments" accent="emerald">
+                        <BulletList
+                          items={analysis.keyArguments.length > 0 ? analysis.keyArguments : analysis.requests}
+                          emptyState="No requests or extracted arguments were returned for this analysis."
+                        />
+                      </Panel>
+
+                      <Panel title="Referenced laws" accent="amber">
+                        <BulletList
+                          items={analysis.laws}
+                          emptyState="The backend did not include any law references in this payload."
+                        />
+                      </Panel>
+
+                      <Panel title="Evidence signals" accent="zinc">
+                        <BulletList
+                          items={analysis.evidence}
+                          emptyState="No structured evidence details were returned."
+                        />
+                      </Panel>
                     </div>
 
-                    <div className="mt-12 p-6 bg-zinc-950/50 rounded-xl border border-zinc-800 border-dashed">
-                      <p className="text-sm text-zinc-500 font-mono flex items-center">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 mr-2 animate-ping"></span>
-                        Model: OpenRouter / GPT-4 Turbo
-                      </p>
-                      <p className="text-sm text-zinc-600 font-mono mt-1 ml-4">
-                        Status: Active | Trace ID: {analysis.id || id}
-                      </p>
+                    <div className="space-y-6">
+                      <Panel title="Defense theses" accent="emerald">
+                        <NumberedList
+                          items={analysis.defenseTheses}
+                          emptyState="No defense theses were produced for this analysis."
+                        />
+                      </Panel>
+
+                      <Panel title="Generated defense strategy" accent="sky">
+                        <div className="rounded-[1.5rem] border border-zinc-800 bg-zinc-950/70 p-5">
+                          <p className="whitespace-pre-wrap text-sm leading-8 text-slate-300">
+                            {analysis.generatedDefenseStrategy || 'The backend did not return generated strategy text yet.'}
+                          </p>
+                        </div>
+                      </Panel>
+
+                      <Panel title="Traceability" accent="zinc">
+                        <dl className="grid gap-4 sm:grid-cols-2">
+                          <MetaItem label="Analysis ID" value={analysis.id} />
+                          <MetaItem label="Document ID" value={analysis.documentId} />
+                          <MetaItem label="Download route" value={analysis.docxDownloadUrl || `/analysis/${analysis.id}/docx`} />
+                          <MetaItem label="Source title" value={analysis.title} />
+                        </dl>
+                      </Panel>
                     </div>
                   </div>
-
-                </div>
-              </>
+                </section>
+              </div>
             )}
           </div>
         </div>
       </Layout>
     </AuthGuard>
   );
+}
+
+function normalizeAnalysis(payload: AnalysisDetailResponse): NormalizedAnalysis {
+  return {
+    id: payload.id,
+    documentId: payload.document_id,
+    documentName: payload.documentName || payload.document_name || payload.title,
+    title: payload.title,
+    summary: payload.summary || '',
+    keyArguments: payload.keyArguments || payload.key_arguments || [],
+    requests: payload.requests || [],
+    laws: payload.laws || [],
+    evidence: normalizeEvidence(payload.evidence),
+    defenseTheses: payload.defense_theses || [],
+    generatedDefenseStrategy: payload.generatedDefenseStrategy || payload.generated_defense_strategy || '',
+    docxDownloadUrl: payload.docxDownloadUrl || payload.docx_download_url || null,
+  };
+}
+
+function normalizeEvidence(evidence: unknown) {
+  if (!evidence) {
+    return [];
+  }
+
+  if (Array.isArray(evidence)) {
+    return evidence.map((item) => String(item));
+  }
+
+  if (typeof evidence === 'object') {
+    return Object.entries(evidence as Record<string, unknown>).map(([key, value]) => `${key}: ${String(value)}`);
+  }
+
+  return [String(evidence)];
+}
+
+function Panel({
+  title,
+  children,
+  accent,
+}: {
+  title: string;
+  children: React.ReactNode;
+  accent: 'sky' | 'emerald' | 'amber' | 'zinc';
+}) {
+  const accentClass = {
+    sky: 'text-sky-300',
+    emerald: 'text-emerald-300',
+    amber: 'text-amber-300',
+    zinc: 'text-zinc-300',
+  }[accent];
+
+  return (
+    <section className="rounded-[1.75rem] border border-zinc-800 bg-zinc-900/70 p-6 shadow-xl shadow-black/10">
+      <div className="mb-5 flex items-center justify-between border-b border-zinc-800 pb-4">
+        <h2 className={`text-sm font-medium uppercase tracking-[0.28em] ${accentClass}`}>{title}</h2>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function BulletList({ items, emptyState }: { items: string[]; emptyState: string }) {
+  if (items.length === 0) {
+    return <p className="text-sm leading-7 text-zinc-500">{emptyState}</p>;
+  }
+
+  return (
+    <ul className="space-y-3">
+      {items.map((item, index) => (
+        <li key={`${item}-${index}`} className="flex items-start gap-3 text-sm leading-7 text-slate-300">
+          <span className="mt-2 inline-flex h-2.5 w-2.5 flex-shrink-0 rounded-full bg-sky-400" />
+          <span>{item}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function NumberedList({ items, emptyState }: { items: string[]; emptyState: string }) {
+  if (items.length === 0) {
+    return <p className="text-sm leading-7 text-zinc-500">{emptyState}</p>;
+  }
+
+  return (
+    <ol className="space-y-4">
+      {items.map((item, index) => (
+        <li key={`${item}-${index}`} className="flex items-start gap-4">
+          <span className="inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border border-emerald-800 bg-emerald-900/30 text-xs font-medium text-emerald-300">
+            {index + 1}
+          </span>
+          <span className="text-sm leading-7 text-slate-300">{item}</span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function MetaItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4">
+      <dt className="text-xs uppercase tracking-[0.28em] text-zinc-500">{label}</dt>
+      <dd className="mt-2 break-all text-sm leading-7 text-slate-300">{value}</dd>
+    </div>
+  );
+}
+
+function getFilenameFromHeaders(contentDisposition: string | undefined, fallbackId: string) {
+  const match = contentDisposition?.match(/filename="?([^"]+)"?/i);
+  if (match?.[1]) {
+    return match[1];
+  }
+
+  return `Defense_${fallbackId}.docx`;
 }
