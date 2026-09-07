@@ -15,12 +15,15 @@ def create_user_endpoint(
     """
     Create new user.
     """
-    user = crud.get_user_by_email(db, email=user_in.email)
-    if user:
+    existing_email = crud.get_user_by_email(db, email=user_in.email)
+    if existing_email:
         raise HTTPException(
             status_code=400,
-            detail="The user with this username already exists in the system.",
+            detail="A user with this email already exists.",
         )
+    existing_username = crud.get_user_by_username(db, username=user_in.username)
+    if existing_username:
+        raise HTTPException(status_code=400, detail="A user with this username already exists.")
     return crud.create_user(db, user=user_in)
 
 @router.get("/me", response_model=UserResponse)

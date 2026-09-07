@@ -100,3 +100,17 @@ This file is append-only. Add one short entry per landed worker or coordinator m
 - Follow-up carried forward:
   - BL-007 still needs a real DOCX runtime download check
   - BL-010 still needs the integrated manual smoke execution
+
+## 2026-09-07
+
+### A1 landed — pgvector migration + document_chunks table (Onda A RAG)
+
+- Scope: vector foundation for legal RAG; no retrieval/generation yet
+- Workspace impact:
+  - new `document_chunks` table: `document_id` (CASCADE), `user_id` tenant FK, `matter_id`, `chunk_index`, `content`, pages, token count, `embedding VECTOR(1536)`, `embedding_model/_version`, HNSW cosine index + tenant/matter indexes
+  - alembic `20260407_0001 -> 20260907_0001` renders offline-verified SQL (`CREATE EXTENSION vector`, `VECTOR(1536)`, `USING hnsw ... vector_cosine_ops`)
+  - `db` image `postgres:15-alpine -> pgvector/pgvector:pg15`; `pgvector==0.5.0` pinned; embedding settings in `config.py`
+  - `REQUIRED_TABLES` repair covers `document_chunks`; sqlite tests map `VECTOR -> JSON`
+  - suite: `18 passed` (12 existing + 6 new in `tests/test_document_chunks.py`: DDL, CRUD/ordering, tenant isolation)
+- Follow-up carried forward:
+  - A2 Docling ingestion writing into `document_chunks`; live pgvector validation needs Docker daemon running (was down on dev machine)

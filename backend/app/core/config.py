@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = ""
     OPENROUTER_API_KEY: str = ""
     AI_PROVIDER: str = "openai" # 'openai' or 'openrouter'
+    EMBEDDING_MODEL: str = "text-embedding-3-small"
+    EMBEDDING_MODEL_VERSION: str = "v1"
+    EMBEDDING_DIMENSIONS: int = 1536
 
     model_config = SettingsConfigDict(
         env_file=".env",

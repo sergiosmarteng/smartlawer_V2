@@ -1,6 +1,6 @@
 # SmartLawer V2 API Contract Snapshot
 
-Last updated: 2026-05-11
+Last updated: 2026-05-12
 Purpose: capture the current workspace contract between frontend routes and backend API routes for the stabilization effort.
 
 ## Current Workflow Summary
@@ -12,6 +12,7 @@ Purpose: capture the current workspace contract between frontend routes and back
 - Analysis detail reads `GET /analysis/{analysis_id}` and downloads DOCX from `GET /analysis/{analysis_id}/docx`.
 - Backend analysis and DOCX routes currently accept either `analysis_id` or the originating `document_id`.
 - Legacy DOCX compatibility still exists at `GET /templates/{analysis_id}/generate`.
+- The active ingestion worker does not use Docling and does not convert uploaded PDFs into markdown before AI analysis.
 
 ## Auth And Session
 
@@ -48,6 +49,7 @@ Frontend session behavior in the current workspace:
   - `docxDownloadUrl`
 - The stabilized response now returns both `id` and `task_id`; both currently point to the document UUID.
 - Frontend currently relies only on the returned `id` for polling.
+- The route only accepts `application/pdf`, stores the original PDF on disk, and hands that file path to the background worker.
 
 ### Task Status
 
@@ -58,6 +60,14 @@ Frontend session behavior in the current workspace:
   - `FAILED`
 - Frontend also tolerates `STARTED`, `RETRY`, `SUCCESS`, `DONE`, `FAILURE`, and `ERROR`.
 - `analysis_id` is the handoff point from polling to the analysis page.
+
+### Extraction And AI Input
+
+- `process_pdf_task` is the active ingestion worker.
+- The worker currently calls `PDFExtractor.extract_text(file_path=file_path)` and receives a plain string.
+- `PDFExtractor` uses PyMuPDF text extraction first and Tesseract OCR as fallback for low-text pages.
+- That plain extracted text is passed directly to `LegalAnalyzer.analyze_petition(text)`.
+- No Docling adapter, markdown conversion step, or persisted `structured_markdown` field exists in the active code path.
 
 ### Process List
 
@@ -92,3 +102,4 @@ Frontend session behavior in the current workspace:
 - BL-006 may tighten the analysis payload and remove some camel/snake fallback handling once the shape is stable.
 - BL-008 reported that sensitive workflow and template routes are protected; keep that assumption unless route registration changes again.
 - The shared Axios 401/403 handler still clears `localStorage` but does not yet clear the mirrored auth cookie; BL-001 called this out as a follow-up.
+- Docling remains a planned integration, not a current capability. See `docs/coordination/docling-status.md` for the current assessment and the minimum viable integration recommendation.

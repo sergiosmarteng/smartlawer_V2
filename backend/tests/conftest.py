@@ -220,7 +220,7 @@ from app.api import deps
 from app.core.database import Base
 from app.core.security import create_access_token, get_password_hash
 from app.main import app
-from app.models import Analysis, Document, Template, User  # noqa: F401
+from app.models import Analysis, Document, DocumentChunk, Template, User  # noqa: F401
 
 
 class GUID(TypeDecorator):
@@ -248,6 +248,9 @@ for table in Base.metadata.tables.values():
         if type_name == "UUID":
             column.type = GUID()
         elif type_name == "JSONB":
+            column.type = JSON()
+        elif type_name in ("Vector", "VECTOR"):
+            # pgvector has no sqlite equivalent; store test embeddings as JSON.
             column.type = JSON()
 
 
