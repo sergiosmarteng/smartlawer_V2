@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     EMBEDDING_MODEL: str = "text-embedding-3-small"
     EMBEDDING_MODEL_VERSION: str = "v1"
     EMBEDDING_DIMENSIONS: int = 1536
+    DOCLING_ENABLED: bool = False
 
     model_config = SettingsConfigDict(
         env_file=".env",

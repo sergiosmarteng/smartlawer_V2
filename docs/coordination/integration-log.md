@@ -114,3 +114,16 @@ This file is append-only. Add one short entry per landed worker or coordinator m
   - suite: `18 passed` (12 existing + 6 new in `tests/test_document_chunks.py`: DDL, CRUD/ordering, tenant isolation)
 - Follow-up carried forward:
   - A2 Docling ingestion writing into `document_chunks`; live pgvector validation needs Docker daemon running (was down on dev machine)
+
+### A2 landed — Docling ingestion feature-flagged (Onda A RAG)
+
+- Source: `reports/worker-a2-docling.md`
+- Scope: BL-016 + issue #14; minimum viable Docling per `docling-status.md`
+- Workspace impact:
+  - `DoclingExtractor.extract_markdown()` (lazy singleton, never raises) wired via `prepare_analysis_input()`: markdown wins when `DOCLING_ENABLED=1`, else `raw_text` fallback
+  - `documents.raw_text` + `structured_markdown` persisted (migration `20260907_0002`)
+  - `docling==2.94.0` pinned; Dockerfile gains `tesseract-ocr-por/-eng`
+  - suite: `24 passed` (18 before + 6 new); real-converter validation passed on dev machine
+  - docs: `docling-status.md`, `api-contract.md`, `backlog.md` BL-016 → completed
+- Follow-up carried forward:
+  - A3 chunker + embedding service to fill `document_chunks`; live Docker/pgvector validation still pending

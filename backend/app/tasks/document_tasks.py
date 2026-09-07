@@ -2,7 +2,9 @@ import logging
 from datetime import datetime, timezone
 
 from app.core.ai_engine import LegalAnalyzer
+from app.core.config import settings
 from app.core.database import SessionLocal
+from app.core.docling_extractor import extract_markdown as docling_extract_markdown
 from app.core.pdf_processor import PDFExtractor
 from app.crud.document import get_document, update_document_state
 from app.models.analysis import Analysis
@@ -10,6 +12,50 @@ from app.models.document import Document
 from app.worker import celery_app
 
 logger = logging.getLogger(__name__)
+
+
+def prepare_analysis_input(document_id: str, file_path: str, raw_text: str) -> str:
+    """Return the text the AI should analyze, persisting extraction outputs.
+
+    Rule (docling-status.md minimum viable integration):
+    - Docling success (flag on) -> analyze ``structured_markdown``
+    - Docling failure or disabled -> analyze ``raw_text`` from PDFExtractor
+    Docling never fails the task: any error means fallback to raw text.
+    """
+    db = SessionLocal()
+    try:
+        markdown = None
+        if settings.DOCLING_ENABLED:
+            update_document_state(
+                db,
+                id=document_id,
+                status=Document.STATUS_PROCESSING,
+                status_detail="Converting PDF to structured markdown",
+                error_message=None,
+            )
+            try:
+                markdown = docling_extract_markdown(file_path)
+            except Exception as exc:
+                # The adapter contract is to never raise, but the task
+                # must survive even if that contract is ever broken.
+                logger.warning(
+                    "Docling falhou para %s (%s); usando raw_text.", document_id, exc
+                )
+                markdown = None
+
+        doc = get_document(db, id=document_id)
+        if doc is not None:
+            doc.raw_text = raw_text
+            doc.structured_markdown = markdown
+            db.commit()
+
+        if markdown:
+            logger.info("Documento %s: analisando via structured_markdown.", document_id)
+            return markdown
+        logger.info("Documento %s: analisando via raw_text.", document_id)
+        return raw_text
+    finally:
+        db.close()
 
 
 @celery_app.task(bind=True, max_retries=3)
@@ -27,6 +73,8 @@ def process_pdf_task(self, document_id: str, file_path: str):
 
         raw_text = PDFExtractor.extract_text(file_path=file_path)
 
+        analysis_text = prepare_analysis_input(document_id, file_path, raw_text)
+
         update_document_state(
             db,
             id=document_id,
@@ -37,7 +85,7 @@ def process_pdf_task(self, document_id: str, file_path: str):
 
         analyzer = LegalAnalyzer()
         try:
-            ai_data = analyzer.analyze_petition(raw_text)
+            ai_data = analyzer.analyze_petition(analysis_text)
 
             doc = get_document(db, id=document_id)
             if doc and not doc.analysis:

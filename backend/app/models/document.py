@@ -24,6 +24,8 @@ class Document(Base):
     status = Column(String(50), default=STATUS_UPLOADED)
     status_detail = Column(String(255), nullable=True)
     error_message = Column(Text, nullable=True)
+    raw_text = Column(Text, nullable=True)
+    structured_markdown = Column(Text, nullable=True)
     uploaded_at = Column(DateTime(timezone=True), default=datetime.now(timezone.utc))
     updated_at = Column(
         DateTime(timezone=True),

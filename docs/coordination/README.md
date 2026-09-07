@@ -24,6 +24,7 @@ This folder is the shared execution surface for the SmartLawer V2 stabilization 
 3. Do not rewrite or delete another worker's report.
 4. Keep reports practical: scope, files, decisions, validation, handoff.
 5. If you change contract behavior, update or request an update to `api-contract.md`.
+6. **Commit local obrigatório ao concluir cada etapa (mínimo):** código + testes verdes + docs da etapa em um commit local no repo correspondente. Sem push — push somente quando o usuário pedir explicitamente.
 
 ## Coordinator Rules
 

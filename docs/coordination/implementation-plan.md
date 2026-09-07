@@ -32,12 +32,14 @@ Each new agent should follow this handoff sequence before starting:
 3. Read the worker report(s) referenced by the backlog item being picked up.
 4. Read `docs/coordination/acceptance-matrix.md` if the task closes or re-validates a stabilization item.
 5. Write a new report under `docs/coordination/reports/` using `reports/TEMPLATE.md`.
+6. **Commit local ao concluir a etapa (obrigatório, mínimo):** código + testes verdes + docs em commit local; sem push salvo pedido explícito do usuário.
 
 Expected coordination behavior:
 
 - Prefer one agent per backlog item or tightly coupled pair of items.
 - When one agent finishes, the next agent should start from the previous report instead of re-discovering context.
 - Any task that changes public workflow behavior must also refresh the relevant coordination docs before handoff.
+- No stage is "done" without its local commit (rule 6 above); the commit hash goes into the worker report and `integration-log.md`.
 
 ## Phase 1: Pilot Closure And Runtime Proof
 

@@ -18,6 +18,7 @@ openai==1.30.5
 langchain==0.2.1
 langchain-openai==0.1.7
 pgvector==0.5.0
+docling==2.94.0
 docxtpl==0.16.8
 python-docx==1.1.2
 pytest==8.3.5

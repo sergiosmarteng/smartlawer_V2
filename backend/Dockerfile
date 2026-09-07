@@ -4,7 +4,7 @@ WORKDIR /app
 
 # Install system dependencies required for some python packages and OCR
 RUN apt-get update \
-    && apt-get install -y ca-certificates gcc libpq-dev tesseract-ocr libtesseract-dev \
+    && apt-get install -y ca-certificates gcc libpq-dev tesseract-ocr libtesseract-dev tesseract-ocr-por tesseract-ocr-eng \
     && update-ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 

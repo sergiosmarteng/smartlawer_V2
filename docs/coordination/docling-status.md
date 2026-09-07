@@ -1,13 +1,14 @@
 # Docling Status
 
-Last updated: 2026-05-12
+Last updated: 2026-09-07 (A2 landed)
 Purpose: capture the current SmartLawer workspace state for Docling and markdown conversion before AI analysis.
 
 ## Verdict
 
-- Docling implemented in the active code path: `No`
-- Uploaded/imported files converted to `.md` before AI analysis: `No`
-- Active ingestion path today: `POST /api/v1/documents/upload -> process_pdf_task -> PDFExtractor.extract_text() -> LegalAnalyzer.analyze_petition(raw_text)`
+- Docling implemented in the active code path: `Yes (feature-flagged, default OFF)`
+- Uploaded/imported files converted to `.md` before AI analysis: `Yes, when DOCLING_ENABLED=1`
+- Active ingestion path today: `POST /api/v1/documents/upload -> process_pdf_task -> PDFExtractor.extract_text() -> prepare_analysis_input() [Docling markdown if enabled] -> LegalAnalyzer.analyze_petition(markdown or raw)`
+- Live validation: real `DocumentConverter` conversion proven on dev machine 2026-09-07 (test PDF -> 114 chars markdown). Full-suite: `24 passed`.
 
 ## Current Code Path
 
@@ -28,10 +29,9 @@ Purpose: capture the current SmartLawer workspace state for Docling and markdown
 - No `docling` dependency in the backend runtime requirements.
   - Evidence: `backend/requirements.txt`
 - No Docling adapter, service client, feature flag, or markdown persistence field in the active backend code.
-  - Evidence: repository search for `docling`, `structured_markdown`, `to_markdown`, and `markdown_content` returned no active backend implementation.
+  - Evidence: SUPERSEDED by A2 — see `backend/app/core/docling_extractor.py`, `Document.raw_text/structured_markdown`, migration `20260907_0002`.
 - No model field for persisted markdown output in the current `Document` or `Analysis` tables.
-  - Evidence: `backend/app/models/document.py:1-31`
-  - Evidence: `backend/app/models/analysis.py:1-18`
+  - Evidence: SUPERSEDED by A2 — `documents.raw_text` + `documents.structured_markdown` added.
 
 ## Current Behavior
 

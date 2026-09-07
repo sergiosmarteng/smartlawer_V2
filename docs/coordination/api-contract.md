@@ -12,7 +12,8 @@ Purpose: capture the current workspace contract between frontend routes and back
 - Analysis detail reads `GET /analysis/{analysis_id}` and downloads DOCX from `GET /analysis/{analysis_id}/docx`.
 - Backend analysis and DOCX routes currently accept either `analysis_id` or the originating `document_id`.
 - Legacy DOCX compatibility still exists at `GET /templates/{analysis_id}/generate`.
-- The active ingestion worker does not use Docling and does not convert uploaded PDFs into markdown before AI analysis.
+- The active ingestion worker uses Docling markdown when `DOCLING_ENABLED=1`, else raw text, and persists both.
+- `process_pdf_task` calls `PDFExtractor.extract_text()` then `prepare_analysis_input()`: Docling markdown wins when available, `raw_text` is the fallback; both land on `documents.raw_text` / `documents.structured_markdown`.
 
 ## Auth And Session
 
@@ -64,10 +65,9 @@ Frontend session behavior in the current workspace:
 ### Extraction And AI Input
 
 - `process_pdf_task` is the active ingestion worker.
-- The worker currently calls `PDFExtractor.extract_text(file_path=file_path)` and receives a plain string.
-- `PDFExtractor` uses PyMuPDF text extraction first and Tesseract OCR as fallback for low-text pages.
-- That plain extracted text is passed directly to `LegalAnalyzer.analyze_petition(text)`.
-- No Docling adapter, markdown conversion step, or persisted `structured_markdown` field exists in the active code path.
+- The worker calls `PDFExtractor.extract_text(file_path=file_path)` and receives a plain string, then `prepare_analysis_input()` tries Docling markdown when `DOCLING_ENABLED=1`.
+- `PDFExtractor` uses PyMuPDF text extraction first and Tesseract OCR as fallback for low-text pages (Docker now ships `tesseract-ocr-por` + `-eng`).
+- The persisted `documents.raw_text` and `documents.structured_markdown` feed `LegalAnalyzer.analyze_petition(markdown or raw_text)`.
 
 ### Process List
 
