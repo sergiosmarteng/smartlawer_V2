@@ -127,3 +127,14 @@ This file is append-only. Add one short entry per landed worker or coordinator m
   - docs: `docling-status.md`, `api-contract.md`, `backlog.md` BL-016 → completed
 - Follow-up carried forward:
   - A3 chunker + embedding service to fill `document_chunks`; live Docker/pgvector validation still pending
+
+### A3 landed — hybrid retrieval (Onda A RAG)
+
+- Source: `reports/worker-a3-retrieval.md`
+- Scope: issue #15; chunker jurídico + embeddings + híbrido vetor/FTS/RRF + rerank opcional
+- Workspace impact:
+  - `legal_chunker` (Art./§/Súmula-aware, 1000/150 tokens), `embeddings` (OpenAI batch, skip sem chave), `retrieval.hybrid_search` (tenant pré-filtrado + dupla barreira, FTS-only fallback)
+  - worker indexa chunks idempotente após COMPLETED, sem nunca falhar o task
+  - migração `20260907_0003` (GIN FTS português); `cohere==7.1.1`; suite: `39 passed` (24 antes + 15 novos)
+- Follow-up carried forward:
+  - A4 chat SSE + UI citações; live pgvector/FTS/Cohere pendente de Docker + chaves

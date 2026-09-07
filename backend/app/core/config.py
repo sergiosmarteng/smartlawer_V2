@@ -13,7 +13,14 @@ class Settings(BaseSettings):
     EMBEDDING_MODEL: str = "text-embedding-3-small"
     EMBEDDING_MODEL_VERSION: str = "v1"
     EMBEDDING_DIMENSIONS: int = 1536
+    EMBEDDING_BATCH_SIZE: int = 64
     DOCLING_ENABLED: bool = False
+    RETRIEVAL_CANDIDATE_K: int = 30
+    RETRIEVAL_TOP_K: int = 6
+    RRF_K: int = 60
+    RERANK_ENABLED: bool = False
+    COHERE_API_KEY: str = ""
+    COHERE_RERANK_MODEL: str = "rerank-3"
 
     model_config = SettingsConfigDict(
         env_file=".env",

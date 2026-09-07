@@ -5,10 +5,13 @@ from app.core.ai_engine import LegalAnalyzer
 from app.core.config import settings
 from app.core.database import SessionLocal
 from app.core.docling_extractor import extract_markdown as docling_extract_markdown
+from app.core.embeddings import embed_texts
+from app.core.legal_chunker import chunk_legal_text
 from app.core.pdf_processor import PDFExtractor
 from app.crud.document import get_document, update_document_state
 from app.models.analysis import Analysis
 from app.models.document import Document
+from app.models.document_chunk import DocumentChunk
 from app.worker import celery_app
 
 logger = logging.getLogger(__name__)
@@ -54,6 +57,52 @@ def prepare_analysis_input(document_id: str, file_path: str, raw_text: str) -> s
             return markdown
         logger.info("Documento %s: analisando via raw_text.", document_id)
         return raw_text
+    finally:
+        db.close()
+
+
+def index_document_chunks(document_id: str, analysis_text: str) -> int:
+    """Chunk + embed *analysis_text* into ``document_chunks``.
+
+    Idempotent: existing chunks for the document are replaced. Returns
+    the number of chunks stored (0 when embeddings are unavailable).
+    Raises on unexpected errors — the caller must guard the task.
+    """
+    chunks = chunk_legal_text(analysis_text)
+    if not chunks:
+        return 0
+
+    vectors = embed_texts([c.content for c in chunks])
+    if not vectors:
+        logger.warning(
+            "Documento %s: embeddings indisponiveis; chunks nao indexados.",
+            document_id,
+        )
+        return 0
+
+    db = SessionLocal()
+    try:
+        doc = get_document(db, id=document_id)
+        if doc is None:
+            return 0
+        db.query(DocumentChunk).filter(
+            DocumentChunk.document_id == doc.id
+        ).delete()
+        for chunk, vector in zip(chunks, vectors):
+            db.add(
+                DocumentChunk(
+                    document_id=doc.id,
+                    user_id=doc.user_id,
+                    chunk_index=chunk.chunk_index,
+                    content=chunk.content,
+                    token_count=chunk.token_count,
+                    embedding=vector,
+                    embedding_model=settings.EMBEDDING_MODEL,
+                    embedding_model_version=settings.EMBEDDING_MODEL_VERSION,
+                )
+            )
+        db.commit()
+        return len(chunks)
     finally:
         db.close()
 
@@ -121,6 +170,14 @@ def process_pdf_task(self, document_id: str, file_path: str):
             error_message=None,
             completed_at=datetime.now(timezone.utc),
         )
+
+        try:
+            index_document_chunks(document_id, analysis_text)
+        except Exception as exc:
+            # Vector indexing must never fail the whole task.
+            logger.warning(
+                "Indexacao vetorial falhou para %s (%s); seguindo.", document_id, exc
+            )
     except Exception as exc:
         logger.exception("Erro em process_pdf_task: %s", exc)
         db.rollback()
