@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     RERANK_ENABLED: bool = False
     COHERE_API_KEY: str = ""
     COHERE_RERANK_MODEL: str = "rerank-3"
+    CHAT_MODEL: str = "gpt-4-turbo"
 
     model_config = SettingsConfigDict(
         env_file=".env",

@@ -121,6 +121,7 @@ def hybrid_search(
     query_embedding: list[float] | None,
     top_k: int | None = None,
     candidate_k: int | None = None,
+    document_id: UUID | str | None = None,
 ) -> list:
     """Return top fused :class:`DocumentChunk` rows for a tenant query.
 
@@ -156,14 +157,13 @@ def hybrid_search(
 
     # Rerank pool: top fused candidates, re-ordered to top_k.
     pool_ids = fused_ids[: max(candidate_k, top_k)]
-    rows = (
-        db.query(DocumentChunk)
-        .filter(
-            DocumentChunk.user_id == user_id,
-            DocumentChunk.id.in_(pool_ids),
-        )
-        .all()
-    )
+    filters = [
+        DocumentChunk.user_id == user_id,
+        DocumentChunk.id.in_(pool_ids),
+    ]
+    if document_id is not None:
+        filters.append(DocumentChunk.document_id == document_id)
+    rows = db.query(DocumentChunk).filter(*filters).all()
     by_id = {str(row.id): row for row in rows}
     # Second tenant barrier (defense in depth): only rows that came back
     # through the tenant-filtered query can proceed.

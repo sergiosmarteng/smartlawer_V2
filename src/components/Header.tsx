@@ -10,6 +10,7 @@ interface HeaderProps {
 const primaryLinks = [
   { href: '/dashboard', label: 'Dashboard' },
   { href: '/upload', label: 'New Analysis' },
+  { href: '/chat', label: 'Legal Chat' },
   { href: '/user-profile', label: 'Profile' },
 ];
 
@@ -79,7 +80,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
               </div>
               <button
                 type="button"
-                onClick={logout}
+                onClick={() => logout()}
                 className="hidden rounded-full border border-zinc-800 px-4 py-2 text-sm font-medium text-slate-300 transition-colors hover:border-zinc-700 hover:bg-zinc-900 sm:inline-flex"
               >
                 Logout
@@ -126,7 +127,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
 
           <button
             type="button"
-            onClick={logout}
+            onClick={() => logout()}
             className="mt-4 inline-flex w-full items-center justify-center rounded-xl border border-zinc-800 px-4 py-3 text-sm font-medium text-slate-300 transition-colors hover:border-zinc-700 hover:bg-zinc-900"
           >
             Logout

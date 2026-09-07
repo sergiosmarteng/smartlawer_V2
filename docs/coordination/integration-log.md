@@ -138,3 +138,15 @@ This file is append-only. Add one short entry per landed worker or coordinator m
   - migração `20260907_0003` (GIN FTS português); `cohere==7.1.1`; suite: `39 passed` (24 antes + 15 novos)
 - Follow-up carried forward:
   - A4 chat SSE + UI citações; live pgvector/FTS/Cohere pendente de Docker + chaves
+
+### A4 landed — grounded chat com citações (Onda A RAG)
+
+- Source: `reports/worker-a4-chat.md`
+- Scope: issue #16; `POST /api/v1/chat` + `/chat/stream` (SSE), tenant do JWT, `document_id` opcional validado
+- Workspace impact:
+  - `rag_answer` grounded (`[N]` obrigatório, fallback "não encontrei"); citações estruturadas com página/excerpt
+  - frontend `/chat` streaming + fontes clicáveis → `/analysis/{id}`; nav + middleware atualizados
+  - suite: `47 passed` (39 antes + 8 novos); `tsc` limpo; eslint limpo nos alterados
+  - fix incidental: 2 erros TS2322 pré-existentes no Header (`logout` handler)
+- Follow-up carried forward:
+  - A5 golden + RAGAS; live LLM/SSE com chave real; `npm run lint` full trava no ambiente

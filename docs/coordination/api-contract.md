@@ -39,6 +39,8 @@ Frontend session behavior in the current workspace:
 | `/dashboard` | `GET` | `/api/v1/processes` | `id`, `title`, `status`, optional `analysis_id`, `status_detail` | Implemented in backend and consumed in frontend |
 | `/analysis/[id]` | `GET` | `/api/v1/analysis/{analysis_id}` | `id`, `documentName`, `summary`, `keyArguments`, `requests`, `laws`, `defense_theses`, `generatedDefenseStrategy`, `docxDownloadUrl` | Implemented in backend and consumed in frontend |
 | `/analysis/[id]` download | `GET` | `/api/v1/analysis/{analysis_id}/docx` | DOCX file response | Implemented in backend and consumed in frontend |
+| `/chat` | `POST` | `/api/v1/chat` | `{ answer, citations[{ref, chunk_id, document_id, document_name, page_start, excerpt}], model }` | Implemented (A4); 503 without AI key |
+| `/chat` streaming | `POST` | `/api/v1/chat/stream` | SSE `token` frames + final `done` with `citations` | Implemented (A4); tenant from JWT, optional `document_id` scope (404 cross-user) |
 | compatibility only | `GET` | `/api/v1/templates/{analysis_id}/generate` | DOCX file response | Keep until callers are fully migrated |
 
 ## Response Shape Notes
