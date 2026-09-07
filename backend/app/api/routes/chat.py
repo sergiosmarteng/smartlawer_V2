@@ -95,7 +95,14 @@ def chat_stream(
                     "token": "Nao encontrei fundamento nos seus documentos para responder a essa pergunta."
                 }
             )
-            yield _sse({"done": True, "citations": []})
+            yield _sse(
+                {
+                    "done": True,
+                    "citations": [],
+                    "ai_draft": True,
+                    "requires_human_review": True,
+                }
+            )
             return
         contexts = [(str(c.id), c.content) for c in chunks]
         prompt = rag_answer.build_grounded_prompt(payload.query, contexts)
@@ -106,7 +113,14 @@ def chat_stream(
             logger.exception("Falha no streaming para %s: %s", current_user.id, exc)
             yield _sse({"error": "Falha ao gerar resposta"})
             return
-        yield _sse({"done": True, "citations": citations})
+        yield _sse(
+            {
+                "done": True,
+                "citations": citations,
+                "ai_draft": True,
+                "requires_human_review": True,
+            }
+        )
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
 

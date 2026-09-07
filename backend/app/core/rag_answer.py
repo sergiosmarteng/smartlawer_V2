@@ -112,6 +112,8 @@ def answer_query(
             "answer": "Nao encontrei fundamento nos seus documentos para responder a essa pergunta.",
             "citations": [],
             "model": settings.CHAT_MODEL,
+            "ai_draft": True,
+            "requires_human_review": True,
         }
     contexts = [(str(c.id), c.content) for c in chunks]
     prompt = build_grounded_prompt(query, contexts)
@@ -120,6 +122,8 @@ def answer_query(
         "answer": answer,
         "citations": _to_citations(chunks),
         "model": model,
+        "ai_draft": True,
+        "requires_human_review": True,
     }
 
 

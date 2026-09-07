@@ -86,6 +86,8 @@ def test_chat_returns_grounded_answer_with_citations(
     assert response.status_code == 200
     payload = response.json()
     assert payload["answer"] == "O prazo e de 15 dias [1]."
+    assert payload["ai_draft"] is True
+    assert payload["requires_human_review"] is True
     assert len(payload["citations"]) == 1
     citation = payload["citations"][0]
     assert citation["ref"] == "[1]"

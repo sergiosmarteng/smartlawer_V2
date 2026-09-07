@@ -1,7 +1,7 @@
 """Tests for A1: pgvector document_chunks table (Onda A - RAG)."""
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import MetaData
+from sqlalchemy import Index, MetaData
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.schema import CreateIndex, CreateTable
 
@@ -20,6 +20,14 @@ def _pg_table():
         source.to_metadata(metadata)
     table = metadata.tables["document_chunks"]
     table.c.embedding.type = Vector(1536)
+    # conftest strips HNSW for test backends; restore it here to prove
+    # the production DDL renders (mirrors DocumentChunk.__table_args__).
+    Index(
+        "ix_document_chunks_embedding_hnsw",
+        table.c.embedding,
+        postgresql_using="hnsw",
+        postgresql_ops={"embedding": "vector_cosine_ops"},
+    )
     return table
 
 

@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:15
+        image: pgvector/pgvector:pg15
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -50,3 +50,4 @@ jobs:
       - run: pip install -r backend/requirements.txt
       - run: PGPASSWORD=postgres psql -h localhost -U postgres -d smartlawer -c "CREATE DATABASE smartlawer_test;"
       - run: pytest backend/tests
+      - run: python backend/evals/run_gate.py

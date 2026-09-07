@@ -1,0 +1,18 @@
+{
+  "version": "v1",
+  "notes": "Corpus fixture A5: trechos sintéticos que fundamentam os itens g01-g24 do golden set. Nenhum trecho cobre os itens a01-a06.",
+  "chunks": [
+    {"id": "c01", "content": "PETIÇÃO INICIAL. I - DOS FATOS. O autor alega inadimplemento contratual ocorrido em janeiro, com cobranças indevidas em fatura."},
+    {"id": "c02", "content": "Art. 1 O contrato firmado entre as partes estabelece o pagamento mensal até o dia dez. Parágrafo único. O atraso superior a trinta dias autoriza a rescisão motivada."},
+    {"id": "c03", "content": "Art. 2 Em caso de cobrança indevida, o valor deve ser restituído em dobro ao consumidor. O parágrafo anterior aplica-se inclusive aos encargos acessórios da fatura."},
+    {"id": "c04", "content": "II - DOS PEDIDOS. Requer a condenação da ré ao pagamento de dez mil reais por danos materiais e morais."},
+    {"id": "c05", "content": "CONTESTAÇÃO. Preliminarmente, argui-se carência de ação por falta de interesse de agir. No mérito, sustenta-se a inexistência do débito e a regularidade da cobrança indevida questionada."},
+    {"id": "c06", "content": "A ré requer a total improcedência dos pedidos, a produção de provas por extratos que demonstram o pagamento adimplente, e o julgamento antecipado da lide."},
+    {"id": "c07", "content": "DAS PROVAS. O autor anexa o contrato assinado, as faturas do período e os comprovantes de pagamento que evidenciam o inadimplemento."},
+    {"id": "c08", "content": "DO DIREITO. Aplica-se o Código de Defesa do Consumidor, Lei 8.078, cujo artigo 42 garante a repetição do indébito em dobro."},
+    {"id": "c09", "content": "O prazo para contestação é de 15 dias, nos termos do artigo 335 do CPC, contados da juntada do mandado cumprido."},
+    {"id": "c10", "content": "DOS DANOS MORAIS. A cobrança indevida reiterada supera o mero aborrecimento e enseja indenização por danos morais."},
+    {"id": "c11", "content": "DOS HONORÁRIOS. Requer-se a condenação do autor ao pagamento de honorários de sucumbência em caso de improcedência."},
+    {"id": "c12", "content": "As partes são o autor consumidor e a ré fornecedora, vinculados pelo contrato de prestação continuada."}
+  ]
+}

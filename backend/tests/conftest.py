@@ -253,6 +253,17 @@ for table in Base.metadata.tables.values():
             # pgvector has no sqlite equivalent; store test embeddings as JSON.
             column.type = JSON()
 
+# The HNSW ANN index requires the pgvector extension, which test
+# databases (sqlite, vanilla postgres) may not have. Retrieval tests
+# prove the HNSW DDL separately against a metadata copy.
+_chunks_table = Base.metadata.tables.get("document_chunks")
+if _chunks_table is not None:
+    _chunks_table.indexes = {
+        index
+        for index in _chunks_table.indexes
+        if index.name != "ix_document_chunks_embedding_hnsw"
+    }
+
 
 engine = create_engine(os.environ["DATABASE_URL"], pool_pre_ping=True)
 TestingSessionLocal = sessionmaker(

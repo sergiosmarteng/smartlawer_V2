@@ -1,0 +1,306 @@
+{
+  "version": "v1",
+  "notes": "Golden set A5: 30 perguntas PT-BR. Itens g01-g24 têm fundamento no corpus_fixture.json; itens a01-a06 NÃO têm (abstenção correta esperada). expected_terms em minúsculas, sem acento-normalização no scorer.",
+  "items": [
+    {
+      "id": "g01",
+      "category": "prazos",
+      "question": "Qual o prazo para apresentar contestação?",
+      "expected_terms": [
+        "contestação",
+        "15 dias",
+        "prazo"
+      ]
+    },
+    {
+      "id": "g02",
+      "category": "prazos",
+      "question": "O que acontece com atraso superior a trinta dias no contrato?",
+      "expected_terms": [
+        "trinta dias",
+        "rescisão",
+        "atraso"
+      ]
+    },
+    {
+      "id": "g03",
+      "category": "prazos",
+      "question": "Qual o prazo de pagamento mensal do contrato?",
+      "expected_terms": [
+        "pagamento mensal",
+        "dia dez"
+      ]
+    },
+    {
+      "id": "g04",
+      "category": "pedidos",
+      "question": "Quais pedidos o autor faz na petição inicial?",
+      "expected_terms": [
+        "danos materiais",
+        "danos morais",
+        "dez mil"
+      ]
+    },
+    {
+      "id": "g05",
+      "category": "pedidos",
+      "question": "O que a ré requer sobre improcedência e julgamento?",
+      "expected_terms": [
+        "improcedência",
+        "provas",
+        "julgamento antecipado"
+      ]
+    },
+    {
+      "id": "g06",
+      "category": "pedidos",
+      "question": "Qual valor de dez mil por danos o autor cobra?",
+      "expected_terms": [
+        "dez mil",
+        "danos"
+      ]
+    },
+    {
+      "id": "g07",
+      "category": "legislação",
+      "question": "O que diz o Art. 1 do contrato sobre pagamento?",
+      "expected_terms": [
+        "art. 1",
+        "pagamento mensal",
+        "dia dez"
+      ]
+    },
+    {
+      "id": "g08",
+      "category": "legislação",
+      "question": "O que prevê o Art. 2 sobre cobrança indevida?",
+      "expected_terms": [
+        "art. 2",
+        "restituído em dobro",
+        "cobrança indevida"
+      ]
+    },
+    {
+      "id": "g09",
+      "category": "legislação",
+      "question": "Qual lei protege o consumidor contra cobrança indevida?",
+      "expected_terms": [
+        "código de defesa do consumidor",
+        "lei 8.078",
+        "artigo 42"
+      ]
+    },
+    {
+      "id": "g10",
+      "category": "legislação",
+      "question": "O que diz o artigo 42 sobre repetição do indébito em dobro?",
+      "expected_terms": [
+        "artigo 42",
+        "repetição do indébito",
+        "dobro"
+      ]
+    },
+    {
+      "id": "g11",
+      "category": "legislação",
+      "question": "Qual artigo do CPC trata da contestação?",
+      "expected_terms": [
+        "artigo 335",
+        "cpc",
+        "15 dias"
+      ]
+    },
+    {
+      "id": "g12",
+      "category": "provas",
+      "question": "Quais provas o autor anexa à petição?",
+      "expected_terms": [
+        "contrato assinado",
+        "faturas",
+        "comprovantes"
+      ]
+    },
+    {
+      "id": "g13",
+      "category": "provas",
+      "question": "Que extratos de pagamento adimplente a ré usa?",
+      "expected_terms": [
+        "extratos",
+        "adimplente",
+        "pagamento"
+      ]
+    },
+    {
+      "id": "g14",
+      "category": "provas",
+      "question": "Há prova de inadimplemento do autor?",
+      "expected_terms": [
+        "faturas",
+        "inadimplemento"
+      ]
+    },
+    {
+      "id": "g15",
+      "category": "teses",
+      "question": "Qual preliminar de carência de ação por falta de interesse de agir?",
+      "expected_terms": [
+        "carência de ação",
+        "interesse de agir",
+        "preliminar"
+      ]
+    },
+    {
+      "id": "g16",
+      "category": "teses",
+      "question": "Qual tese de mérito sobre a cobrança?",
+      "expected_terms": [
+        "inexistência do débito",
+        "cobrança indevida",
+        "mérito"
+      ]
+    },
+    {
+      "id": "g17",
+      "category": "teses",
+      "question": "Como impugnar os danos morais pedidos?",
+      "expected_terms": [
+        "mero aborrecimento",
+        "danos morais",
+        "indenização"
+      ]
+    },
+    {
+      "id": "g18",
+      "category": "fatos",
+      "question": "Quando ocorreu o inadimplemento da fatura de janeiro?",
+      "expected_terms": [
+        "janeiro",
+        "inadimplemento",
+        "fatura"
+      ]
+    },
+    {
+      "id": "g19",
+      "category": "fatos",
+      "question": "Quem são autor e ré do contrato?",
+      "expected_terms": [
+        "autor",
+        "ré",
+        "contrato"
+      ]
+    },
+    {
+      "id": "g20",
+      "category": "consumidor",
+      "question": "O consumidor tem direito à restituição em dobro?",
+      "expected_terms": [
+        "restituição em dobro",
+        "consumidor",
+        "cobrança indevida"
+      ]
+    },
+    {
+      "id": "g21",
+      "category": "consumidor",
+      "question": "O que caracteriza cobrança indevida segundo os trechos?",
+      "expected_terms": [
+        "cobrança indevida",
+        "fatura",
+        "encargos acessórios"
+      ]
+    },
+    {
+      "id": "g22",
+      "category": "contratos",
+      "question": "O que o parágrafo único do Art. 1 autoriza?",
+      "expected_terms": [
+        "parágrafo único",
+        "rescisão motivada",
+        "trinta dias"
+      ]
+    },
+    {
+      "id": "g23",
+      "category": "contratos",
+      "question": "Os encargos acessórios entram na restituição?",
+      "expected_terms": [
+        "encargos acessórios",
+        "restituição",
+        "fatura"
+      ]
+    },
+    {
+      "id": "g24",
+      "category": "honorários",
+      "question": "O que a ré pede sobre honorários de sucumbência?",
+      "expected_terms": [
+        "honorários",
+        "sucumbência",
+        "improcedência"
+      ]
+    },
+    {
+      "id": "a01",
+      "category": "abstenção",
+      "question": "Qual a jurisprudência do STJ sobre dano moral em atraso de voo?",
+      "expected_terms": [
+        "stj",
+        "jurisprudência",
+        "voo"
+      ],
+      "abstain_expected": true
+    },
+    {
+      "id": "a02",
+      "category": "abstenção",
+      "question": "Como fica o ICMS na importação de software?",
+      "expected_terms": [
+        "icms",
+        "importação",
+        "software"
+      ],
+      "abstain_expected": true
+    },
+    {
+      "id": "a03",
+      "category": "abstenção",
+      "question": "Cabe habeas corpus contra decisão monocrática?",
+      "expected_terms": [
+        "habeas corpus",
+        "monocrática"
+      ],
+      "abstain_expected": true
+    },
+    {
+      "id": "a04",
+      "category": "abstenção",
+      "question": "Qual o quórum para aprovar reforma trabalhista?",
+      "expected_terms": [
+        "quórum",
+        "reforma trabalhista"
+      ],
+      "abstain_expected": true
+    },
+    {
+      "id": "a05",
+      "category": "abstenção",
+      "question": "Como abrir inventário extrajudicial em outro estado?",
+      "expected_terms": [
+        "inventário extrajudicial",
+        "cartório"
+      ],
+      "abstain_expected": true
+    },
+    {
+      "id": "a06",
+      "category": "abstenção",
+      "question": "Qual alíquota de IR sobre stock options?",
+      "expected_terms": [
+        "stock options",
+        "alíquota",
+        "imposto de renda"
+      ],
+      "abstain_expected": true
+    }
+  ]
+}

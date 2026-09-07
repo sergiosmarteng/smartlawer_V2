@@ -20,3 +20,5 @@ class ChatResponse(BaseModel):
     answer: str
     citations: list[Citation]
     model: str
+    ai_draft: bool = True
+    requires_human_review: bool = True

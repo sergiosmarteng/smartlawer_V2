@@ -139,6 +139,19 @@ This file is append-only. Add one short entry per landed worker or coordinator m
 - Follow-up carried forward:
   - A4 chat SSE + UI citações; live pgvector/FTS/Cohere pendente de Docker + chaves
 
+### A5 landed — eval gate + human-in-the-loop (Onda A RAG)
+
+- Source: `reports/worker-a5-eval.md`
+- Scope: issue #17; golden 30 + gate 0.85 + HITL
+- Workspace impact:
+  - `evals/` (golden, corpus, `run_gate.py` exit-code p/ CI) + `eval_scoring` determinístico (faithfulness/relevância/recall, abstenção correta = 1.0)
+  - gate atual: `mean_faithfulness=0.967 PASSED`; g09 documentado como miss de retrieval (canário p/ híbrido real)
+  - HITL: `ai_draft` + `requires_human_review` na API/SSE + runbook com 4 gates e proibição de protocolo automático
+  - CI: imagem `pgvector:pg15` + etapa do gate; conftest remove HNSW em test DBs (portabilidade)
+  - suite: `57 passed` (47 antes + 10 novos)
+- Follow-up carried forward:
+  - Onda B (B1 ambiente integrado); upgrade LLM-judge futuro sem mudar o contrato
+
 ### A4 landed — grounded chat com citações (Onda A RAG)
 
 - Source: `reports/worker-a4-chat.md`
