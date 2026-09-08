@@ -32,9 +32,9 @@ Last updated: 2026-05-12
 | BL-014 | P0 | Decide and codify public workflow identifiers | backend/frontend | BL-002, BL-012 | completed | Decided 2026-09-08: keep `task_id == document id` explicitly (single pipeline/analysis per document); codified in route docstrings, frontend polls canonical `taskStatusUrl`, contract updated. See `reports/worker-b4-identifiers.md`. |
 | BL-015 | P0 | Implement template management MVP from the PRD | backend/frontend | BL-013 | completed | Landed 2026-09-08: upload/list/select/validate (`POST`+`GET /api/v1/templates`, `?template_id=` on both DOCX routes, 422 naming offenders), picker on analysis page, 11 new tests (76 passed), live 12/12 + B2 re-passed 10/10. See `reports/worker-c1-templates.md`. |
 | BL-016 | P1 | Add Docling-based ingestion with Markdown persistence and fallback | backend/ai | BL-011, BL-012 | completed | Landed 2026-09-07 (A2): `DoclingExtractor` feature-flagged (`DOCLING_ENABLED`, default off), `documents.raw_text` + `structured_markdown` persisted via migration `20260907_0002`, analyzer prefers markdown, real-converter validation passed. See `reports/worker-a2-docling.md`. |
-| BL-017 | P1 | Add document history, retention, and generated-file versioning | backend/frontend | BL-012, BL-015 | planned | Close the PRD gap around history, recovery, and generated-document tracking. |
+| BL-017 | P1 | Add document history, retention, and generated-file versioning | backend/frontend | BL-012, BL-015 | completed | Landed 2026-09-08: `generated_documents` (migration `20260908_0004`), every generate versioned, list/recover endpoints, `GENERATED_KEEP_LATEST` retention, versions UI. See `reports/worker-c2-versions.md`. |
 | BL-018 | P1 | Add production observability and audit trail | platform/backend | BL-011, BL-012 | planned | Instrument workflow timing, queue failures, auth events, and analysis/DOCX outcome logs for supportability. |
-| BL-019 | P1 | Move document artifacts to managed storage and formalize lifecycle rules | platform/backend | BL-013, BL-017 | planned | Replace purely local file assumptions with managed storage, cleanup rules, and recovery behavior appropriate for deployment. |
+| BL-019 | P1 | Move document artifacts to managed storage and formalize lifecycle rules | platform/backend | BL-013, BL-017 | completed | Managed `uploads/generated/` (bind-mount, survives recreation) + retention rules formalized in contract; full object-storage migration left for deployment pass. See `reports/worker-c2-versions.md`. |
 | BL-020 | P1 | Expose prompt customization and AI run settings | backend/frontend/product | BL-016 | planned | Add prompt/profile management requested by the PRD without regressing the stable default path. |
 | BL-021 | P1 | Add batch processing for documents and generated defenses | backend/frontend | BL-017, BL-018 | planned | Support multi-document ingestion and grouped workflow monitoring. |
 | BL-022 | P1 | Export analysis summaries in business-friendly formats | backend/frontend | BL-017 | planned | Add summarized exports distinct from the full defense DOCX flow. |
@@ -46,12 +46,16 @@ Last updated: 2026-05-12
 | Issue | Scope | Status | Notes |
 | --- | --- | --- | --- |
 | #18 A6 | PII masking + prompt-injection defense | completed | `reports/worker-a6-security.md`; 64 passed, gate PASSED |
-| #19 B1 | Normalize integrated runtime (BL-011) | completed | 4/4 healthy + `/health` + alembic head + pgvector `0.8.6`, all live. `reports/worker-b1-env.md` |
-| #20 B2 | Smoke end-to-end + defect sweep (BL-010/012) | completed | API 10/10 first run via `docs/coordination/smoke-api.py`; browser UI pass still manual. `reports/worker-b2-smoke.md` |
-| #21 B3 | Validate real DOCX in integrated env (BL-013) | completed | Real 37KB DOCX (`PK`) from canonical route inside B2 smoke |
+| #19 B1 | Normalize integrated runtime (BL-011) | closed | 4/4 healthy + `/health` + alembic head + pgvector `0.8.6`, all live. `reports/worker-b1-env.md` |
+| #20 B2 | Smoke end-to-end + defect sweep (BL-010/012) | closed | API 10/10 first run via `docs/coordination/smoke-api.py`; browser UI pass still manual. `reports/worker-b2-smoke.md` |
+| #21 B3 | Validate real DOCX in integrated env (BL-013) | closed | Real 37KB DOCX (`PK`) from canonical route inside B2 smoke |
 | #22 B4 | Workflow identifiers (BL-014) | completed | `task_id == document id` codified. `reports/worker-b4-identifiers.md` |
 | #23 B5 | Frontend hygiene + archive microharness docs | completed | Shared types/hook, real upload progress, archive. `reports/worker-b5-hygiene.md` |
-| #24 C1 | Template management MVP (BL-015) | completed | Upload/list/select/validate live 12/12; picker on analysis page. `reports/worker-c1-templates.md` |
+| #24 C1 | Template management MVP (BL-015) | closed | Upload/list/select/validate live 12/12; picker on analysis page. `reports/worker-c1-templates.md` |
+| #25 C2 | Histórico/retenção/versionamento + storage (BL-017/019) | completed | Migration `20260908_0004` live; versions flow 7/7. `reports/worker-c2-versions.md` |
+| #26 C3 | Prompts customizáveis + lote + exports (BL-020/021/022) | planned | Prompt profiles, batch processing, summary exports |
+| #27 C4 | Observabilidade + RBAC/2FA/governança (BL-018/024) | planned | Workflow timing, audit trail, roles, 2FA |
+| #28 C5 | Jurisprudência rastreável no RAG (BL-023) | planned | Precedents as cited RAG source + golden coverage |
 
 ## Recommended Handoff Order
 

@@ -41,6 +41,8 @@ Frontend session behavior in the current workspace:
 | `/analysis/[id]` download | `GET` | `/api/v1/analysis/{analysis_id}/docx` | DOCX file response | Implemented in backend and consumed in frontend |
 | `/analysis/[id]` template picker | `GET`/`POST` | `/api/v1/templates` (list own / upload DOCX) | `[{id, name, placeholders[], unsupportedPlaceholders[], created_at}]` | Implemented (C1); upload discovers Jinja roots, warns on unsupported |
 | `/analysis/[id]` download | `GET` | `/api/v1/analysis/{analysis_id}/docx?template_id={uuid}` | DOCX rendered with the user template; 404 unknown/foreign template; 422 `unsupported_placeholders` | Implemented (C1); omitted `template_id` keeps the base-template path |
+| `/analysis/[id]` versions | `GET` | `/api/v1/analysis/{analysis_id}/versions` | `[{version, template_id, created_at, downloadUrl}]` newest first | Implemented (C2) |
+| `/analysis/[id]` versions | `GET` | `/api/v1/analysis/{analysis_id}/versions/{version}` | Versioned DOCX file; 404 unknown version/missing file | Implemented (C2); every generate records a version |
 | `/chat` | `POST` | `/api/v1/chat` | `{ answer, citations[{ref, chunk_id, document_id, document_name, page_start, excerpt}], model }` | Implemented (A4); 503 without AI key |
 | `/chat` streaming | `POST` | `/api/v1/chat/stream` | SSE `token` frames + final `done` with `citations` | Implemented (A4); tenant from JWT, optional `document_id` scope (404 cross-user) |
 | compatibility only | `GET` | `/api/v1/templates/{analysis_id}/generate` | DOCX file response | Keep until callers are fully migrated |
@@ -108,6 +110,16 @@ Frontend session behavior in the current workspace:
 - `GET /api/v1/analysis/{id}/docx?template_id={uuid}` (and legacy `/templates/{id}/generate`): 404 for unknown/foreign templates; 422 with `unsupported_placeholders` + `supported_keys` before any opaque render failure. Supported roots: `summary, requests, laws, evidence, defense_theses, generatedDefenseStrategy, analysis_json`.
 - Omitted `template_id` keeps the `base_template.docx` path byte-identical (B2 smoke guard).
 - Incidental fix: `Template.created_at` default was `datetime.now()` evaluated once at import (all rows shared one timestamp); now per-row lambda. Same latent bug exists in `analysis/document/document_chunk/user` — left for a follow-up.
+
+### Generated-File History And Storage Lifecycle (C2/BL-017 + BL-019)
+
+- Every successful generate persists a versioned copy under the managed
+  `uploads/generated/{document_id}/` dir (compose bind-mount — survives
+  container recreation) and records `generated_documents`
+  (`analysis_id` + monotonically increasing `version`, unique).
+- Retention: `GENERATED_KEEP_LATEST` (default 10, env/compose/`.env.example`)
+  trims older files + rows after each generate; persistence never fails the
+  download (falls back to the ephemeral render).
 
 ## Known Gaps And Assumptions
 

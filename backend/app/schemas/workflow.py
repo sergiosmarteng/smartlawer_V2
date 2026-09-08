@@ -53,6 +53,7 @@ class TaskStatusResponse(WorkflowBase):
 
 
 class AnalysisDetailResponse(WorkflowBase):
+
     id: UUID4
     document_id: UUID4
     document_name: str = Field(alias="documentName")
@@ -69,3 +70,12 @@ class AnalysisDetailResponse(WorkflowBase):
     completed_at: datetime | None = None
     generated_defense_strategy: str = Field(alias="generatedDefenseStrategy")
     docx_download_url: str | None = Field(default=None, alias="docxDownloadUrl")
+
+
+class GeneratedVersionResponse(WorkflowBase):
+    """One persisted DOCX generation (C2/BL-017 history)."""
+
+    version: int
+    template_id: UUID4 | None = None
+    created_at: datetime | None = None
+    download_url: str | None = Field(default=None, alias="downloadUrl")

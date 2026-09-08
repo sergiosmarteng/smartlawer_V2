@@ -1,7 +1,7 @@
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import axios from 'axios';
 import AuthGuard from '../../components/auth/AuthGuard';
 import Layout from '../../components/layout';
@@ -9,6 +9,7 @@ import api, { getApiErrorMessage, normalizeApiPath } from '../../lib/axios';
 import type {
   AnalysisDetailResponse,
   AnalysisNotReadyDetail,
+  GeneratedVersion,
   NormalizedAnalysis,
   TemplateIncompatibilityDetail,
   UserTemplate,
@@ -30,6 +31,7 @@ export default function AnalysisPage() {
   const [templatesHint, setTemplatesHint] = useState('');
   const [isUploadingTemplate, setIsUploadingTemplate] = useState(false);
   const [templateNotice, setTemplateNotice] = useState('');
+  const [versions, setVersions] = useState<GeneratedVersion[]>([]);
 
   useEffect(() => {
     if (!routeId) {
@@ -70,6 +72,23 @@ export default function AnalysisPage() {
 
     fetchTemplates();
   }, []);
+
+  const fetchVersions = useCallback(async () => {
+    if (!routeId) {
+      return;
+    }
+
+    try {
+      const response = await api.get<GeneratedVersion[]>(`/analysis/${routeId}/versions`);
+      setVersions(Array.isArray(response.data) ? response.data : []);
+    } catch {
+      setVersions([]);
+    }
+  }, [routeId]);
+
+  useEffect(() => {
+    fetchVersions();
+  }, [routeId, fetchVersions]);
 
   const handleTemplateUpload = async (file: File | undefined) => {
     if (!file || isUploadingTemplate) {
@@ -127,6 +146,7 @@ export default function AnalysisPage() {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
+      fetchVersions();
     } catch (downloadError) {
       const incompatible = getTemplateIncompatibility(downloadError);
       if (incompatible) {
@@ -138,6 +158,33 @@ export default function AnalysisPage() {
       }
     } finally {
       setIsDownloading(false);
+    }
+  };
+
+  const handleDownloadVersion = async (version: GeneratedVersion) => {
+    if (!routeId) {
+      return;
+    }
+
+    try {
+      const versionPath = version.downloadUrl || `/analysis/${routeId}/versions/${version.version}`;
+      const response = await api.get(normalizeApiPath(versionPath), {
+        responseType: 'blob',
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute(
+        'download',
+        getFilenameFromHeaders(response.headers['content-disposition'], `v${version.version}`),
+      );
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (versionError) {
+      setError(getApiErrorMessage(versionError, 'Failed to download that generated version.'));
     }
   };
 
@@ -306,6 +353,32 @@ export default function AnalysisPage() {
                       <p className="mt-3 text-sm leading-7 text-amber-200/90">{templateNotice || templatesHint}</p>
                     )}
                   </div>
+
+                  {versions.length > 0 && (
+                    <div className="border-b border-zinc-800 px-8 py-6 sm:px-10">
+                      <h2 className="text-sm font-medium uppercase tracking-[0.28em] text-zinc-300">
+                        Previous versions ({versions.length})
+                      </h2>
+                      <ul className="mt-4 flex flex-wrap gap-3">
+                        {versions.map((version) => (
+                          <li key={version.version}>
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadVersion(version)}
+                              className="inline-flex items-center gap-2 rounded-full border border-zinc-700 px-4 py-2 text-sm text-zinc-200 transition-colors hover:border-zinc-500 hover:bg-zinc-900"
+                            >
+                              v{version.version}
+                              {version.created_at && (
+                                <span className="text-xs text-zinc-500">
+                                  {new Date(version.created_at).toLocaleString()}
+                                </span>
+                              )}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
 
                   <div className="grid gap-8 px-8 py-8 sm:px-10 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
                     <div className="space-y-6">

@@ -107,6 +107,14 @@ export interface TemplateIncompatibilityDetail {
   supported_keys?: string[];
 }
 
+/** `GET /api/v1/analysis/{id}/versions` item (C2 generation history). */
+export interface GeneratedVersion {
+  version: number;
+  template_id?: string | null;
+  created_at?: string;
+  downloadUrl?: string | null;
+}
+
 const ACTIVE_STATUSES = new Set(['PENDING', 'PROCESSING', 'STARTED', 'RETRY']);
 const SUCCESS_STATUSES = new Set(['SUCCESS', 'COMPLETED', 'DONE']);
 const FAILURE_STATUSES = new Set(['FAILURE', 'FAILED', 'ERROR']);

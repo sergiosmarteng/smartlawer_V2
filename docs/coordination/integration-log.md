@@ -103,6 +103,18 @@ This file is append-only. Add one short entry per landed worker or coordinator m
 
 ## 2026-09-08
 
+### C2 landed — history/retention/managed storage (Onda C)
+
+- Source: `reports/worker-c2-versions.md`
+- Scope: issue #25 / BL-017 + BL-019; versioned DOCX generations + lifecycle
+- Workspace impact:
+  - NEW `generated_documents` (migration `20260908_0004`, auto-applied live); every generate persists a versioned copy under managed `uploads/generated/` + `GENERATED_KEEP_LATEST` retention; persistence never fails downloads
+  - NEW `GET /analysis/{id}/versions` + `/versions/{v}` (tenant-checked recovery); versions picker on analysis page
+  - validation: 5 new tests (suite 81 passed), tsc/eslint clean, WSL live 7/7, B2 smoke re-passed 10/10
+- Follow-up carried forward:
+  - retention trim proven live only at default KEEP=10 (KEEP=2 path in sqlite tests)
+  - import-time `datetime.now()` latent bug remains in 4 other models
+
 ### C1 landed — template management MVP (Onda C)
 
 - Source: `reports/worker-c1-templates.md`

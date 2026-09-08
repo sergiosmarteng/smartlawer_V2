@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from app.api.routes import auth, chat, documents, templates, users, workflow
+from app.api.routes import auth, chat, documents, templates, users, versions, workflow
 from app.core.config import settings
 from app.core.migrations import run_migrations
 
@@ -21,6 +21,7 @@ app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
 app.include_router(chat.router, prefix="/api/v1", tags=["chat"])
 app.include_router(documents.router, prefix="/api/v1/documents", tags=["documents"])
 app.include_router(templates.router, prefix="/api/v1/templates", tags=["templates"])
+app.include_router(versions.router, prefix="/api/v1", tags=["versions"])
 app.include_router(workflow.router, prefix="/api/v1", tags=["workflow"])
 
 

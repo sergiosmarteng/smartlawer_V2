@@ -6,12 +6,16 @@ from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
+from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.api import deps
+from app.core.config import settings
 from app.core.doc_generator import DocxGenerator
 from app.models.analysis import Analysis
 from app.models.document import Document
+from app.models.generated_document import GeneratedDocument
 from app.models.template import Template
 from app.models.user import User
 from app.schemas.template import TemplateResponse
@@ -29,6 +33,18 @@ TEMPLATE_UPLOAD_DIR = os.path.join(
 )
 
 os.makedirs(TEMPLATE_UPLOAD_DIR, exist_ok=True)
+
+#: Managed storage for versioned DOCX generations (C2/BL-017 + BL-019).
+#: Lives under the persisted uploads volume in compose (`./uploads` host
+#: bind), so history survives container recreation.
+GENERATED_DIR = os.path.join(
+    "/data/uploads"
+    if os.environ.get("ENVIRONMENT") != "development_local"
+    else "./uploads",
+    "generated",
+)
+
+os.makedirs(GENERATED_DIR, exist_ok=True)
 
 DOCX_CONTENT_TYPES = frozenset(
     {
@@ -164,9 +180,83 @@ def _build_download_filename(analysis: Analysis) -> str:
     return f"{safe_name}_defense_strategy.docx"
 
 
+def _persist_generation(
+    *,
+    db: Session,
+    analysis: Analysis,
+    user_id: UUID,
+    template_id: UUID | None,
+    output_path: str,
+) -> str:
+    """Copy a fresh render into managed storage and record its version.
+
+    Applies ``GENERATED_KEEP_LATEST`` retention (files + rows). Never
+    raises: on any failure the ephemeral render path is returned so the
+    download still succeeds.
+    """
+    try:
+        keep = max(1, int(settings.GENERATED_KEEP_LATEST))
+        served_path = output_path
+        for _ in range(2):
+            current_max = (
+                db.query(func.max(GeneratedDocument.version))
+                .filter(GeneratedDocument.analysis_id == analysis.id)
+                .scalar()
+            ) or 0
+            version = current_max + 1
+            dest = (
+                Path(GENERATED_DIR)
+                / str(analysis.document_id)
+                / f"{analysis.id}_v{version}.docx"
+            )
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(output_path, dest)
+            db.add(
+                GeneratedDocument(
+                    user_id=user_id,
+                    document_id=analysis.document_id,
+                    analysis_id=analysis.id,
+                    template_id=template_id,
+                    file_path=str(dest),
+                    version=version,
+                )
+            )
+            try:
+                db.commit()
+            except IntegrityError:
+                db.rollback()
+                dest.unlink(missing_ok=True)
+                continue
+            served_path = str(dest)
+            break
+
+        stale = (
+            db.query(GeneratedDocument)
+            .filter(GeneratedDocument.analysis_id == analysis.id)
+            .order_by(GeneratedDocument.version.desc())
+            .offset(keep)
+            .all()
+        )
+        for old in stale:
+            try:
+                Path(old.file_path).unlink(missing_ok=True)
+            except OSError:
+                pass
+            db.delete(old)
+        db.commit()
+        return served_path
+    except Exception:
+        db.rollback()
+        return output_path
+
+
 def _build_docx_file_response(
     analysis: Analysis,
     template_path: str | None = None,
+    *,
+    db: Session,
+    user_id: UUID,
+    template_id: UUID | None = None,
 ) -> FileResponse:
     analysis_data = {
         "summary": analysis.summary or "",
@@ -180,8 +270,20 @@ def _build_docx_file_response(
         analysis_dict=analysis_data,
         template_path=template_path or str(BASE_TEMPLATE_PATH),
     )
+    served_path = _persist_generation(
+        db=db,
+        analysis=analysis,
+        user_id=user_id,
+        template_id=template_id,
+        output_path=output_path,
+    )
+    if served_path != output_path:
+        try:
+            os.unlink(output_path)
+        except OSError:
+            pass
     return FileResponse(
-        path=output_path,
+        path=served_path,
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         filename=_build_download_filename(analysis),
     )
@@ -237,7 +339,13 @@ def generate_docx_document(
         template_path = template.file_path
 
     try:
-        return _build_docx_file_response(analysis, template_path)
+        return _build_docx_file_response(
+            analysis,
+            template_path,
+            db=db,
+            user_id=current_user.id,
+            template_id=template_id,
+        )
     except FileNotFoundError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
     except HTTPException:
