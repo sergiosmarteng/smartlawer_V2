@@ -24,6 +24,7 @@ export default function AnalysisPage() {
   const [analysis, setAnalysis] = useState<NormalizedAnalysis | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isDownloadingSummary, setIsDownloadingSummary] = useState(false);
   const [error, setError] = useState('');
   const [notReadyDetail, setNotReadyDetail] = useState<AnalysisNotReadyDetail | null>(null);
   const [templates, setTemplates] = useState<UserTemplate[]>([]);
@@ -158,6 +159,36 @@ export default function AnalysisPage() {
       }
     } finally {
       setIsDownloading(false);
+    }
+  };
+
+  const handleDownloadSummary = async () => {
+    if (!analysis || !routeId || isDownloadingSummary) {
+      return;
+    }
+
+    setIsDownloadingSummary(true);
+
+    try {
+      const response = await api.get(`/analysis/${routeId}/summary.md`, {
+        responseType: 'blob',
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute(
+        'download',
+        getFilenameFromHeaders(response.headers['content-disposition'], `${analysis.id}_summary`),
+      );
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (summaryError) {
+      setError(getApiErrorMessage(summaryError, 'Failed to download the Markdown summary.'));
+    } finally {
+      setIsDownloadingSummary(false);
     }
   };
 
@@ -301,6 +332,14 @@ export default function AnalysisPage() {
                           }`}
                         >
                           {isDownloading ? 'Generating DOCX...' : 'Download DOCX defense'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleDownloadSummary}
+                          disabled={isDownloadingSummary}
+                          className="inline-flex items-center justify-center rounded-full border border-zinc-700 px-5 py-3 text-sm font-medium text-zinc-200 transition-colors hover:border-zinc-500 hover:bg-zinc-900 disabled:cursor-not-allowed disabled:text-zinc-500"
+                        >
+                          {isDownloadingSummary ? 'Preparing...' : 'Summary (.md)'}
                         </button>
                       </div>
                     </div>

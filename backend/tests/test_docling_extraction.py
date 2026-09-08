@@ -41,8 +41,9 @@ def stub_pipeline(monkeypatch, pdf_path):
         calls["extract_path"] = file_path
         return "TEXTO BRUTO DA PETICAO"
 
-    def fake_analyze(self, text):
+    def fake_analyze(self, text, strategy_prompt=None):
         calls["analysis_input"] = text
+        calls["strategy_prompt"] = strategy_prompt
         return {
             "summary": "resumo",
             "requests": ["pedido 1"],

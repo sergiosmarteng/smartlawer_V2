@@ -159,29 +159,46 @@ class LegalAnalyzer:
 
         return normalized
 
-    def analyze_petition(self, text: str) -> dict:
+    BASE_INSTRUCTIONS = (
+        "Voce e um Especialista de Inteligencia Artificial Juridica.\n"
+        "Sua tarefa e analisar o texto extraido da peticao inicial abaixo e organiza-lo.\n"
+        "Extraia o resumo dos fatos, os pedidos finais do autor, as leis ou artigos invocados,\n"
+        "as evidencias citadas, e construa 3 ou mais teses preliminares ou de merito."
+    )
+
+    def build_prompt_text(self, text: str, strategy_prompt: str | None = None) -> str:
+        """Assemble the LLM prompt, honoring an optional profile (C3/BL-020).
+
+        ``strategy_prompt`` is extra user guidance prepended to the base
+        instructions. ``None``/blank keeps the legacy prompt byte-identical.
+        """
+        extra = (strategy_prompt or "").strip()
+        instructions = (
+            f"{self.BASE_INSTRUCTIONS}\n\nOrientacao adicional do perfil: {extra}"
+            if extra
+            else self.BASE_INSTRUCTIONS
+        )
+        return (
+            f"{instructions}\n\n"
+            f"{self.parser.get_format_instructions()}\n\n"
+            f"TEXTO DA PETICAO:\n{text[:20000]}"
+        )
+
+    def analyze_petition(self, text: str, strategy_prompt: str | None = None) -> dict:
         if not self.api_key or self.llm is None:
             return self._fallback_analysis(text, reason="AI provider is not configured")
 
         prompt = PromptTemplate(
-            template="""Voce e um Especialista de Inteligencia Artificial Juridica.
-Sua tarefa e analisar o texto extraido da peticao inicial abaixo e organiza-lo.
-Extraia o resumo dos fatos, os pedidos finais do autor, as leis ou artigos invocados,
-as evidencias citadas, e construa 3 ou mais teses preliminares ou de merito.
-
-{format_instructions}
-
-TEXTO DA PETICAO:
-{petition_text}
-""",
-            input_variables=["petition_text"],
-            partial_variables={"format_instructions": self.parser.get_format_instructions()},
+            template="{prompt_text}",
+            input_variables=["prompt_text"],
         )
 
         chain = prompt | self.llm | self.parser
 
         try:
-            result: AnalysisResult = chain.invoke({"petition_text": text[:20000]})
+            result: AnalysisResult = chain.invoke(
+                {"prompt_text": self.build_prompt_text(text, strategy_prompt)}
+            )
             return self._normalize_analysis_payload(result.model_dump())
         except Exception as exc:
             logger.error("Erro no processamento da IA: %s", exc)

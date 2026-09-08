@@ -79,3 +79,15 @@ class GeneratedVersionResponse(WorkflowBase):
     template_id: UUID4 | None = None
     created_at: datetime | None = None
     download_url: str | None = Field(default=None, alias="downloadUrl")
+
+
+class BatchUploadError(WorkflowBase):
+    filename: str
+    detail: str
+
+
+class BatchUploadResponse(WorkflowBase):
+    """Result of a multi-PDF batch upload (C3/BL-021)."""
+
+    items: list[UploadSubmissionResponse] = Field(default_factory=list)
+    errors: list[BatchUploadError] = Field(default_factory=list)

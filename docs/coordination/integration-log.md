@@ -103,6 +103,18 @@ This file is append-only. Add one short entry per landed worker or coordinator m
 
 ## 2026-09-08
 
+### C3 landed — prompts/batch/summary exports (Onda C)
+
+- Source: `reports/worker-c3-prompts-batch-export.md`
+- Scope: issue #26 / BL-020 + BL-021 + BL-022 (each capability tested)
+- Workspace impact:
+  - NEW `prompt_profiles` (migration `20260908_0005`, live) + CRUD-lite + default wiring into the worker (legacy prompt byte-identical without profile); `/prompts` page
+  - `POST /documents/batch-upload` (≤10, `{items, errors}`); upload page multi-select follows first item
+  - `GET /analysis/{id}/summary.md` + UI button
+  - validation: 11 new tests (suite 92 passed; one docling-stub signature update), tsc/eslint clean, WSL live 7/7, B2 re-passed 10/10
+- Follow-up carried forward:
+  - worker profile guidance needs real AI keys for end-to-end prompt proof (unit-covered only)
+
 ### C2 landed — history/retention/managed storage (Onda C)
 
 - Source: `reports/worker-c2-versions.md`

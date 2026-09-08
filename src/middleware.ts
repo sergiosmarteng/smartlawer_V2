@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 const ACCESS_TOKEN_COOKIE = 'smartlawer_access_token';
-const PROTECTED_PATH_PREFIXES = ['/dashboard', '/upload', '/analysis', '/chat', '/user-profile'];
+const PROTECTED_PATH_PREFIXES = ['/dashboard', '/upload', '/analysis', '/chat', '/prompts', '/user-profile'];
 
 function isProtectedPath(pathname: string) {
   return PROTECTED_PATH_PREFIXES.some((prefix) => {

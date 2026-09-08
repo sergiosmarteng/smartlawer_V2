@@ -9,6 +9,7 @@ from app.core.embeddings import embed_texts
 from app.core.legal_chunker import chunk_legal_text
 from app.core.pdf_processor import PDFExtractor
 from app.crud.document import get_document, update_document_state
+from app.crud.prompt import get_default_strategy_prompt
 from app.models.analysis import Analysis
 from app.models.document import Document
 from app.models.document_chunk import DocumentChunk
@@ -134,7 +135,15 @@ def process_pdf_task(self, document_id: str, file_path: str):
 
         analyzer = LegalAnalyzer()
         try:
-            ai_data = analyzer.analyze_petition(analysis_text)
+            doc = get_document(db, id=document_id)
+            strategy_prompt = (
+                get_default_strategy_prompt(db, user_id=doc.user_id)
+                if doc is not None
+                else None
+            )
+            ai_data = analyzer.analyze_petition(
+                analysis_text, strategy_prompt=strategy_prompt
+            )
 
             doc = get_document(db, id=document_id)
             if doc and not doc.analysis:

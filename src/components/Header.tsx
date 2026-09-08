@@ -11,6 +11,7 @@ const primaryLinks = [
   { href: '/dashboard', label: 'Dashboard' },
   { href: '/upload', label: 'New Analysis' },
   { href: '/chat', label: 'Legal Chat' },
+  { href: '/prompts', label: 'Prompts' },
   { href: '/user-profile', label: 'Profile' },
 ];
 

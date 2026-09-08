@@ -115,6 +115,27 @@ export interface GeneratedVersion {
   downloadUrl?: string | null;
 }
 
+/** Per-file rejection inside a batch upload (C3). */
+export interface BatchUploadError {
+  filename: string;
+  detail: string;
+}
+
+/** `POST /api/v1/documents/batch-upload` response (C3). */
+export interface BatchUploadResponse {
+  items: UploadResponse[];
+  errors: BatchUploadError[];
+}
+
+/** `GET /api/v1/prompts` item (C3 prompt profiles). */
+export interface PromptProfile {
+  id: string;
+  name: string;
+  strategy_prompt?: string;
+  is_default?: boolean;
+  created_at?: string;
+}
+
 const ACTIVE_STATUSES = new Set(['PENDING', 'PROCESSING', 'STARTED', 'RETRY']);
 const SUCCESS_STATUSES = new Set(['SUCCESS', 'COMPLETED', 'DONE']);
 const FAILURE_STATUSES = new Set(['FAILURE', 'FAILED', 'ERROR']);

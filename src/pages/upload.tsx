@@ -10,79 +10,134 @@ import {
   isFailureStatus,
   isSuccessStatus,
   normalizeWorkflowStatus,
+  type BatchUploadResponse,
   type TaskStatusResponse,
   type UploadResponse,
 } from '../types/workflow';
+
+const MAX_BATCH_FILES = 10;
 
 export default function UploadPage() {
   const router = useRouter();
   const { schedulePoll, cancelPoll } = useTaskPolling();
 
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState('');
-  const [statusMessage, setStatusMessage] = useState('Select a PDF to begin a new analysis.');
+  const [statusMessage, setStatusMessage] = useState('Select PDFs to begin new analyses.');
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const nextFile = event.target.files?.[0] ?? null;
+    const picked = Array.from(event.target.files ?? []);
     setError('');
 
-    if (!nextFile) {
-      setFile(null);
-      setStatusMessage('Select a PDF to begin a new analysis.');
+    if (picked.length === 0) {
+      setFiles([]);
+      setStatusMessage('Select PDFs to begin new analyses.');
       return;
     }
 
-    if (nextFile.type !== 'application/pdf') {
-      setFile(null);
-      setStatusMessage('Select a PDF to begin a new analysis.');
+    const pdfs = picked.filter((item) => item.type === 'application/pdf');
+    const rejected = picked.length - pdfs.length;
+    if (pdfs.length === 0) {
+      setFiles([]);
+      setStatusMessage('Select PDFs to begin new analyses.');
       setError('The backend currently accepts only PDF uploads.');
       event.target.value = '';
       return;
     }
 
-    setFile(nextFile);
-    setStatusMessage(`Ready to upload ${nextFile.name}.`);
+    if (pdfs.length > MAX_BATCH_FILES) {
+      setFiles([]);
+      setStatusMessage('Select PDFs to begin new analyses.');
+      setError(`At most ${MAX_BATCH_FILES} files per batch.`);
+      event.target.value = '';
+      return;
+    }
+
+    setFiles(pdfs);
+    setStatusMessage(
+      pdfs.length === 1
+        ? `Ready to upload ${pdfs[0].name}.`
+        : `Ready to upload ${pdfs.length} PDFs as one batch.` +
+          (rejected > 0 ? ` (${rejected} non-PDF file(s) skipped.)` : ''),
+    );
   };
 
   const handleUpload = async () => {
-    if (!file) {
-      setError('Select a PDF before starting the workflow.');
+    if (files.length === 0) {
+      setError('Select at least one PDF before starting the workflow.');
       return;
     }
 
     setIsProcessing(true);
     setError('');
     setProgress(1);
-    setStatusMessage('Uploading document to the backend pipeline...');
+    setStatusMessage(
+      files.length === 1
+        ? 'Uploading document to the backend pipeline...'
+        : `Uploading ${files.length} documents to the backend pipeline...`,
+    );
 
     try {
       const formData = new FormData();
-      formData.append('file', file);
+      let endpoint = '/documents/upload';
+      if (files.length > 1) {
+        files.forEach((item) => formData.append('files', item));
+        endpoint = '/documents/batch-upload';
+      } else {
+        formData.append('file', files[0]);
+      }
 
-      const uploadResponse = await api.post<UploadResponse>('/documents/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
+      const uploadResponse = await api.post<UploadResponse | BatchUploadResponse>(
+        endpoint,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+          // Real byte-level upload progress (1-20% band); the backend
+          // pipeline progress takes over once the POST completes.
+          onUploadProgress: (progressEvent) => {
+            if (progressEvent.total) {
+              const percent = Math.round((progressEvent.loaded / progressEvent.total) * 20);
+              setProgress(Math.max(1, Math.min(percent, 20)));
+            }
+          },
         },
-        // Real byte-level upload progress (1-20% band); the backend
-        // pipeline progress takes over once the POST completes.
-        onUploadProgress: (progressEvent) => {
-          if (progressEvent.total) {
-            const percent = Math.round((progressEvent.loaded / progressEvent.total) * 20);
-            setProgress(Math.max(1, Math.min(percent, 20)));
-          }
-        },
-      });
+      );
 
-      const taskId = uploadResponse.data?.id;
+      // Batch shape: follow the first accepted item through the usual
+      // polling machine; report the rest as a queue summary.
+      let first: UploadResponse | undefined;
+      if ('items' in uploadResponse.data) {
+        const batch = uploadResponse.data;
+        if (batch.items.length === 0) {
+          const reasons = batch.errors.map((item) => `${item.filename}: ${item.detail}`).join('; ');
+          throw new Error(reasons || 'The backend rejected every file in the batch.');
+        }
+        first = batch.items[0];
+        const queued = batch.items.length - 1;
+        const rejected = batch.errors.length;
+        setStatusMessage(
+          `Batch accepted (${batch.items.length} queued` +
+            (rejected > 0 ? `, ${rejected} rejected` : '') +
+            '). Tracking the first document below' +
+            (queued > 0 ? '; the rest are visible on the dashboard' : '') +
+            '.',
+        );
+      } else {
+        first = uploadResponse.data;
+      }
+
+      const taskId = first?.id;
       if (!taskId) {
         throw new Error('The backend did not return a document identifier for task tracking.');
       }
 
       // BL-014: task_id == document id by design; poll the canonical URL
       // from the backend, falling back to the identity convention.
-      const taskStatusUrl = uploadResponse.data?.taskStatusUrl;
+      const taskStatusUrl = first?.taskStatusUrl;
       const pollPath =
         (taskStatusUrl && normalizeApiPath(taskStatusUrl)) || `/tasks/${taskId}`;
 
@@ -153,11 +208,11 @@ export default function UploadPage() {
   const resetFlow = () => {
     cancelPoll();
 
-    setFile(null);
+    setFiles([]);
     setIsProcessing(false);
     setProgress(0);
     setError('');
-    setStatusMessage('Select a PDF to begin a new analysis.');
+    setStatusMessage('Select PDFs to begin new analyses.');
   };
 
   return (
@@ -182,7 +237,7 @@ export default function UploadPage() {
                   <div className="rounded-2xl border border-zinc-800 bg-zinc-950/70 px-5 py-4">
                     <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">Accepted input</p>
                     <p className="mt-2 text-lg font-medium text-slate-100">PDF only</p>
-                    <p className="mt-1 text-sm text-zinc-500">One file per analysis</p>
+                    <p className="mt-1 text-sm text-zinc-500">Up to {MAX_BATCH_FILES} PDFs per batch</p>
                   </div>
                 </div>
               </div>
@@ -202,6 +257,7 @@ export default function UploadPage() {
                       className="absolute inset-0 cursor-pointer opacity-0"
                       onChange={handleFileChange}
                       accept=".pdf,application/pdf"
+                      multiple
                       disabled={isProcessing}
                     />
                     <div className="flex flex-col items-center justify-center text-center">
@@ -220,20 +276,37 @@ export default function UploadPage() {
                   <div className="rounded-[1.75rem] border border-zinc-800 bg-zinc-950/70 p-6">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                       <div>
-                        <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">Selected file</p>
-                        <p className="mt-2 text-lg font-medium text-slate-100">{file?.name || 'No document selected yet'}</p>
-                        <p className="mt-1 text-sm text-zinc-500">
-                          {file ? `${(file.size / (1024 * 1024)).toFixed(2)} MB` : 'Pick a PDF to unlock processing.'}
+                        <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">Selected files</p>
+                        <p className="mt-2 text-lg font-medium text-slate-100">
+                          {files.length === 0
+                            ? 'No documents selected yet'
+                            : files.length === 1
+                              ? files[0].name
+                              : `${files.length} PDFs selected`}
                         </p>
+                        <p className="mt-1 text-sm text-zinc-500">
+                          {files.length === 0
+                            ? 'Pick PDFs to unlock processing.'
+                            : `${(files.reduce((total, item) => total + item.size, 0) / (1024 * 1024)).toFixed(2)} MB total`}
+                        </p>
+                        {files.length > 1 && (
+                          <ul className="mt-3 max-h-28 space-y-1 overflow-y-auto text-sm text-zinc-400">
+                            {files.map((item) => (
+                              <li key={`${item.name}-${item.size}`} className="truncate">
+                                {item.name}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
                       </div>
 
-                      {!isProcessing && file && (
+                      {!isProcessing && files.length > 0 && (
                         <button
                           type="button"
                           onClick={resetFlow}
                           className="inline-flex items-center justify-center rounded-full border border-zinc-800 px-4 py-2 text-sm font-medium text-zinc-300 transition-colors hover:border-zinc-700 hover:bg-zinc-900 hover:text-slate-100"
                         >
-                          Clear file
+                          Clear files
                         </button>
                       )}
                     </div>
@@ -284,9 +357,9 @@ export default function UploadPage() {
                     <button
                       type="button"
                       onClick={handleUpload}
-                      disabled={!file || isProcessing}
+                      disabled={files.length === 0 || isProcessing}
                       className={`inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-medium uppercase tracking-[0.24em] transition-all ${
-                        !file || isProcessing
+                        files.length === 0 || isProcessing
                           ? 'cursor-not-allowed bg-zinc-800 text-zinc-500'
                           : 'bg-slate-100 text-zinc-950 shadow-[0_0_25px_rgba(255,255,255,0.08)] hover:-translate-y-0.5 hover:shadow-[0_0_35px_rgba(255,255,255,0.15)]'
                       }`}

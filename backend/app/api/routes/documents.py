@@ -11,10 +11,12 @@ from app.crud.document import create_document, get_documents_by_user, update_doc
 from app.models.document import Document
 from app.models.user import User
 from app.schemas.document import DocumentCreate, DocumentResponse
-from app.schemas.workflow import UploadSubmissionResponse
+from app.schemas.workflow import BatchUploadError, BatchUploadResponse, UploadSubmissionResponse
 from app.tasks.document_tasks import process_pdf_task
 
 router = APIRouter()
+
+MAX_BATCH_FILES = 10
 
 UPLOAD_DIRECTORY = (
     "/data/uploads"
@@ -48,6 +50,47 @@ async def upload_document(
     design (a document has at most one ``Analysis``). ``taskStatusUrl``
     is the canonical polling URL, relative to the API root (``/api/v1``).
     """
+    return _store_and_queue(db, current_user, file)
+
+
+@router.post("/batch-upload", response_model=BatchUploadResponse)
+async def batch_upload_documents(
+    files: List[UploadFile] = File(...),
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_active_user),
+):
+    """Upload up to ``MAX_BATCH_FILES`` PDFs in one call (C3/BL-021).
+
+    Per-file tolerance: a rejected file lands in ``errors`` without
+    failing the accepted ones. Each accepted file queues its own
+    pipeline and is monitored through the usual dashboard/task flow.
+    """
+    if not files:
+        raise HTTPException(status_code=400, detail="At least one PDF file is required")
+    if len(files) > MAX_BATCH_FILES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"At most {MAX_BATCH_FILES} files per batch",
+        )
+
+    items: list[UploadSubmissionResponse] = []
+    errors: list[BatchUploadError] = []
+    for file in files:
+        try:
+            items.append(_store_and_queue(db, current_user, file))
+        except HTTPException as exc:
+            detail = exc.detail if isinstance(exc.detail, str) else "Upload failed"
+            errors.append(
+                BatchUploadError(filename=file.filename or "unknown", detail=detail)
+            )
+    return BatchUploadResponse(items=items, errors=errors)
+
+
+def _store_and_queue(
+    db: Session,
+    current_user: User,
+    file: UploadFile,
+) -> UploadSubmissionResponse:
     if file.content_type != "application/pdf":
         raise HTTPException(status_code=400, detail="Only PDF files are allowed")
 

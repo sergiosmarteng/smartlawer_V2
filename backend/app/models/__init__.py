@@ -7,3 +7,4 @@ from app.models.document_chunk import DocumentChunk
 from app.models.analysis import Analysis
 from app.models.template import Template
 from app.models.generated_document import GeneratedDocument
+from app.models.prompt_profile import PromptProfile

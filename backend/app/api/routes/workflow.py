@@ -1,10 +1,11 @@
+from pathlib import Path
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session, selectinload
 
 from app.api import deps
-from app.api.routes.templates import generate_docx_document
+from app.api.routes.templates import _get_owned_analysis, generate_docx_document
 from app.crud.document import get_document_for_user, get_documents_by_user
 from app.models.analysis import Analysis
 from app.models.document import Document
@@ -214,4 +215,60 @@ def download_analysis_docx(
         template_id=template_id,
         db=db,
         current_user=current_user,
+    )
+
+
+def _stringify_evidence(evidence) -> str:
+    if evidence is None:
+        return "Nao informado."
+    if isinstance(evidence, str):
+        return evidence.strip() or "Nao informado."
+    if isinstance(evidence, dict):
+        parts = [f"{key}: {value}" for key, value in evidence.items()]
+        return "\n".join(f"- {part}" for part in parts if part.strip())
+    if isinstance(evidence, (list, tuple)):
+        items = [str(item).strip() for item in evidence if str(item).strip()]
+        return "\n".join(f"- {item}" for item in items) or "Nao informado."
+    return str(evidence)
+
+
+def _summary_markdown(analysis: Analysis) -> str:
+    """Business-friendly Markdown export of an analysis (C3/BL-022)."""
+    document = analysis.document
+    theses = analysis.defense_theses or []
+    strategy = "\n\n".join(f"{index + 1}. {item}" for index, item in enumerate(theses))
+    requests = "\n".join(f"- {item}" for item in (analysis.requests or [])) or "- Nao informado."
+    laws = "\n".join(f"- {item}" for item in (analysis.laws or [])) or "- Nao informado."
+    return (
+        f"# Resumo da analise — {document.filename}\n\n"
+        f"{analysis.summary or 'Resumo indisponivel.'}\n\n"
+        f"## Pedidos\n{requests}\n\n"
+        f"## Fundamentacao legal\n{laws}\n\n"
+        f"## Provas\n{_stringify_evidence(analysis.evidence)}\n\n"
+        f"## Teses defensivas\n{strategy or 'Nao informado.'}\n"
+    )
+
+
+@router.get("/analysis/{analysis_id}/summary.md")
+def download_analysis_summary(
+    analysis_id: UUID,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_active_user),
+):
+    """Download a Markdown summary of the analysis (C3/BL-022)."""
+    analysis = _get_owned_analysis(
+        db,
+        identifier=analysis_id,
+        current_user=current_user,
+    )
+    if not analysis:
+        raise HTTPException(status_code=404, detail="Analysis not found")
+
+    source_name = Path(analysis.document.filename or "analysis").stem.replace(" ", "_")
+    return Response(
+        content=_summary_markdown(analysis).encode("utf-8"),
+        media_type="text/markdown",
+        headers={
+            "Content-Disposition": f'attachment; filename="{source_name}_summary.md"'
+        },
     )

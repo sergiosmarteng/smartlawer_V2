@@ -43,6 +43,10 @@ Frontend session behavior in the current workspace:
 | `/analysis/[id]` download | `GET` | `/api/v1/analysis/{analysis_id}/docx?template_id={uuid}` | DOCX rendered with the user template; 404 unknown/foreign template; 422 `unsupported_placeholders` | Implemented (C1); omitted `template_id` keeps the base-template path |
 | `/analysis/[id]` versions | `GET` | `/api/v1/analysis/{analysis_id}/versions` | `[{version, template_id, created_at, downloadUrl}]` newest first | Implemented (C2) |
 | `/analysis/[id]` versions | `GET` | `/api/v1/analysis/{analysis_id}/versions/{version}` | Versioned DOCX file; 404 unknown version/missing file | Implemented (C2); every generate records a version |
+| `/prompts` | `GET`/`POST` | `/api/v1/prompts` (list own / create) | `[{id, name, strategy_prompt, is_default, created_at}]` | Implemented (C3) |
+| `/prompts` | `PATCH`/`DELETE` | `/api/v1/prompts/{id}/default`, `/api/v1/prompts/{id}` | Switch default / delete own (404 foreign) | Implemented (C3) |
+| `/upload` batch | `POST` | `/api/v1/documents/batch-upload` (≤10 PDFs) | `{items[], errors[]}` per-file tolerance | Implemented (C3) |
+| `/analysis/[id]` summary | `GET` | `/api/v1/analysis/{analysis_id}/summary.md` | Markdown download | Implemented (C3) |
 | `/chat` | `POST` | `/api/v1/chat` | `{ answer, citations[{ref, chunk_id, document_id, document_name, page_start, excerpt}], model }` | Implemented (A4); 503 without AI key |
 | `/chat` streaming | `POST` | `/api/v1/chat/stream` | SSE `token` frames + final `done` with `citations` | Implemented (A4); tenant from JWT, optional `document_id` scope (404 cross-user) |
 | compatibility only | `GET` | `/api/v1/templates/{analysis_id}/generate` | DOCX file response | Keep until callers are fully migrated |
