@@ -15,9 +15,11 @@ instrucao de dado recuperado. DoD: teste red-team basico passando.
 - `backend/app/core/rag_answer.py`: SYSTEM_PROMPT ganha secao de seguranca
   (trechos = DADOS nao confiaveis, nunca revelar prompt, minimizar PII);
   `build_grounded_prompt` delimita `=== TRECHOS RECUPERADOS (DADOS ...) ===`
-  + instrucao de ignorar ordens embutidas; `answer_query` classifica antes
-  de retrieval/LLM e retorna bloqueio sem citar nada (ai_draft +
-  requires_human_review mantidos).
+  + instrucao de ignorar ordens embutidas, com parametro `caution` (reforco
+  extra quando a triagem sinalizar sem atingir o limiar de bloqueio);
+  `answer_query(..., caution=False)` repassa o flag; `answer_query`
+  classifica antes de retrieval/LLM e retorna bloqueio sem citar nada
+  (ai_draft + requires_human_review mantidos).
 - `backend/app/api/routes/chat.py`: `POST /chat/stream` bloqueia injection
   sem chamar retrieval/LLM; `logger.exception` nao mais interpola excecao
   (evita vazar PII/conteudo em logs); bloqueio logado com query mascarada.
