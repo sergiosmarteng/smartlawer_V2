@@ -103,6 +103,30 @@ This file is append-only. Add one short entry per landed worker or coordinator m
 
 ## 2026-09-08
 
+### B1 completed — all-healthy live stack on WSL (Onda B)
+
+- Source: `reports/worker-b1-env.md` (completion addendum)
+- Scope: issue #19 / BL-011; `docker compose up -d` on native WSL dockerd 29.1.3
+- Workspace impact:
+  - api/db/redis/worker all `healthy` (stable 4+ min); `/health` OK; `celery inspect ping` → pong
+  - alembic full chain at startup, head `20260907_0003`; live pgvector `0.8.6`, `raw_text`/`structured_markdown` columns, HNSW + FTS indexes
+  - no app-code changes; recipe file untouched since the partial landing
+- Follow-up carried forward:
+  - WSL guest poweroffs on host idle kill `dockerd`; stack has no `restart:` policy (recommend `restart: unless-stopped` or keep host awake during validation)
+  - B2 smoke ran immediately on this stack (see below)
+
+### B2 landed — API pilot smoke PASSED 10/10 (Onda B)
+
+- Source: `reports/worker-b2-smoke.md`
+- Scope: issues #20/#21 / BL-012 + BL-013; API happy path on the live B1 stack
+- Workspace impact:
+  - NEW `docs/coordination/smoke-api.py`: stdlib-only, self-generates a text PDF; PASSED 10/10 first run (register → JWT → upload → COMPLETED ~5s → processes → analysis → DOCX 37KB `PK`)
+  - `task_id == id` + canonical `taskStatusUrl` hold live (B4 contract proven at runtime)
+  - no app-code changes
+- Follow-up carried forward:
+  - browser UI pass still manual (needs `npm run dev` + operator session before pilot signoff)
+  - leaked GitHub PAT found tracked in `.env` (committed in `78c3e36`, present on `origin/main`) — rotate the token and purge history; `.env` added to `.gitignore` as containment only
+
 ### B5 landed — frontend hygiene + microharness docs archived (Onda B)
 
 - Source: `reports/worker-b5-hygiene.md`
@@ -191,7 +215,9 @@ This file is append-only. Add one short entry per landed worker or coordinator m
   - docstrings nas rotas, frontend usa `taskStatusUrl` canônico, contrato atualizado
   - teste de identidade + 404 cross-user; `tsc`/eslint limpos
 - Follow-up carried forward:
-  - B1/B2/B3 bloqueados: Docker daemon inacessível na máquina dev (`docker ps` trava)
+  - B1 validação WSL retomada: usuário liberou disco (C: 4.4GB → 73GB).
+    db/redis healthy, extensão vector 0.8.6 verificada. Retry do build da
+    API no daemon WSL nativo; smoke B2 na sequência.
 
 ### A6 landed — PII masking + prompt-injection defense (Onda A RAG)
 

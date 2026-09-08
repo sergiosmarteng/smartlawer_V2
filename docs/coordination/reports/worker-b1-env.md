@@ -69,3 +69,27 @@
   route harness NOW (see handoff doc); live validation waits for the
   healthy environment above. B4 identifier decision still Session B's.
 - Commit: local only, no push (per implementation-plan rule 6).
+
+## Completion Addendum — 2026-09-08 (WSL session, rule 7)
+
+- Status: COMPLETED. `docker compose up -d` on native WSL dockerd 29.1.3,
+  all layers cached (no rebuild). Evidence, stable 4+ min:
+  - `compose ps`: api/db/redis/worker all `healthy`; `/health` →
+    `{"status":"healthy"}`; `celery inspect ping` → `pong`, 1 node online;
+    worker healthcheck ExitCode 0 across consecutive 15s probes.
+  - Alembic ran the full chain at api startup: `20260407_0001 →
+    20260907_0001 (pgvector) → 20260907_0002 (raw_text/markdown) →
+    20260907_0003 (FTS)`, head = `20260907_0003`.
+  - Live DB: `vector` ext `0.8.6`, `documents` has `raw_text` +
+    `structured_markdown`, `document_chunks.embedding` is `vector`, indexes
+    `…_embedding_hnsw` + `…_content_fts` + tenant/matter present.
+- Environment finding (no recipe change made): the WSL Ubuntu guest
+  `poweroff`s every few minutes of host idle (journal boot list 23:26→01:29,
+  each ending at `poweroff.target`; host-side sleep is the prime suspect —
+  01:30 AM local). Each reboot stops `dockerd`; smartlawer containers stay
+  `Exited (0)` (compose has no `restart:` policy) while third-party stacks
+  with restart policies self-heal. For pilot stability either keep the host
+  awake during validation or add `restart: unless-stopped` to the four
+  services (recommended B1 follow-up; needs an `up -d` + re-verify cycle).
+- B2 smoke followed immediately on this stack: see
+  `reports/worker-b2-smoke.md` (PASSED 10/10).
