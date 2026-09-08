@@ -49,6 +49,8 @@ Frontend session behavior in the current workspace:
 | `/analysis/[id]` summary | `GET` | `/api/v1/analysis/{analysis_id}/summary.md` | Markdown download | Implemented (C3) |
 | `/audit` | `GET` | `/api/v1/audit?event_type=&entity_id=&limit=&scope=` | Own trail (`scope=all` admin-only, 403 otherwise) | Implemented (C4) |
 | ops | `GET` | `/api/v1/ops/summary` | States, 24h counts, recent failures (admin-only) | Implemented (C4) |
+| `/precedents` | `GET` | `/api/v1/precedents` | Shared corpus labels (any authed user) | Implemented (C5) |
+| `/precedents` | `POST` | `/api/v1/precedents/seed` | (Re)seed shared corpus (admin-only) | Implemented (C5) |
 | `/chat` | `POST` | `/api/v1/chat` | `{ answer, citations[{ref, chunk_id, document_id, document_name, page_start, excerpt}], model }` | Implemented (A4); 503 without AI key |
 | `/chat` streaming | `POST` | `/api/v1/chat/stream` | SSE `token` frames + final `done` with `citations` | Implemented (A4); tenant from JWT, optional `document_id` scope (404 cross-user) |
 | compatibility only | `GET` | `/api/v1/templates/{analysis_id}/generate` | DOCX file response | Keep until callers are fully migrated |
@@ -126,6 +128,15 @@ Frontend session behavior in the current workspace:
 - Retention: `GENERATED_KEEP_LATEST` (default 10, env/compose/`.env.example`)
   trims older files + rows after each generate; persistence never fails the
   download (falls back to the ephemeral render).
+
+### Jurisprudence Corpus (C5/BL-023)
+
+- 6 curated precedents live as `document_chunks` of a fixed system user
+  (one system Document each → `[Jurisprudência] …` citation labels);
+  retrieval allowlist = caller + system (scoped chat stays private-only).
+- Auto-seed on API boot (`PRECEDENTS_AUTO_SEED`); keyless seeds carry
+  noop vectors (FTS-visible, vector-excluded) and upgrade on reseed.
+- Golden g31/g32 + corpus c13/c14 keep the eval gate green (0.969).
 
 ## Known Gaps And Assumptions
 

@@ -151,19 +151,38 @@ export default function ChatPage() {
                   {message.citations && message.citations.length > 0 && (
                     <div className="mt-3 space-y-2 border-t border-zinc-800 pt-3">
                       <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Fontes</p>
-                      {message.citations.map((citation) => (
-                        <Link
-                          key={citation.chunk_id}
-                          href={`/analysis/${citation.document_id}`}
-                          className="block rounded-xl border border-zinc-800 bg-zinc-900/80 px-3 py-2 transition-colors hover:border-sky-500/40"
-                        >
-                          <p className="text-xs font-medium text-sky-300">
-                            {citation.ref} {citation.document_name}
-                            {typeof citation.page_start === 'number' ? ` · p. ${citation.page_start}` : ''}
-                          </p>
-                          <p className="mt-1 line-clamp-2 text-xs text-zinc-400">{citation.excerpt}</p>
-                        </Link>
-                      ))}
+                      {message.citations.map((citation) => {
+                        const isPrecedent = citation.document_name.startsWith('[Jurisprudência]');
+                        const body = (
+                          <>
+                            <p className="text-xs font-medium text-sky-300">
+                              {citation.ref} {citation.document_name}
+                              {typeof citation.page_start === 'number'
+                                ? ` · p. ${citation.page_start}`
+                                : ''}
+                            </p>
+                            <p className="mt-1 line-clamp-2 text-xs text-zinc-400">{citation.excerpt}</p>
+                          </>
+                        );
+                        // Precedent chunks have no analysis page — render as a
+                        // badge instead of a link (C5/BL-023).
+                        return isPrecedent ? (
+                          <div
+                            key={citation.chunk_id}
+                            className="block rounded-xl border border-amber-800/60 bg-amber-950/20 px-3 py-2"
+                          >
+                            {body}
+                          </div>
+                        ) : (
+                          <Link
+                            key={citation.chunk_id}
+                            href={`/analysis/${citation.document_id}`}
+                            className="block rounded-xl border border-zinc-800 bg-zinc-900/80 px-3 py-2 transition-colors hover:border-sky-500/40"
+                          >
+                            {body}
+                          </Link>
+                        );
+                      })}
                     </div>
                   )}
                 </div>

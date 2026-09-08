@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     COHERE_RERANK_MODEL: str = "rerank-3"
     CHAT_MODEL: str = "gpt-4-turbo"
     GENERATED_KEEP_LATEST: int = 10
+    PRECEDENTS_AUTO_SEED: bool = True
 
     model_config = SettingsConfigDict(
         env_file=".env",

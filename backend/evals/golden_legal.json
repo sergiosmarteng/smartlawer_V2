@@ -1,6 +1,6 @@
 {
   "version": "v1",
-  "notes": "Golden set A5: 30 perguntas PT-BR. Itens g01-g24 têm fundamento no corpus_fixture.json; itens a01-a06 NÃO têm (abstenção correta esperada). expected_terms em minúsculas, sem acento-normalização no scorer.",
+  "notes": "Golden set A5: 32 perguntas PT-BR. Itens g01-g24 têm fundamento no corpus_fixture.json; itens a01-a06; C5: g31-g32 cobrem precedentes (c13-c14); C5: g31-g32 cobrem precedentes (c13-c14) NÃO têm (abstenção correta esperada). expected_terms em minúsculas, sem acento-normalização no scorer.",
   "items": [
     {
       "id": "g01",
@@ -270,6 +270,26 @@
         "monocrática"
       ],
       "abstain_expected": true
+    },
+    {
+      "id": "g31",
+      "category": "jurisprudencia",
+      "question": "Em que casos o uso de algemas é lícito segundo o STF?",
+      "expected_terms": [
+        "algemas",
+        "resistência",
+        "fundado receio"
+      ]
+    },
+    {
+      "id": "g32",
+      "category": "jurisprudencia",
+      "question": "O CDC se aplica às instituições financeiras segundo o STJ?",
+      "expected_terms": [
+        "Código de Defesa do Consumidor",
+        "instituições financeiras",
+        "Súmula 297"
+      ]
     },
     {
       "id": "a04",

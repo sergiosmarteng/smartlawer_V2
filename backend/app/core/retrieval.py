@@ -2,7 +2,9 @@
 
 Every query is tenant-scoped: ``user_id`` filtering happens inside each
 candidate query BEFORE ranking, so chunks from other tenants can never
-leak into results. Reranking (Cohere) is optional and never raises —
+leak into results. The shared jurisprudence corpus (C5/BL-023, owned by
+the fixed system user) is included through the same closed two-id
+allowlist. Reranking (Cohere) is optional and never raises —
 absence of key/package silently keeps RRF order.
 """
 
@@ -13,13 +15,18 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.core.precedents import NOOP_EMBEDDING_MODEL, SYSTEM_USER_ID
 
 logger = logging.getLogger(__name__)
+
+_TENANT_FILTER_SHARED = "(user_id = :user_id OR user_id = :system_user_id)"
+_TENANT_FILTER_PRIVATE = "user_id = :user_id"
 
 VECTOR_CANDIDATES_SQL = """
 SELECT id, 1 - (embedding <=> CAST(:query_embedding AS vector)) AS score
 FROM document_chunks
-WHERE user_id = :user_id
+WHERE {tenant}
+  AND NOT (user_id = :system_user_id AND embedding_model = :noop_model)
 ORDER BY embedding <=> CAST(:query_embedding AS vector)
 LIMIT :candidate_k
 """
@@ -29,7 +36,7 @@ SELECT id,
        ts_rank_cd(to_tsvector('portuguese', content),
                   plainto_tsquery('portuguese', :query_text)) AS score
 FROM document_chunks
-WHERE user_id = :user_id
+WHERE {tenant}
   AND to_tsvector('portuguese', content) @@ plainto_tsquery('portuguese', :query_text)
 ORDER BY score DESC
 LIMIT :candidate_k
@@ -57,12 +64,23 @@ def rrf_fuse(rank_lists: list[list], k: int = 60) -> list:
 
 
 def fetch_vector_candidates(
-    db: Session, *, user_id: UUID | str, query_embedding: list[float], candidate_k: int
+    db: Session,
+    *,
+    user_id: UUID | str,
+    query_embedding: list[float],
+    candidate_k: int,
+    system_user_id: UUID | str = SYSTEM_USER_ID,
+    include_shared: bool = True,
 ) -> list[str]:
+    sql = VECTOR_CANDIDATES_SQL.format(
+        tenant=_TENANT_FILTER_SHARED if include_shared else _TENANT_FILTER_PRIVATE
+    )
     rows = db.execute(
-        text(VECTOR_CANDIDATES_SQL),
+        text(sql),
         {
             "user_id": str(user_id),
+            "system_user_id": str(system_user_id),
+            "noop_model": NOOP_EMBEDDING_MODEL,
             "query_embedding": str(list(query_embedding)),
             "candidate_k": candidate_k,
         },
@@ -71,12 +89,22 @@ def fetch_vector_candidates(
 
 
 def fetch_fts_candidates(
-    db: Session, *, user_id: UUID | str, query_text: str, candidate_k: int
+    db: Session,
+    *,
+    user_id: UUID | str,
+    query_text: str,
+    candidate_k: int,
+    system_user_id: UUID | str = SYSTEM_USER_ID,
+    include_shared: bool = True,
 ) -> list[str]:
+    sql = FTS_CANDIDATES_SQL.format(
+        tenant=_TENANT_FILTER_SHARED if include_shared else _TENANT_FILTER_PRIVATE
+    )
     rows = db.execute(
-        text(FTS_CANDIDATES_SQL),
+        text(sql),
         {
             "user_id": str(user_id),
+            "system_user_id": str(system_user_id),
             "query_text": query_text,
             "candidate_k": candidate_k,
         },
@@ -126,7 +154,9 @@ def hybrid_search(
     """Return top fused :class:`DocumentChunk` rows for a tenant query.
 
     Falls back to pure FTS when no query embedding is available
-    (embeddings unconfigured). Never returns other tenants' chunks.
+    (embeddings unconfigured). Never returns other tenants' chunks; the
+    shared jurisprudence corpus (system user) is always included except
+    when the query is scoped to one private document.
     """
     from app.models.document_chunk import DocumentChunk
 
@@ -134,6 +164,7 @@ def hybrid_search(
     candidate_k = candidate_k or settings.RETRIEVAL_CANDIDATE_K
 
     rankings: list[list] = []
+    include_shared = document_id is None
     if query_embedding:
         rankings.append(
             fetch_vector_candidates(
@@ -141,13 +172,18 @@ def hybrid_search(
                 user_id=user_id,
                 query_embedding=query_embedding,
                 candidate_k=candidate_k,
+                include_shared=include_shared,
             )
         )
     else:
         logger.warning("No query embedding; hybrid degrades to FTS-only.")
     rankings.append(
         fetch_fts_candidates(
-            db, user_id=user_id, query_text=query_text, candidate_k=candidate_k
+            db,
+            user_id=user_id,
+            query_text=query_text,
+            candidate_k=candidate_k,
+            include_shared=include_shared,
         )
     )
 
@@ -157,8 +193,9 @@ def hybrid_search(
 
     # Rerank pool: top fused candidates, re-ordered to top_k.
     pool_ids = fused_ids[: max(candidate_k, top_k)]
+    allowed_users = [user_id] if document_id is not None else [user_id, SYSTEM_USER_ID]
     filters = [
-        DocumentChunk.user_id == user_id,
+        DocumentChunk.user_id.in_(allowed_users),
         DocumentChunk.id.in_(pool_ids),
     ]
     if document_id is not None:

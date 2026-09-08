@@ -38,7 +38,7 @@ Last updated: 2026-05-12
 | BL-020 | P1 | Expose prompt customization and AI run settings | backend/frontend/product | BL-016 | completed | Landed 2026-09-08: prompt profiles + default wiring, `/prompts` page. See `reports/worker-c3-prompts-batch-export.md`. |
 | BL-021 | P1 | Add batch processing for documents and generated defenses | backend/frontend | BL-017, BL-018 | completed | Landed 2026-09-08: batch upload (≤10, per-file tolerance) + multi-select UI. See `reports/worker-c3-prompts-batch-export.md`. |
 | BL-022 | P1 | Export analysis summaries in business-friendly formats | backend/frontend | BL-017 | completed | Landed 2026-09-08: `summary.md` download + UI button. See `reports/worker-c3-prompts-batch-export.md`. |
-| BL-023 | P2 | Add jurisprudence enrichment to analysis results | ai/backend | BL-016, BL-020 | planned | Extend the analysis with related precedents and traceable legal references. |
+| BL-023 | P2 | Add jurisprudence enrichment to analysis results | ai/backend | BL-016, BL-020 | completed | Landed 2026-09-08: shared precedent corpus in retrieval + citations + golden g31/g32 (gate 0.969). See `reports/worker-c5-precedents.md`. |
 | BL-024 | P2 | Add stronger security and governance controls | platform/backend/frontend | BL-018 | completed | Landed 2026-09-08: RBAC roles + admin gates + escalation guard (2FA deferred with design sketch). See `reports/worker-c4-audit-rbac.md`. STILL OPEN: rotate the leaked GitHub PAT + purge history. |
 
 ## Onda B/C Issue Tracker (2026-09-08)
@@ -54,8 +54,8 @@ Last updated: 2026-05-12
 | #24 C1 | Template management MVP (BL-015) | closed | Upload/list/select/validate live 12/12; picker on analysis page. `reports/worker-c1-templates.md` |
 | #25 C2 | Histórico/retenção/versionamento + storage (BL-017/019) | closed | Migration `20260908_0004` live; versions flow 7/7. `reports/worker-c2-versions.md` |
 | #26 C3 | Prompts customizáveis + lote + exports (BL-020/021/022) | closed | Profiles + batch + summary.md live 7/7. `reports/worker-c3-prompts-batch-export.md` |
-| #27 C4 | Observabilidade + RBAC/2FA/governança (BL-018/024) | completed | Audit trail + ops + RBAC live 11/11 (2FA deferred). `reports/worker-c4-audit-rbac.md` |
-| #28 C5 | Jurisprudência rastreável no RAG (BL-023) | planned | Precedents as cited RAG source + golden coverage |
+| #27 C4 | Observabilidade + RBAC/2FA/governança (BL-018/024) | closed | Audit trail + ops + RBAC live 11/11 (2FA deferred). `reports/worker-c4-audit-rbac.md` |
+| #28 C5 | Jurisprudência rastreável no RAG (BL-023) | completed | Shared corpus + citations + gate 0.969 live. `reports/worker-c5-precedents.md` |
 
 ## Recommended Handoff Order
 

@@ -103,6 +103,18 @@ This file is append-only. Add one short entry per landed worker or coordinator m
 
 ## 2026-09-08
 
+### C5 landed — traceable jurisprudence in RAG (Onda C)
+
+- Source: `reports/worker-c5-precedents.md`
+- Scope: issue #28 / BL-023 (DoD: cited precedents + golden coverage)
+- Workspace impact:
+  - 6-precedent shared corpus as system-owned chunks (no migration); retrieval two-id allowlist; scoped chat unchanged; noop-vector guard + lifespan reseed
+  - `GET /precedents` + admin `POST /precedents/seed`; chat badge for precedent citations
+  - golden g31/g32 + corpus c13/c14 (gate 0.969 PASSED)
+  - validation: 7 new tests (suite 106 passed), tsc/eslint clean, WSL live (auto-seed + FTS hit), B2 re-passed 10/10
+- Follow-up carried forward:
+  - live chat citations need real AI keys; `unaccent` FTS upgrade (pre-existing characteristic); counsel review of seed theses
+
 ### C4 landed — observability + RBAC (Onda C)
 
 - Source: `reports/worker-c4-audit-rbac.md`

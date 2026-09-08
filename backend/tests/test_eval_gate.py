@@ -37,7 +37,7 @@ def corpus():
 
 
 def test_golden_set_has_30_items(golden):
-    assert len(golden) == 30
+    assert len(golden) == 32
     assert sum(1 for i in golden if i.get("abstain_expected")) == 6
     assert all(i.get("expected_terms") for i in golden)
 

@@ -1,6 +1,6 @@
 {
   "version": "v1",
-  "notes": "Corpus fixture A5: trechos sintéticos que fundamentam os itens g01-g24 do golden set. Nenhum trecho cobre os itens a01-a06.",
+  "notes": "Corpus fixture A5: trechos sintéticos que fundamentam os itens g01-g24 do golden set. C5: c13-c14 fundamentam g31-g32. Nenhum trecho cobre os itens a01-a06.",
   "chunks": [
     {"id": "c01", "content": "PETIÇÃO INICIAL. I - DOS FATOS. O autor alega inadimplemento contratual ocorrido em janeiro, com cobranças indevidas em fatura."},
     {"id": "c02", "content": "Art. 1 O contrato firmado entre as partes estabelece o pagamento mensal até o dia dez. Parágrafo único. O atraso superior a trinta dias autoriza a rescisão motivada."},
@@ -13,6 +13,8 @@
     {"id": "c09", "content": "O prazo para contestação é de 15 dias, nos termos do artigo 335 do CPC, contados da juntada do mandado cumprido."},
     {"id": "c10", "content": "DOS DANOS MORAIS. A cobrança indevida reiterada supera o mero aborrecimento e enseja indenização por danos morais."},
     {"id": "c11", "content": "DOS HONORÁRIOS. Requer-se a condenação do autor ao pagamento de honorários de sucumbência em caso de improcedência."},
-    {"id": "c12", "content": "As partes são o autor consumidor e a ré fornecedora, vinculados pelo contrato de prestação continuada."}
+    {"id": "c12", "content": "As partes são o autor consumidor e a ré fornecedora, vinculados pelo contrato de prestação continuada."},
+    {"id": "c13", "content": "STF — Súmula Vinculante 11 (Uso de algemas). Tese: O uso de algemas só é lícito em caso de resistência e de fundado receio de fuga ou de perigo à integridade física própria ou alheia, devendo a excepcionalidade ser justificada por escrito. Fonte: Portal de jurisprudência do STF."},
+    {"id": "c14", "content": "STJ — Súmula 297 (CDC e instituições financeiras). Tese: O Código de Defesa do Consumidor aplica-se às instituições financeiras, alcançando os contratos bancários e a prestação de serviços no mercado de consumo. Fonte: Súmulas do STJ."}
   ]
 }

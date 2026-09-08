@@ -21,6 +21,7 @@ else:
 os.environ.setdefault("REDIS_URL", "redis://localhost:6379/0")
 os.environ.setdefault("SECRET_KEY", "test-secret-key")
 os.environ["SKIP_STARTUP_MIGRATIONS"] = "1"
+os.environ["PRECEDENTS_AUTO_SEED"] = "false"
 os.environ.setdefault("ENVIRONMENT", "development_local")
 sys.path.insert(0, str(BACKEND_ROOT))
 

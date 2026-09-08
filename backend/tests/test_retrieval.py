@@ -100,10 +100,18 @@ def test_rrf_fuse_empty():
 
 
 def test_candidate_queries_always_filter_tenant():
-    assert "user_id = :user_id" in retrieval.VECTOR_CANDIDATES_SQL
-    assert "user_id = :user_id" in retrieval.FTS_CANDIDATES_SQL
+    for template in (
+        retrieval.VECTOR_CANDIDATES_SQL,
+        retrieval.FTS_CANDIDATES_SQL,
+    ):
+        assert "{tenant}" in template
+    assert retrieval._TENANT_FILTER_PRIVATE == "user_id = :user_id"
+    assert ":system_user_id" in retrieval._TENANT_FILTER_SHARED
     assert "<=>" in retrieval.VECTOR_CANDIDATES_SQL
     assert "to_tsvector('portuguese'" in retrieval.FTS_CANDIDATES_SQL
+    # Keyless seed rows must never enter the vector branch.
+    assert ":noop_model" in retrieval.VECTOR_CANDIDATES_SQL
+    assert retrieval.NOOP_EMBEDDING_MODEL == "seed-noop"
 
 
 # --- Rerank fallback ------------------------------------------------------------
