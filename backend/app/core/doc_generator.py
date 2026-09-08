@@ -1,6 +1,8 @@
 import json
 import os
+import re
 import tempfile
+import zipfile
 from pathlib import Path
 from typing import Any
 
@@ -9,6 +11,47 @@ from docxtpl import DocxTemplate
 
 class DocxGenerator:
     DEFAULT_TEXT = "Nao informado."
+
+    #: Context keys produced by ``_normalize_analysis_context`` — the only
+    #: variable roots a user template may reference (C1/BL-015).
+    SUPPORTED_CONTEXT_KEYS = frozenset(
+        {
+            "summary",
+            "requests",
+            "laws",
+            "evidence",
+            "defense_theses",
+            "generatedDefenseStrategy",
+            "analysis_json",
+        }
+    )
+
+    _XML_TAG_RE = re.compile(r"<[^>]+>")
+    _JINJA_VAR_RE = re.compile(r"\{\{\s*(.*?)\s*\}\}", re.DOTALL)
+    _JINJA_TAG_RE = re.compile(r"\{%\s*(.*?)\s*%\}", re.DOTALL)
+    _IDENTIFIER_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+    _STRING_LITERAL_RE = re.compile(r"'[^']*'|\"[^\"]*\"")
+    _LOOP_VAR_RE = re.compile(
+        r"\bfor\s+([A-Za-z_][A-Za-z0-9_]*(?:\s*,\s*[A-Za-z_][A-Za-z0-9_]*)*)\s+in\b"
+    )
+    _SET_VAR_RE = re.compile(r"\bset\s+([A-Za-z_][A-Za-z0-9_]*)")
+    #: Jinja control words and test names that are not context variables.
+    _JINJA_KEYWORDS = frozenset(
+        {
+            "for", "in", "if", "elif", "else", "endif", "endfor", "and",
+            "or", "not", "is", "none", "true", "false", "loop", "set",
+            "macro", "endmacro", "call", "endcall", "filter", "endfilter",
+            "do", "import", "from", "as", "recursive", "scoped", "with",
+            "without", "trans", "endtrans", "raw", "endraw", "extends",
+            "block", "endblock", "include", "autoescape", "endautoescape",
+            # Jinja test names (``x is <test>``) — never context keys.
+            "defined", "undefined", "callable", "sequence", "mapping",
+            "iterable", "number", "integer", "float", "string", "odd",
+            "even", "divisibleby", "eq", "equalto", "ne", "lt", "lessthan",
+            "le", "gt", "greaterthan", "ge", "sameas", "lower", "upper",
+            "escaped",
+        }
+    )
 
     @classmethod
     def _stringify_value(cls, value: Any) -> str:
@@ -107,6 +150,98 @@ class DocxGenerator:
             ),
             "analysis_json": json.dumps(analysis_dict, ensure_ascii=True, default=str),
         }
+
+    @classmethod
+    def _expression_roots(cls, expression: str) -> set[str]:
+        """Root variable names referenced by one Jinja expression.
+
+        String literals are blanked first; ``|filter`` / ``|filter(args)``
+        segments are dropped (only the value head can be a context key).
+        """
+        cleaned = cls._STRING_LITERAL_RE.sub("", expression)
+        cleaned = cleaned.split("|", 1)[0]
+        roots: set[str] = set()
+        for match in cls._IDENTIFIER_RE.finditer(cleaned):
+            token = match.group(0)
+            start = match.start()
+            # Attribute access (``foo.bar``): only the head ``foo`` counts.
+            if start > 0 and cleaned[start - 1] == ".":
+                continue
+            if token.lower() in cls._JINJA_KEYWORDS:
+                continue
+            roots.add(token)
+        return roots
+
+    @classmethod
+    def _template_locals(cls, tag_body: str) -> set[str]:
+        """Variables a ``{% %}`` tag defines (loop/set targets)."""
+        locals_: set[str] = set()
+        for match in cls._LOOP_VAR_RE.finditer(tag_body):
+            for name in match.group(1).split(","):
+                locals_.add(name.strip())
+        for match in cls._SET_VAR_RE.finditer(tag_body):
+            locals_.add(match.group(1))
+        return locals_
+
+    @classmethod
+    def discover_placeholders(cls, template_path: str) -> list[str]:
+        """List ``{{roots}}`` referenced by a DOCX template.
+
+        Pure stdlib (zipfile + regex over every ``word/*.xml`` part) so
+        discovery behaves identically in tests and production, with no new
+        dependencies. XML tags are stripped before matching, which also
+        rejoins Jinja tags split across ``<w:t>`` runs.
+        """
+        template = Path(template_path)
+        if not template.exists():
+            raise FileNotFoundError(f"Template nao encontrado em: {template_path}")
+        if template.suffix.lower() != ".docx":
+            raise ValueError(f"Template invalido para geracao DOCX: {template_path}")
+
+        try:
+            archive = zipfile.ZipFile(str(template))
+        except zipfile.BadZipFile as exc:
+            raise ValueError(
+                f"Arquivo nao e um DOCX valido: {template_path}"
+            ) from exc
+
+        roots: set[str] = set()
+        defined_locals: set[str] = set()
+        with archive:
+            part_names = [
+                name
+                for name in archive.namelist()
+                if name.startswith("word/") and name.endswith(".xml")
+            ]
+            if "word/document.xml" not in part_names:
+                raise ValueError(
+                    f"Arquivo nao e um DOCX valido: {template_path}"
+                )
+            for part_name in part_names:
+                try:
+                    raw_text = archive.read(part_name).decode("utf-8", errors="replace")
+                except KeyError:
+                    continue
+                visible_text = cls._XML_TAG_RE.sub("", raw_text)
+                for match in cls._JINJA_TAG_RE.finditer(visible_text):
+                    tag_body = match.group(1)
+                    defined_locals.update(cls._template_locals(tag_body))
+                    roots.update(cls._expression_roots(tag_body))
+                for match in cls._JINJA_VAR_RE.finditer(visible_text):
+                    roots.update(cls._expression_roots(match.group(1)))
+
+        roots -= defined_locals
+        return [f"{{{{{root}}}}}" for root in sorted(roots)]
+
+    @classmethod
+    def unsupported_placeholders(cls, placeholders: list[str] | None) -> list[str]:
+        """Subset of discovered ``{{roots}}`` with no normalized context key."""
+        unsupported: list[str] = []
+        for placeholder in placeholders or []:
+            root = placeholder.strip().strip("{}").strip()
+            if root and root not in cls.SUPPORTED_CONTEXT_KEYS:
+                unsupported.append(placeholder)
+        return unsupported
 
     @staticmethod
     def generate_defense(analysis_dict: dict, template_path: str) -> str:

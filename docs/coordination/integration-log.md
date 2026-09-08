@@ -103,6 +103,19 @@ This file is append-only. Add one short entry per landed worker or coordinator m
 
 ## 2026-09-08
 
+### C1 landed — template management MVP (Onda C)
+
+- Source: `reports/worker-c1-templates.md`
+- Scope: issue #24 / BL-015; upload/list/select/validate for DOCX templates
+- Workspace impact:
+  - backend: `POST`+`GET /api/v1/templates`, `?template_id=` on both DOCX routes (404 foreign, 422 naming `unsupported_placeholders`); stdlib Jinja discovery (split-run/loop/filter aware) in `DocxGenerator`; B4 dual-lookup + default base path preserved
+  - incidental 1-line fix: `Template.created_at` import-time default → per-row (same latent bug noted in 4 other models, left for follow-up)
+  - frontend: template picker + `.docx` upload + 422 surfacing on the analysis page; `UserTemplate` shared type
+  - validation: 11 new tests (suite 76 passed), tsc/eslint clean, WSL live 12/12, B2 smoke re-passed 10/10
+- Follow-up carried forward:
+  - template DELETE/detail endpoints deferred (MVP minimum)
+  - close #24 with the report link; #19/#20/#21 still OPEN (evidence local, needs comment + close)
+
 ### B1 resilience — restart policy on all services (Onda B)
 
 - Source: `reports/worker-b1-env.md` (resilience follow-up)

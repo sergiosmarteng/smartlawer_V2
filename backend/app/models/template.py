@@ -13,6 +13,6 @@ class Template(Base):
     name = Column(String(255), nullable=False)
     file_path = Column(String(1024), nullable=False)
     placeholders = Column(JSONB, nullable=True) # Array of placeholder keys [ "{{name}}", "{{date}}" ]
-    created_at = Column(DateTime(timezone=True), default=datetime.now(timezone.utc))
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     user = relationship("User")

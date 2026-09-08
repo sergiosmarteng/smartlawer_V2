@@ -205,11 +205,13 @@ def get_analysis_result(
 @router.get("/analysis/{analysis_id}/docx")
 def download_analysis_docx(
     analysis_id: UUID,
+    template_id: UUID | None = None,
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_active_user),
 ):
     return generate_docx_document(
         analysis_id=analysis_id,
+        template_id=template_id,
         db=db,
         current_user=current_user,
     )

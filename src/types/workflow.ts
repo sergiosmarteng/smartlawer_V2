@@ -86,6 +86,27 @@ export interface AnalysisNotReadyDetail {
   status_detail?: string;
 }
 
+/**
+ * `GET /api/v1/templates` item (C1 template MVP).
+ *
+ * `unsupportedPlaceholders` names `{{roots}}` with no normalized analysis
+ * context key — generation with such a template fails with 422.
+ */
+export interface UserTemplate {
+  id: string;
+  name: string;
+  placeholders?: string[];
+  unsupportedPlaceholders?: string[];
+  created_at?: string;
+}
+
+/** Structured `422 incompatible-template` detail from the backend. */
+export interface TemplateIncompatibilityDetail {
+  message?: string;
+  unsupported_placeholders?: string[];
+  supported_keys?: string[];
+}
+
 const ACTIVE_STATUSES = new Set(['PENDING', 'PROCESSING', 'STARTED', 'RETRY']);
 const SUCCESS_STATUSES = new Set(['SUCCESS', 'COMPLETED', 'DONE']);
 const FAILURE_STATUSES = new Set(['FAILURE', 'FAILED', 'ERROR']);

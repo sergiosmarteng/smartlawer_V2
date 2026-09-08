@@ -39,6 +39,8 @@ Frontend session behavior in the current workspace:
 | `/dashboard` | `GET` | `/api/v1/processes` | `id`, `title`, `status`, optional `analysis_id`, `status_detail` | Implemented in backend and consumed in frontend |
 | `/analysis/[id]` | `GET` | `/api/v1/analysis/{analysis_id}` | `id`, `documentName`, `summary`, `keyArguments`, `requests`, `laws`, `defense_theses`, `generatedDefenseStrategy`, `docxDownloadUrl` | Implemented in backend and consumed in frontend |
 | `/analysis/[id]` download | `GET` | `/api/v1/analysis/{analysis_id}/docx` | DOCX file response | Implemented in backend and consumed in frontend |
+| `/analysis/[id]` template picker | `GET`/`POST` | `/api/v1/templates` (list own / upload DOCX) | `[{id, name, placeholders[], unsupportedPlaceholders[], created_at}]` | Implemented (C1); upload discovers Jinja roots, warns on unsupported |
+| `/analysis/[id]` download | `GET` | `/api/v1/analysis/{analysis_id}/docx?template_id={uuid}` | DOCX rendered with the user template; 404 unknown/foreign template; 422 `unsupported_placeholders` | Implemented (C1); omitted `template_id` keeps the base-template path |
 | `/chat` | `POST` | `/api/v1/chat` | `{ answer, citations[{ref, chunk_id, document_id, document_name, page_start, excerpt}], model }` | Implemented (A4); 503 without AI key |
 | `/chat` streaming | `POST` | `/api/v1/chat/stream` | SSE `token` frames + final `done` with `citations` | Implemented (A4); tenant from JWT, optional `document_id` scope (404 cross-user) |
 | compatibility only | `GET` | `/api/v1/templates/{analysis_id}/generate` | DOCX file response | Keep until callers are fully migrated |
@@ -98,6 +100,14 @@ Frontend session behavior in the current workspace:
   - `defense_theses`
   - `evidence`
 - Analyzer fallback behavior now aims to keep enough structured data available for DOCX download even when provider-backed parsing fails.
+
+### Template Management (C1/BL-015)
+
+- `POST /api/v1/templates` (multipart `file` + optional `name`): persists the DOCX under the uploads volume, discovers Jinja roots (stdlib zip scan, split-run aware, loop vars/filters/keywords excluded), stores `placeholders`; incompatible roots are REPORTED (`unsupportedPlaceholders`), not rejected.
+- `GET /api/v1/templates`: own templates, newest first.
+- `GET /api/v1/analysis/{id}/docx?template_id={uuid}` (and legacy `/templates/{id}/generate`): 404 for unknown/foreign templates; 422 with `unsupported_placeholders` + `supported_keys` before any opaque render failure. Supported roots: `summary, requests, laws, evidence, defense_theses, generatedDefenseStrategy, analysis_json`.
+- Omitted `template_id` keeps the `base_template.docx` path byte-identical (B2 smoke guard).
+- Incidental fix: `Template.created_at` default was `datetime.now()` evaluated once at import (all rows shared one timestamp); now per-row lambda. Same latent bug exists in `analysis/document/document_chunk/user` — left for a follow-up.
 
 ## Known Gaps And Assumptions
 

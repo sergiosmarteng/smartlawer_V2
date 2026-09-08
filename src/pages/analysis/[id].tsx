@@ -10,7 +10,11 @@ import type {
   AnalysisDetailResponse,
   AnalysisNotReadyDetail,
   NormalizedAnalysis,
+  TemplateIncompatibilityDetail,
+  UserTemplate,
 } from '../../types/workflow';
+
+const BASE_TEMPLATE_OPTION = '';
 
 export default function AnalysisPage() {
   const router = useRouter();
@@ -21,6 +25,11 @@ export default function AnalysisPage() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [error, setError] = useState('');
   const [notReadyDetail, setNotReadyDetail] = useState<AnalysisNotReadyDetail | null>(null);
+  const [templates, setTemplates] = useState<UserTemplate[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>(BASE_TEMPLATE_OPTION);
+  const [templatesHint, setTemplatesHint] = useState('');
+  const [isUploadingTemplate, setIsUploadingTemplate] = useState(false);
+  const [templateNotice, setTemplateNotice] = useState('');
 
   useEffect(() => {
     if (!routeId) {
@@ -47,16 +56,66 @@ export default function AnalysisPage() {
     fetchAnalysis();
   }, [routeId]);
 
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      try {
+        const response = await api.get<UserTemplate[]>('/templates');
+        setTemplates(Array.isArray(response.data) ? response.data : []);
+        setTemplatesHint('');
+      } catch {
+        setTemplates([]);
+        setTemplatesHint('Could not load your templates — the default template stays available.');
+      }
+    };
+
+    fetchTemplates();
+  }, []);
+
+  const handleTemplateUpload = async (file: File | undefined) => {
+    if (!file || isUploadingTemplate) {
+      return;
+    }
+
+    setIsUploadingTemplate(true);
+    setTemplateNotice('');
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await api.post<UserTemplate>('/templates', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      const uploaded = response.data;
+      setTemplates((previous) => [uploaded, ...previous.filter((item) => item.id !== uploaded.id)]);
+      setSelectedTemplateId(uploaded.id);
+      const unsupported = uploaded.unsupportedPlaceholders || [];
+      setTemplateNotice(
+        unsupported.length > 0
+          ? `Template uploaded, but these placeholders have no analysis data and will block generation: ${unsupported.join(', ')}.`
+          : `Template "${uploaded.name}" uploaded and selected.`,
+      );
+    } catch (uploadError) {
+      setTemplateNotice(getApiErrorMessage(uploadError, 'Failed to upload the DOCX template.'));
+    } finally {
+      setIsUploadingTemplate(false);
+    }
+  };
+
   const handleDownloadTemplate = async () => {
     if (!analysis || !routeId || isDownloading) {
       return;
     }
 
     setIsDownloading(true);
+    setTemplateNotice('');
 
     try {
-      const downloadPath = normalizeApiPath(analysis.docxDownloadUrl || `/analysis/${routeId}/docx`);
-      const response = await api.get(downloadPath, {
+      const basePath = analysis.docxDownloadUrl || `/analysis/${routeId}/docx`;
+      const downloadPath =
+        selectedTemplateId !== BASE_TEMPLATE_OPTION
+          ? `${basePath}${basePath.includes('?') ? '&' : '?'}template_id=${encodeURIComponent(selectedTemplateId)}`
+          : basePath;
+      const response = await api.get(normalizeApiPath(downloadPath), {
         responseType: 'blob',
       });
 
@@ -69,11 +128,23 @@ export default function AnalysisPage() {
       link.remove();
       window.URL.revokeObjectURL(url);
     } catch (downloadError) {
-      setError(getApiErrorMessage(downloadError, 'Failed to generate the DOCX defense file.'));
+      const incompatible = getTemplateIncompatibility(downloadError);
+      if (incompatible) {
+        setTemplateNotice(
+          `This template cannot render this analysis — unknown placeholders: ${incompatible.join(', ')}. Pick the default template or upload a compatible one.`,
+        );
+      } else {
+        setError(getApiErrorMessage(downloadError, 'Failed to generate the DOCX defense file.'));
+      }
     } finally {
       setIsDownloading(false);
     }
   };
+
+  const selectedTemplate =
+    selectedTemplateId !== BASE_TEMPLATE_OPTION
+      ? templates.find((template) => template.id === selectedTemplateId)
+      : undefined;
 
   return (
     <AuthGuard>
@@ -186,6 +257,54 @@ export default function AnalysisPage() {
                         </button>
                       </div>
                     </div>
+                  </div>
+
+                  <div className="border-b border-zinc-800 px-8 py-6 sm:px-10">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                      <div className="max-w-2xl">
+                        <h2 className="text-sm font-medium uppercase tracking-[0.28em] text-zinc-300">DOCX template</h2>
+                        <p className="mt-2 text-sm leading-7 text-zinc-400">
+                          {selectedTemplate?.name
+                            ? `Rendering with "${selectedTemplate.name}" (${selectedTemplate.placeholders?.length || 0} placeholders).`
+                            : 'Rendering with the default defense template.'}
+                        </p>
+                      </div>
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                        <select
+                          value={selectedTemplateId}
+                          onChange={(event) => {
+                            setSelectedTemplateId(event.target.value);
+                            setTemplateNotice('');
+                          }}
+                          className="rounded-full border border-zinc-700 bg-zinc-950 px-4 py-2.5 text-sm text-slate-200 outline-none transition-colors hover:border-zinc-500 focus:border-sky-500"
+                          aria-label="Select a DOCX template"
+                        >
+                          <option value={BASE_TEMPLATE_OPTION}>Default template</option>
+                          {templates.map((template) => (
+                            <option key={template.id} value={template.id}>
+                              {template.name}
+                              {(template.unsupportedPlaceholders?.length || 0) > 0 ? ' (incompatible)' : ''}
+                            </option>
+                          ))}
+                        </select>
+                        <label className="inline-flex cursor-pointer items-center justify-center rounded-full border border-zinc-700 px-5 py-2.5 text-sm font-medium text-zinc-200 transition-colors hover:border-zinc-500 hover:bg-zinc-900">
+                          {isUploadingTemplate ? 'Uploading...' : 'Upload .docx'}
+                          <input
+                            type="file"
+                            accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                            className="hidden"
+                            disabled={isUploadingTemplate}
+                            onChange={(event) => {
+                              handleTemplateUpload(event.target.files?.[0]);
+                              event.target.value = '';
+                            }}
+                          />
+                        </label>
+                      </div>
+                    </div>
+                    {(templatesHint || templateNotice) && (
+                      <p className="mt-3 text-sm leading-7 text-amber-200/90">{templateNotice || templatesHint}</p>
+                    )}
                   </div>
 
                   <div className="grid gap-8 px-8 py-8 sm:px-10 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
@@ -374,6 +493,20 @@ function MetaItem({ label, value }: { label: string; value: string }) {
       <dd className="mt-2 break-all text-sm leading-7 text-slate-300">{value}</dd>
     </div>
   );
+}
+
+function getTemplateIncompatibility(error: unknown): string[] | null {
+  if (!axios.isAxiosError(error)) {
+    return null;
+  }
+
+  const detail = error.response?.data?.detail as TemplateIncompatibilityDetail | undefined;
+  const offenders = detail?.unsupported_placeholders;
+  if (Array.isArray(offenders) && offenders.length > 0) {
+    return offenders.map(String);
+  }
+
+  return null;
 }
 
 function getFilenameFromHeaders(contentDisposition: string | undefined, fallbackId: string) {

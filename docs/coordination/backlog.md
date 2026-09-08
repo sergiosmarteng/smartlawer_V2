@@ -30,7 +30,7 @@ Last updated: 2026-05-12
 | BL-012 | P0 | Execute integrated pilot smoke and defect sweep | qa/integration | BL-010, BL-011 | completed | API happy path PASSED 10/10 first run 2026-09-08 via `docs/coordination/smoke-api.py` (register→JWT→upload→COMPLETED 5s→processes→analysis→DOCX). Zero API defects. Browser UI pass still manual follow-up. See `reports/worker-b2-smoke.md`. |
 | BL-013 | P0 | Validate and harden real DOCX generation path | backend/qa | BL-007, BL-011 | completed | Proven 2026-09-08 in integrated env: `GET /analysis/{id}/docx` → 200, `PK` magic, 37151 bytes via active template path (inside B2 smoke). Browser-download confirmation left to manual UI pass. |
 | BL-014 | P0 | Decide and codify public workflow identifiers | backend/frontend | BL-002, BL-012 | completed | Decided 2026-09-08: keep `task_id == document id` explicitly (single pipeline/analysis per document); codified in route docstrings, frontend polls canonical `taskStatusUrl`, contract updated. See `reports/worker-b4-identifiers.md`. |
-| BL-015 | P0 | Implement template management MVP from the PRD | backend/frontend | BL-013 | planned | Add real DOCX template upload, listing, selection, and placeholder validation instead of relying only on `base_template.docx`. |
+| BL-015 | P0 | Implement template management MVP from the PRD | backend/frontend | BL-013 | completed | Landed 2026-09-08: upload/list/select/validate (`POST`+`GET /api/v1/templates`, `?template_id=` on both DOCX routes, 422 naming offenders), picker on analysis page, 11 new tests (76 passed), live 12/12 + B2 re-passed 10/10. See `reports/worker-c1-templates.md`. |
 | BL-016 | P1 | Add Docling-based ingestion with Markdown persistence and fallback | backend/ai | BL-011, BL-012 | completed | Landed 2026-09-07 (A2): `DoclingExtractor` feature-flagged (`DOCLING_ENABLED`, default off), `documents.raw_text` + `structured_markdown` persisted via migration `20260907_0002`, analyzer prefers markdown, real-converter validation passed. See `reports/worker-a2-docling.md`. |
 | BL-017 | P1 | Add document history, retention, and generated-file versioning | backend/frontend | BL-012, BL-015 | planned | Close the PRD gap around history, recovery, and generated-document tracking. |
 | BL-018 | P1 | Add production observability and audit trail | platform/backend | BL-011, BL-012 | planned | Instrument workflow timing, queue failures, auth events, and analysis/DOCX outcome logs for supportability. |
@@ -51,7 +51,7 @@ Last updated: 2026-05-12
 | #21 B3 | Validate real DOCX in integrated env (BL-013) | completed | Real 37KB DOCX (`PK`) from canonical route inside B2 smoke |
 | #22 B4 | Workflow identifiers (BL-014) | completed | `task_id == document id` codified. `reports/worker-b4-identifiers.md` |
 | #23 B5 | Frontend hygiene + archive microharness docs | completed | Shared types/hook, real upload progress, archive. `reports/worker-b5-hygiene.md` |
-| #24 C1 | Template management MVP (BL-015) | ready for Session C | Constraints in `handoff-c1-template-mvp.md` (B owns migrations/B4) |
+| #24 C1 | Template management MVP (BL-015) | completed | Upload/list/select/validate live 12/12; picker on analysis page. `reports/worker-c1-templates.md` |
 
 ## Recommended Handoff Order
 
