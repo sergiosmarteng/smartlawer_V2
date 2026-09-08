@@ -40,6 +40,7 @@ Expected coordination behavior:
 - When one agent finishes, the next agent should start from the previous report instead of re-discovering context.
 - Any task that changes public workflow behavior must also refresh the relevant coordination docs before handoff.
 - No stage is "done" without its local commit (rule 6 above); the commit hash goes into the worker report and `integration-log.md`.
+- **Runtime Docker roda sempre e apenas no WSL** (regra 7 do README): nenhum `docker`/`docker compose` no Windows. Validação de runtime (B1/B2/B3, smoke) executa dentro do WSL; no Windows ficam edição, pytest sqlite, tsc e eslint.
 
 ## Phase 1: Pilot Closure And Runtime Proof
 

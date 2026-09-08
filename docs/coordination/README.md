@@ -25,6 +25,7 @@ This folder is the shared execution surface for the SmartLawer V2 stabilization 
 4. Keep reports practical: scope, files, decisions, validation, handoff.
 5. If you change contract behavior, update or request an update to `api-contract.md`.
 6. **Commit local obrigatório ao concluir cada etapa (mínimo):** código + testes verdes + docs da etapa em um commit local no repo correspondente. Sem push — push somente quando o usuário pedir explicitamente.
+7. **Nunca testar com Docker no Windows: usar sempre e apenas o WSL.** Todo comando `docker`/`docker compose` (build, up, smoke, validação de runtime) roda dentro do WSL. No PowerShell/Windows, apenas edição de código e testes locais (pytest sqlite, tsc, eslint).
 
 ## Coordinator Rules
 
