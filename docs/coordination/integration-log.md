@@ -103,6 +103,18 @@ This file is append-only. Add one short entry per landed worker or coordinator m
 
 ## 2026-09-08
 
+### C4 landed — observability + RBAC (Onda C)
+
+- Source: `reports/worker-c4-audit-rbac.md`
+- Scope: issue #27 / BL-018 + BL-024 (DoD: trilha consultável)
+- Workspace impact:
+  - NEW `audit_events` (migration `20260908_0006`, live); best-effort hooks on auth/upload/generate/template/prompt/chat/worker-completion (timing + failure excerpts, no raw user content)
+  - `GET /audit` (own + filters, `scope=all` admin) + `GET /ops/summary` (admin); `role` gate + escalation guard; `/audit` page
+  - 2FA deferred with design sketch (half-2FA = security theater)
+  - validation: 7 new tests (suite 99 passed), tsc/eslint clean, WSL live 11/11, B2 re-passed 10/10
+- Follow-up carried forward:
+  - promote admins via SQL (`UPDATE users SET role='admin' …`); rotate leaked PAT (still open)
+
 ### C3 landed — prompts/batch/summary exports (Onda C)
 
 - Source: `reports/worker-c3-prompts-batch-export.md`

@@ -5,7 +5,9 @@ from sqlalchemy.orm import Session
 from app.api import deps
 from app.core.config import settings
 from app.core import security
+from app.core.audit import record_audit
 from app.crud.user import get_user_by_email
+from app.models.audit_event import AuditEvent
 from app.schemas.user import Token
 
 router = APIRouter()
@@ -33,7 +35,15 @@ def login_access_token(
     access_token = security.create_access_token(
         subject=user.id, expires_delta=access_token_expires
     )
-    
+
+    record_audit(
+        db,
+        event_type=AuditEvent.AUTH_LOGIN,
+        user_id=user.id,
+        entity_type="user",
+        entity_id=user.id,
+    )
+
     return Token(
         access_token=access_token,
         token_type="bearer"

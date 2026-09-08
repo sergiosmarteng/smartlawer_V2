@@ -5,7 +5,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.api import deps
+from app.core.audit import record_audit
 from app.crud.prompt import set_default_profile
+from app.models.audit_event import AuditEvent
 from app.models.prompt_profile import PromptProfile
 from app.models.user import User
 from app.schemas.prompt import PromptProfileCreate, PromptProfileResponse
@@ -34,6 +36,14 @@ def create_prompt_profile(
     db.refresh(profile)
     if payload.is_default:
         profile = set_default_profile(db, profile=profile)
+    record_audit(
+        db,
+        event_type=AuditEvent.PROMPT_CREATED,
+        user_id=current_user.id,
+        entity_type="prompt_profile",
+        entity_id=profile.id,
+        meta={"name": profile.name},
+    )
     return profile
 
 
@@ -69,7 +79,15 @@ def set_default_prompt_profile(
     )
     if not profile:
         raise HTTPException(status_code=404, detail="Prompt profile not found")
-    return set_default_profile(db, profile=profile)
+    profile = set_default_profile(db, profile=profile)
+    record_audit(
+        db,
+        event_type=AuditEvent.PROMPT_DEFAULT,
+        user_id=current_user.id,
+        entity_type="prompt_profile",
+        entity_id=profile.id,
+    )
+    return profile
 
 
 @router.delete("/{profile_id}", status_code=204)
@@ -89,6 +107,15 @@ def delete_prompt_profile(
     )
     if not profile:
         raise HTTPException(status_code=404, detail="Prompt profile not found")
+    profile_name = profile.name
     db.delete(profile)
     db.commit()
+    record_audit(
+        db,
+        event_type=AuditEvent.PROMPT_DELETED,
+        user_id=current_user.id,
+        entity_type="prompt_profile",
+        entity_id=profile_id,
+        meta={"name": profile_name},
+    )
     return None

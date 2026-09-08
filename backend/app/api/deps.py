@@ -45,3 +45,19 @@ def get_current_active_user(
     if not current_user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
+
+
+def get_current_admin_user(
+    current_user: User = Depends(get_current_active_user),
+) -> User:
+    """RBAC gate (C4/BL-024): only ``role == 'admin'`` passes.
+
+    Roles are granted out-of-band (documented SQL) — no privilege
+    escalation endpoint exists by design.
+    """
+    if (current_user.role or "user") != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin role required",
+        )
+    return current_user

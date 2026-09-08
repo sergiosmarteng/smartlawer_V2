@@ -7,7 +7,9 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from app.api import deps
+from app.core.audit import record_audit
 from app.crud.document import create_document, get_documents_by_user, update_document_state
+from app.models.audit_event import AuditEvent
 from app.models.document import Document
 from app.models.user import User
 from app.schemas.document import DocumentCreate, DocumentResponse
@@ -126,6 +128,14 @@ def _store_and_queue(
             detail="Document upload succeeded, but background processing could not be started.",
         ) from exc
 
+    record_audit(
+        db,
+        event_type=AuditEvent.DOCUMENT_UPLOAD,
+        user_id=current_user.id,
+        entity_type="document",
+        entity_id=document.id,
+        meta={"filename": document.filename},
+    )
     return UploadSubmissionResponse(
         id=document.id,
         task_id=document.id,

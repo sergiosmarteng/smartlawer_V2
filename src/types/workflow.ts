@@ -136,6 +136,16 @@ export interface PromptProfile {
   created_at?: string;
 }
 
+/** `GET /api/v1/audit` item (C4 audit trail). */
+export interface AuditEventItem {
+  id: string;
+  event_type: string;
+  entity_type?: string | null;
+  entity_id?: string | null;
+  meta?: Record<string, unknown>;
+  created_at?: string;
+}
+
 const ACTIVE_STATUSES = new Set(['PENDING', 'PROCESSING', 'STARTED', 'RETRY']);
 const SUCCESS_STATUSES = new Set(['SUCCESS', 'COMPLETED', 'DONE']);
 const FAILURE_STATUSES = new Set(['FAILURE', 'FAILED', 'ERROR']);

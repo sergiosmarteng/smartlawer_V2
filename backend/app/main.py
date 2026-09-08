@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from app.api.routes import auth, chat, documents, prompts, templates, users, versions, workflow
+from app.api.routes import auth, audit, chat, documents, prompts, templates, users, versions, workflow
 from app.core.config import settings
 from app.core.migrations import run_migrations
 
@@ -17,6 +17,7 @@ async def lifespan(_app: FastAPI):
 app = FastAPI(title="SmartLawer V2 API", lifespan=lifespan)
 
 app.include_router(auth.router, prefix="/api/v1", tags=["login"])
+app.include_router(audit.router, prefix="/api/v1", tags=["audit"])
 app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
 app.include_router(chat.router, prefix="/api/v1", tags=["chat"])
 app.include_router(documents.router, prefix="/api/v1/documents", tags=["documents"])

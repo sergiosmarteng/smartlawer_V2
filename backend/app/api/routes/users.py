@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.api import deps
+from app.core.audit import record_audit
 from app.crud import user as crud
 from app.schemas.user import UserCreate, UserResponse
+from app.models.audit_event import AuditEvent
 from app.models.user import User
 
 router = APIRouter()
@@ -24,7 +26,15 @@ def create_user_endpoint(
     existing_username = crud.get_user_by_username(db, username=user_in.username)
     if existing_username:
         raise HTTPException(status_code=400, detail="A user with this username already exists.")
-    return crud.create_user(db, user=user_in)
+    user = crud.create_user(db, user=user_in)
+    record_audit(
+        db,
+        event_type=AuditEvent.AUTH_REGISTER,
+        user_id=user.id,
+        entity_type="user",
+        entity_id=user.id,
+    )
+    return user
 
 @router.get("/me", response_model=UserResponse)
 def read_user_me(

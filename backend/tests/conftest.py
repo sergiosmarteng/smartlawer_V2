@@ -220,7 +220,7 @@ from app.api import deps
 from app.core.database import Base
 from app.core.security import create_access_token, get_password_hash
 from app.main import app
-from app.models import Analysis, Document, DocumentChunk, GeneratedDocument, PromptProfile, Template, User  # noqa: F401
+from app.models import Analysis, AuditEvent, Document, DocumentChunk, GeneratedDocument, PromptProfile, Template, User  # noqa: F401
 
 
 class GUID(TypeDecorator):

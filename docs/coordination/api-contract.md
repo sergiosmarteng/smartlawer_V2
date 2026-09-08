@@ -47,6 +47,8 @@ Frontend session behavior in the current workspace:
 | `/prompts` | `PATCH`/`DELETE` | `/api/v1/prompts/{id}/default`, `/api/v1/prompts/{id}` | Switch default / delete own (404 foreign) | Implemented (C3) |
 | `/upload` batch | `POST` | `/api/v1/documents/batch-upload` (≤10 PDFs) | `{items[], errors[]}` per-file tolerance | Implemented (C3) |
 | `/analysis/[id]` summary | `GET` | `/api/v1/analysis/{analysis_id}/summary.md` | Markdown download | Implemented (C3) |
+| `/audit` | `GET` | `/api/v1/audit?event_type=&entity_id=&limit=&scope=` | Own trail (`scope=all` admin-only, 403 otherwise) | Implemented (C4) |
+| ops | `GET` | `/api/v1/ops/summary` | States, 24h counts, recent failures (admin-only) | Implemented (C4) |
 | `/chat` | `POST` | `/api/v1/chat` | `{ answer, citations[{ref, chunk_id, document_id, document_name, page_start, excerpt}], model }` | Implemented (A4); 503 without AI key |
 | `/chat` streaming | `POST` | `/api/v1/chat/stream` | SSE `token` frames + final `done` with `citations` | Implemented (A4); tenant from JWT, optional `document_id` scope (404 cross-user) |
 | compatibility only | `GET` | `/api/v1/templates/{analysis_id}/generate` | DOCX file response | Keep until callers are fully migrated |

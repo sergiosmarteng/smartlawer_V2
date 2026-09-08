@@ -8,10 +8,12 @@ from sqlalchemy.orm import Session
 
 from app.api import deps
 from app.core import rag_answer
+from app.core.audit import record_audit
 from app.core.embeddings import embed_query
 from app.core.retrieval import hybrid_search
 from app.core.security_rag import BLOCK_MESSAGE, is_injection_attempt, mask_pii
 from app.crud.document import get_document_for_user
+from app.models.audit_event import AuditEvent
 from app.models.user import User
 from app.schemas.chat import ChatRequest, ChatResponse
 
@@ -66,6 +68,21 @@ def chat(
     except Exception as exc:
         logger.exception("Falha no chat para user_id=%s", current_user.id)
         raise HTTPException(status_code=502, detail="Falha ao gerar resposta")
+    # Audit stores counts/scope only — never the raw query (LGPD).
+    if isinstance(result, dict):
+        audit_model = result.get("model")
+        audit_citations = len(result.get("citations") or [])
+    else:
+        audit_model = getattr(result, "model", None)
+        audit_citations = len(getattr(result, "citations", None) or [])
+    record_audit(
+        db,
+        event_type=AuditEvent.CHAT_QUERY,
+        user_id=current_user.id,
+        entity_type="document" if scope else None,
+        entity_id=scope,
+        meta={"model": audit_model, "citations": audit_citations},
+    )
     return result
 
 

@@ -2,6 +2,7 @@ import logging
 from datetime import datetime, timezone
 
 from app.core.ai_engine import LegalAnalyzer
+from app.core.audit import audit_document_completion
 from app.core.config import settings
 from app.core.database import SessionLocal
 from app.core.docling_extractor import extract_markdown as docling_extract_markdown
@@ -179,6 +180,7 @@ def process_pdf_task(self, document_id: str, file_path: str):
             error_message=None,
             completed_at=datetime.now(timezone.utc),
         )
+        audit_document_completion(db, document=get_document(db, id=document_id))
 
         try:
             index_document_chunks(document_id, analysis_text)
@@ -208,6 +210,7 @@ def process_pdf_task(self, document_id: str, file_path: str):
             status_detail="Processing failed",
             error_message=str(exc),
         )
+        audit_document_completion(db, document=get_document(db, id=document_id))
         raise
     finally:
         db.close()

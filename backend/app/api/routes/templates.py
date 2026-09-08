@@ -11,9 +11,11 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.api import deps
+from app.core.audit import record_audit
 from app.core.config import settings
 from app.core.doc_generator import DocxGenerator
 from app.models.analysis import Analysis
+from app.models.audit_event import AuditEvent
 from app.models.document import Document
 from app.models.generated_document import GeneratedDocument
 from app.models.template import Template
@@ -124,6 +126,18 @@ async def upload_template(
     db.add(template)
     db.commit()
     db.refresh(template)
+    record_audit(
+        db,
+        event_type=AuditEvent.TEMPLATE_UPLOAD,
+        user_id=current_user.id,
+        entity_type="template",
+        entity_id=template.id,
+        meta={
+            "name": template.name,
+            "placeholders": placeholders,
+            "unsupported": DocxGenerator.unsupported_placeholders(placeholders),
+        },
+    )
     return _template_response(template)
 
 
@@ -339,13 +353,22 @@ def generate_docx_document(
         template_path = template.file_path
 
     try:
-        return _build_docx_file_response(
+        response = _build_docx_file_response(
             analysis,
             template_path,
             db=db,
             user_id=current_user.id,
             template_id=template_id,
         )
+        record_audit(
+            db,
+            event_type=AuditEvent.DOCX_GENERATED,
+            user_id=current_user.id,
+            entity_type="analysis",
+            entity_id=analysis.id,
+            meta={"template_id": str(template_id) if template_id else None},
+        )
+        return response
     except FileNotFoundError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
     except HTTPException:

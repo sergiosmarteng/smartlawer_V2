@@ -8,3 +8,4 @@ from app.models.analysis import Analysis
 from app.models.template import Template
 from app.models.generated_document import GeneratedDocument
 from app.models.prompt_profile import PromptProfile
+from app.models.audit_event import AuditEvent
