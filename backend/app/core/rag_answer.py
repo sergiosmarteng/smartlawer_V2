@@ -106,7 +106,6 @@ def answer_query(
     query: str,
     document_id=None,
     top_k: int | None = None,
-    caution: bool = False,
 ) -> dict:
     """Full non-streaming pipeline: guard -> retrieve -> generate -> cite."""
     from app.core.retrieval import hybrid_search
@@ -139,7 +138,7 @@ def answer_query(
             "requires_human_review": True,
         }
     contexts = [(str(c.id), c.content) for c in chunks]
-    prompt = build_grounded_prompt(query, contexts, caution=caution)
+    prompt = build_grounded_prompt(query, contexts)
     answer, model = complete(prompt)
     return {
         "answer": answer,
