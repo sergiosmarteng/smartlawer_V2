@@ -1,17 +1,49 @@
+# B1 integrated runtime (BL-011): api + worker + pgvector + redis.
+#
+# Recipe:
+#   1. cp .env.example .env   (fill SECRET_KEY + AI keys for real LLM/RAG)
+#   2. docker compose up -d --build
+#   3. docker compose ps       (all services healthy)
+#   4. curl http://localhost:8000/health
+# Frontend (separate terminal): NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1 npm run dev
+
+x-backend-env: &backend-env
+  DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@db:5432/smartlawer}
+  REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+  ENVIRONMENT: ${ENVIRONMENT:-development}
+  SECRET_KEY: ${SECRET_KEY:-dev-insecure-secret-change-me}
+  ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-10080}
+  SKIP_STARTUP_MIGRATIONS: ${SKIP_STARTUP_MIGRATIONS:-false}
+  AI_PROVIDER: ${AI_PROVIDER:-openai}
+  OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+  OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+  CHAT_MODEL: ${CHAT_MODEL:-gpt-4-turbo}
+  EMBEDDING_MODEL: ${EMBEDDING_MODEL:-text-embedding-3-small}
+  EMBEDDING_MODEL_VERSION: ${EMBEDDING_MODEL_VERSION:-v1}
+  EMBEDDING_DIMENSIONS: ${EMBEDDING_DIMENSIONS:-1536}
+  EMBEDDING_BATCH_SIZE: ${EMBEDDING_BATCH_SIZE:-64}
+  DOCLING_ENABLED: ${DOCLING_ENABLED:-false}
+  RETRIEVAL_CANDIDATE_K: ${RETRIEVAL_CANDIDATE_K:-30}
+  RETRIEVAL_TOP_K: ${RETRIEVAL_TOP_K:-6}
+  RRF_K: ${RRF_K:-60}
+  RERANK_ENABLED: ${RERANK_ENABLED:-false}
+  COHERE_API_KEY: ${COHERE_API_KEY:-}
+  COHERE_RERANK_MODEL: ${COHERE_RERANK_MODEL:-rerank-3}
+
 services:
   api:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    env_file:
+      - path: .env
+        required: false
+    environment: *backend-env
     volumes:
       - ./backend:/app
       - ./uploads:/data/uploads
     ports:
-      - "8000:8000"
-    environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/smartlawer
-      - REDIS_URL=redis://redis:6379/0
-      - ENVIRONMENT=development
+      - "${API_PORT:-8000}:8000"
     healthcheck:
       test:
         [
@@ -21,6 +53,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+      start_period: 30s
     depends_on:
       db:
         condition: service_healthy
@@ -31,14 +64,25 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    command: celery -A app.worker.celery_app worker --loglevel=info
+    # Unambiguous module:attr reference (Celery >= 4 supports -A pkg.mod:attr).
+    command: celery -A app.worker:celery_app worker --loglevel=info
+    env_file:
+      - path: .env
+        required: false
+    environment: *backend-env
     volumes:
       - ./backend:/app
       - ./uploads:/data/uploads
-    environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/smartlawer
-      - REDIS_URL=redis://redis:6379/0
-      - ENVIRONMENT=development
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "celery -A app.worker:celery_app inspect ping -d celery@$$HOSTNAME | grep -q pong",
+        ]
+      interval: 15s
+      timeout: 10s
+      retries: 12
+      start_period: 60s
     depends_on:
       api:
         condition: service_healthy
@@ -50,11 +94,11 @@ services:
   db:
     image: pgvector/pgvector:pg15
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=smartlawer
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_DB=${POSTGRES_DB:-smartlawer}
     ports:
-      - "5432:5432"
+      - "${DB_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -66,7 +110,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     healthcheck:

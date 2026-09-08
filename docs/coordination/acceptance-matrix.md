@@ -21,6 +21,7 @@ Last updated: 2026-05-11
 | BL-008 | Re-enable auth protection on sensitive routes and verify consistency | blocked | `reports/worker-bl-002-backend-contract.md`; protected-route review completed | Code-level verification is in place, but local API validation is still blocked by the same backend environment issues affecting BL-002. |
 | BL-009 | Stabilize backend tests for auth and workflow | implemented | `reports/worker-bl-009-tests.md`; `12 passed` on `pytest backend/tests -q --basetemp C:\\tmp\\pytest-bl009-all` | Route-level local test coverage is stable. Separate integration coverage for real Postgres/Celery/OCR/AI remains future work, not a blocker for this backlog item itself. |
 | BL-010 | Smoke verification and final integration report | pending validation | `reports/worker-qa-smoke-prep.md`; `smoke-checklist.md` prepared | The checklist exists, but the manual end-to-end smoke has not been executed on a fully integrated environment yet. |
+| BL-011 | Normalize integrated runtime environment for pilot validation | partially validated | `reports/worker-b1-env.md`; `docker compose config` valid; backend image build completed | Recipe landed (env parity, worker boot, healthchecks). Final acceptance needs `docker compose up` all-healthy + `/health` evidence, pending daemon recovery — resume steps in report. |
 
 ## Final Signoff Gate
 

@@ -26,7 +26,7 @@ Last updated: 2026-05-12
 
 | ID | Priority | Task | Suggested Owner | Depends On | Status | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| BL-011 | P0 | Normalize integrated runtime environment for pilot validation | platform/backend | BL-002, BL-009 | planned | Align local/shared runtime for Postgres, Redis/Celery, Tesseract, `docxtpl`, `psycopg2`, temp-file writes, and env loading so the pilot can be validated end to end. |
+| BL-011 | P0 | Normalize integrated runtime environment for pilot validation | platform/backend | BL-002, BL-009 | in progress | Recipe landed 2026-09-08 (compose env parity, worker boot ref, healthchecks, `.env.example` rewrite; `compose config` valid, backend image build completed). Live `compose up` healthy-state evidence still pending daemon recovery (wedged on multi-GB unpack). See `reports/worker-b1-env.md`. |
 | BL-012 | P0 | Execute integrated pilot smoke and defect sweep | qa/integration | BL-010, BL-011 | planned | Run `smoke-checklist.md`, capture real evidence, and convert any defects into targeted fixes before pilot signoff. |
 | BL-013 | P0 | Validate and harden real DOCX generation path | backend/qa | BL-007, BL-011 | planned | Prove that `/analysis/{id}/docx` produces a usable file in the real environment and close any template, temp-path, or permission issues. |
 | BL-014 | P0 | Decide and codify public workflow identifiers | backend/frontend | BL-002, BL-012 | planned | Replace or explicitly keep the current `document id == task id` assumption and update the API contract plus frontend handling accordingly. |

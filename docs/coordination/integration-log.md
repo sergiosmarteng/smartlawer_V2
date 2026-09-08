@@ -101,6 +101,23 @@ This file is append-only. Add one short entry per landed worker or coordinator m
   - BL-007 still needs a real DOCX runtime download check
   - BL-010 still needs the integrated manual smoke execution
 
+## 2026-09-08
+
+### B1 landed — normalized integrated runtime recipe (Onda B)
+
+- Source: `reports/worker-b1-env.md`
+- Scope: issue #19 / BL-011; compose env parity, worker boot, healthchecks
+- Workspace impact:
+  - `docker-compose.yml`: shared `x-backend-env` (all Settings keys), optional `.env`, worker `-A app.worker:celery_app`, worker `inspect ping` healthcheck, `start_period`, parametrized ports
+  - `.env.example` rewritten (was Clerk-only/stale); `Dockerfile` gains `PYTHONDONTWRITEBYTECODE`/`PYTHONUNBUFFERED`
+  - `compose config` valid; backend image BUILD completed on daemon 29.1.2
+  - `handoff-c1-template-mvp.md` published: Session C ownership + constraints (B owns migrations/B4-decision/contract-ack)
+- Follow-up carried forward:
+  - container-start evidence pending daemon recovery (wedged on multi-GB unpack; restart issued) — B2 resume steps in report
+  - Session B owns alembic migrations while Onda B/C run in parallel
+
+### A6 landed — PII masking + prompt-injection defense (Onda A RAG)
+
 ## 2026-09-07
 
 ### A1 landed — pgvector migration + document_chunks table (Onda A RAG)
