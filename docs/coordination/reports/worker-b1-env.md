@@ -93,3 +93,23 @@
   services (recommended B1 follow-up; needs an `up -d` + re-verify cycle).
 - B2 smoke followed immediately on this stack: see
   `reports/worker-b2-smoke.md` (PASSED 10/10).
+
+## Resilience Follow-Up — 2026-09-08 (same session)
+
+- Implemented: `restart: unless-stopped` on api/worker/db/redis
+  (`docker-compose.yml` only change). `config` valid; `up -d` recreated all
+  four; `docker inspect` confirms the policy on every container; all
+  `healthy`, `/health` OK, and B2 smoke re-ran **PASSED 10/10** on the final
+  recipe (incl. fresh-user tenant isolation: `processes` returned only the
+  new user's row).
+- Host check: Windows sleep-on-AC is already `never` (`powercfg`
+  STANDBYIDLE AC=0); battery idle is 15 min — so the WSL poweroffs track
+  host idle/sleep events, not an aggressive AC policy. No rogue scheduled
+  tasks found. No sudo passwordless in WSL, so a daemon-restart end-to-end
+  test was left to the operator (`wsl -d Ubuntu sudo systemctl restart
+  docker` → stack must return alone).
+- Caveat learned live: `docker compose kill/stop` sets the daemon's
+  manual-stop flag (`hasBeenManuallyStopped=true`), which `unless-stopped`
+  honors — after an intentional stop, run `up -d` again or the next daemon
+  reboot will leave the stack down. Real crashes/reboots (flag false) do
+  self-heal.

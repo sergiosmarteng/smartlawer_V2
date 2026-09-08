@@ -103,6 +103,18 @@ This file is append-only. Add one short entry per landed worker or coordinator m
 
 ## 2026-09-08
 
+### B1 resilience — restart policy on all services (Onda B)
+
+- Source: `reports/worker-b1-env.md` (resilience follow-up)
+- Scope: `docker-compose.yml` only change — `restart: unless-stopped` on api/worker/db/redis
+- Workspace impact:
+  - `config` valid; `up -d` recreated 4/4 `healthy`; policy confirmed via `docker inspect`; `/health` OK
+  - B2 smoke re-ran PASSED 10/10 on the final recipe (fresh-user isolation held)
+  - Windows sleep-on-AC is already `never`; WSL poweroffs track host idle — policy covers daemon/WSL reboots
+  - caveat: after intentional `stop/kill`, re-run `up -d` (daemon manual-stop flag)
+- Follow-up carried forward:
+  - operator end-to-end daemon test still open (needs WSL sudo): `sudo systemctl restart docker` → stack must return alone
+
 ### B1 completed — all-healthy live stack on WSL (Onda B)
 
 - Source: `reports/worker-b1-env.md` (completion addendum)
