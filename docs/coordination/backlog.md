@@ -55,7 +55,7 @@ Last updated: 2026-05-12
 | #25 C2 | Histórico/retenção/versionamento + storage (BL-017/019) | closed | Migration `20260908_0004` live; versions flow 7/7. `reports/worker-c2-versions.md` |
 | #26 C3 | Prompts customizáveis + lote + exports (BL-020/021/022) | closed | Profiles + batch + summary.md live 7/7. `reports/worker-c3-prompts-batch-export.md` |
 | #27 C4 | Observabilidade + RBAC/2FA/governança (BL-018/024) | closed | Audit trail + ops + RBAC live 11/11 (2FA deferred). `reports/worker-c4-audit-rbac.md` |
-| #28 C5 | Jurisprudência rastreável no RAG (BL-023) | completed | Shared corpus + citations + gate 0.969 live. `reports/worker-c5-precedents.md` |
+| #28 C5 | Jurisprudência rastreável no RAG (BL-023) | closed | Shared corpus + citations + gate 0.969 live. `reports/worker-c5-precedents.md` |
 
 ## Recommended Handoff Order
 
