@@ -141,6 +141,12 @@ def get_task_status(
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_active_user),
 ):
+    """Poll the processing pipeline of a document.
+
+    Workflow identity rule (BL-014, codified): ``task_id`` IS the
+    document id — one document owns exactly one pipeline. Cross-user
+    lookups return 404 (no existence oracle).
+    """
     document = get_document_for_user(
         db,
         id=task_id,

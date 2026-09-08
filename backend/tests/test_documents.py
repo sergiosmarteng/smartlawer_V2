@@ -37,6 +37,7 @@ def test_upload_document_returns_created_document_and_queues_task(
     assert payload["filename"] == "petition.pdf"
     assert payload["status"] == "PENDING"
     assert payload["task_id"] == payload["id"]
+    assert payload["taskStatusUrl"] == f"/tasks/{payload['id']}"
     assert queued["document_id"] == payload["id"]
     assert Path(queued["file_path"]).exists()
     assert Path(queued["file_path"]).parent == temp_dir

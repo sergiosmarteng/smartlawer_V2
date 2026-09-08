@@ -111,6 +111,44 @@ def test_task_status_returns_progress_and_links(
     assert payload["docxDownloadUrl"] == f"/analysis/{analysis.id}/docx"
 
 
+def test_task_status_uses_document_identity_and_blocks_cross_user(
+    client,
+    db_session,
+    make_user,
+    auth_headers_for,
+):
+    owner = make_user(email="identity-owner@example.com", username="identity-owner")
+    intruder = make_user(
+        email="identity-intruder@example.com",
+        username="identity-intruder",
+        password="Test123456!",
+    )
+    document = Document(
+        user_id=owner.id,
+        filename="identity.pdf",
+        file_path="/tmp/identity.pdf",
+        content_type="application/pdf",
+        status="processing",
+        status_detail="Extracting text from PDF",
+        uploaded_at=datetime.now(timezone.utc),
+    )
+    db_session.add(document)
+    db_session.commit()
+
+    own = client.get(
+        f"/api/v1/tasks/{document.id}",
+        headers=auth_headers_for(owner),
+    )
+    assert own.status_code == 200
+    assert own.json()["task_id"] == own.json()["document_id"] == str(document.id)
+
+    foreign = client.get(
+        f"/api/v1/tasks/{document.id}",
+        headers=auth_headers_for(intruder),
+    )
+    assert foreign.status_code == 404
+
+
 def test_analysis_detail_returns_generated_strategy(
     client,
     db_session,

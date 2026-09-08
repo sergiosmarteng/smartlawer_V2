@@ -51,7 +51,8 @@ Frontend session behavior in the current workspace:
   - `taskStatusUrl`
   - `docxDownloadUrl`
 - The stabilized response now returns both `id` and `task_id`; both currently point to the document UUID.
-- Frontend currently relies only on the returned `id` for polling.
+- **BL-014 decision (codified 2026-09-08): `task_id == document id == id` by design** — one document owns exactly one pipeline (single `Analysis` per document). `taskStatusUrl` (`/tasks/{id}`, API-root-relative) is the canonical polling URL; the frontend prefers it with `/tasks/{id}` fallback.
+- Frontend consumes `taskStatusUrl` for polling (no longer constructs the URL from `id` only).
 - The route only accepts `application/pdf`, stores the original PDF on disk, and hands that file path to the background worker.
 
 ### Task Status

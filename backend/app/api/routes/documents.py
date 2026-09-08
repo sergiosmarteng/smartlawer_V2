@@ -41,6 +41,13 @@ async def upload_document(
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_active_user),
 ):
+    """Upload a PDF and queue its processing pipeline.
+
+    Workflow identity rule (BL-014, codified): one document owns exactly
+    one processing pipeline, so ``task_id == document id == id`` by
+    design (a document has at most one ``Analysis``). ``taskStatusUrl``
+    is the canonical polling URL, relative to the API root (``/api/v1``).
+    """
     if file.content_type != "application/pdf":
         raise HTTPException(status_code=400, detail="Only PDF files are allowed")
 

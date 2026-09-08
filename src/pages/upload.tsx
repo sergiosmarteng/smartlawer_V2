@@ -3,10 +3,12 @@ import { useRouter } from 'next/router';
 import { useEffect, useRef, useState } from 'react';
 import AuthGuard from '../components/auth/AuthGuard';
 import Layout from '../components/layout';
-import api, { getApiErrorMessage } from '../lib/axios';
+import api, { getApiErrorMessage, normalizeApiPath } from '../lib/axios';
 
 interface UploadResponse {
   id: string;
+  task_id?: string;
+  taskStatusUrl?: string;
   status: string;
 }
 
@@ -98,12 +100,18 @@ export default function UploadPage() {
         throw new Error('The backend did not return a document identifier for task tracking.');
       }
 
+      // BL-014: task_id == document id by design; poll the canonical URL
+      // from the backend, falling back to the identity convention.
+      const taskStatusUrl = uploadResponse.data?.taskStatusUrl;
+      const pollPath =
+        (taskStatusUrl && normalizeApiPath(taskStatusUrl)) || `/tasks/${taskId}`;
+
       setProgress(24);
       setStatusMessage('Upload completed. Waiting for extraction and analysis...');
 
       const pollTask = async () => {
         try {
-          const taskResponse = await api.get<TaskStatusResponse>(`/tasks/${taskId}`);
+          const taskResponse = await api.get<TaskStatusResponse>(pollPath);
           const {
             status = 'PENDING',
             progress: nextProgress,

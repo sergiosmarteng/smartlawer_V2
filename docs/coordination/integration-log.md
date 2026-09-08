@@ -169,6 +169,17 @@ This file is append-only. Add one short entry per landed worker or coordinator m
 - Follow-up carried forward:
   - Onda B (B1 ambiente integrado); upgrade LLM-judge futuro sem mudar o contrato
 
+### B4 landed — workflow identifiers codified (Onda B)
+
+- Source: `reports/worker-b4-identifiers.md`
+- Scope: BL-014 + issue #22
+- Workspace impact:
+  - decisão: manter `task_id == document id` explicitamente (single pipeline/analysis)
+  - docstrings nas rotas, frontend usa `taskStatusUrl` canônico, contrato atualizado
+  - teste de identidade + 404 cross-user; `tsc`/eslint limpos
+- Follow-up carried forward:
+  - B1/B2/B3 bloqueados: Docker daemon inacessível na máquina dev (`docker ps` trava)
+
 ### A6 landed — PII masking + prompt-injection defense (Onda A RAG)
 
 - Source: `reports/worker-a6-security.md`
