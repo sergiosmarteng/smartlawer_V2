@@ -10,6 +10,7 @@ from app.api import deps
 from app.core import rag_answer
 from app.core.embeddings import embed_query
 from app.core.retrieval import hybrid_search
+from app.core.security_rag import BLOCK_MESSAGE, is_injection_attempt, mask_pii
 from app.crud.document import get_document_for_user
 from app.models.user import User
 from app.schemas.chat import ChatRequest, ChatResponse
@@ -63,7 +64,7 @@ def chat(
             top_k=payload.top_k,
         )
     except Exception as exc:
-        logger.exception("Falha no chat para %s: %s", current_user.id, exc)
+        logger.exception("Falha no chat para user_id=%s", current_user.id)
         raise HTTPException(status_code=502, detail="Falha ao gerar resposta")
     return result
 
@@ -76,6 +77,24 @@ def chat_stream(
 ):
     _require_ai()
     scope = _resolve_scope(db, current_user=current_user, document_id=payload.document_id)
+
+    if is_injection_attempt(payload.query):
+        logger.warning(
+            "Chat stream bloqueado (injection): %s", mask_pii(payload.query, max_len=200)
+        )
+
+        def blocked_stream():
+            yield _sse({"token": BLOCK_MESSAGE})
+            yield _sse(
+                {
+                    "done": True,
+                    "citations": [],
+                    "ai_draft": True,
+                    "requires_human_review": True,
+                }
+            )
+
+        return StreamingResponse(blocked_stream(), media_type="text/event-stream")
 
     embedding = embed_query(payload.query)
     chunks = hybrid_search(
@@ -110,7 +129,7 @@ def chat_stream(
             for token, _model in rag_answer.complete_stream(prompt):
                 yield _sse({"token": token})
         except Exception as exc:
-            logger.exception("Falha no streaming para %s: %s", current_user.id, exc)
+            logger.exception("Falha no streaming para user_id=%s", current_user.id)
             yield _sse({"error": "Falha ao gerar resposta"})
             return
         yield _sse(

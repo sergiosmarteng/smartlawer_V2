@@ -152,6 +152,17 @@ This file is append-only. Add one short entry per landed worker or coordinator m
 - Follow-up carried forward:
   - Onda B (B1 ambiente integrado); upgrade LLM-judge futuro sem mudar o contrato
 
+### A6 landed — PII masking + prompt-injection defense (Onda A RAG)
+
+- Source: `reports/worker-a6-security.md`
+- Scope: issue #18; PII masking em logs/traces, classificacao de input, separacao instrucao/dado
+- Workspace impact:
+  - `security_rag` deterministico (CPF/CNPJ/email/telefone/OAB/CNJ + classifier PT/EN com safe-harbor) sem dependencias novas
+  - prompt grounded isola trechos como DADOS; query maliciosa bloqueada antes de retrieval/LLM (non-stream + stream), sem vazar PII em logs
+  - suite: `64 passed` (57 antes + 7 novos); eval gate segue `PASSED`
+- Follow-up carried forward:
+  - Onda B (B1 ambiente integrado); redacao de PII em excerpts fica p/ B2/C4 se LGPD exigir; upgrade LLM-judge futuro sem mudar o contrato
+
 ### A4 landed — grounded chat com citações (Onda A RAG)
 
 - Source: `reports/worker-a4-chat.md`
