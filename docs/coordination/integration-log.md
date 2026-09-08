@@ -103,6 +103,19 @@ This file is append-only. Add one short entry per landed worker or coordinator m
 
 ## 2026-09-08
 
+### B5 landed — frontend hygiene + microharness docs archived (Onda B)
+
+- Source: `reports/worker-b5-hygiene.md`
+- Scope: issue #23; shared types/hook, real upload progress, archive
+- Workspace impact:
+  - `src/types/workflow.ts` (NEW): 6 contract interfaces + status helpers; kills 5 inline interfaces + 2 status-Set copies across upload/dashboard/analysis pages
+  - `src/hooks/useTaskPolling.ts` (NEW): scheduler with unmount cleanup; page state machines unchanged
+  - upload POST uses `onUploadProgress` (real 1–20% byte band); checkpoint dot lights at upload-accepted (≥24)
+  - `docs/{TASKS,CHANGELOG}.md` → `docs/archive/microharness-*` + README (nothing referenced them)
+  - validation: `tsc` clean, targeted `next lint` clean, `next build` compiled + static export OK (process exit hangs on this machine, artifacts prove success), `pytest` 65 passed
+- Follow-up carried forward:
+  - B1 live `up` healthy-state + B2 smoke + B3 DOCX proof all belong to WSL sessions (rule 7 — no docker on Windows)
+
 ### B1 landed — normalized integrated runtime recipe (Onda B)
 
 - Source: `reports/worker-b1-env.md`

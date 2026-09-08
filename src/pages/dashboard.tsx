@@ -5,31 +5,24 @@ import { useAuth } from '../components/auth/AuthProvider';
 import AuthGuard from '../components/auth/AuthGuard';
 import Layout from '../components/layout';
 import api, { getApiErrorMessage } from '../lib/axios';
-
-interface Process {
-  id: string;
-  analysis_id?: string | null;
-  title: string;
-  status: string;
-  created_at?: string;
-  status_detail?: string | null;
-}
-
-const ACTIVE_STATUSES = new Set(['PENDING', 'PROCESSING', 'STARTED', 'RETRY']);
-const SUCCESS_STATUSES = new Set(['SUCCESS', 'COMPLETED', 'DONE']);
-const FAILURE_STATUSES = new Set(['FAILURE', 'FAILED', 'ERROR']);
+import {
+  isActiveStatus,
+  isFailureStatus,
+  isSuccessStatus,
+  type ProcessItem,
+} from '../types/workflow';
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const [processes, setProcesses] = useState<Process[]>([]);
+  const [processes, setProcesses] = useState<ProcessItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState('');
 
   const totalProcesses = processes.length;
-  const processingCount = processes.filter((process) => ACTIVE_STATUSES.has(process.status.toUpperCase())).length;
-  const readyCount = processes.filter((process) => SUCCESS_STATUSES.has(process.status.toUpperCase()) && process.analysis_id).length;
-  const failedCount = processes.filter((process) => FAILURE_STATUSES.has(process.status.toUpperCase())).length;
+  const processingCount = processes.filter((process) => isActiveStatus(process.status)).length;
+  const readyCount = processes.filter((process) => isSuccessStatus(process.status) && process.analysis_id).length;
+  const failedCount = processes.filter((process) => isFailureStatus(process.status)).length;
   const userLabel = user?.username || user?.email || 'Advogado';
 
   const fetchProcesses = async (backgroundRefresh = false) => {
@@ -42,7 +35,7 @@ export default function DashboardPage() {
     setError('');
 
     try {
-      const response = await api.get<Process[]>('/processes');
+      const response = await api.get<ProcessItem[]>('/processes');
       setProcesses(Array.isArray(response.data) ? response.data : []);
     } catch (fetchError) {
       setError(getApiErrorMessage(fetchError, 'Failed to load processes from the backend.'));
@@ -245,13 +238,11 @@ function StatCard({
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const normalizedStatus = status.toUpperCase();
-
-  if (SUCCESS_STATUSES.has(normalizedStatus)) {
+  if (isSuccessStatus(status)) {
     return <span className="rounded-full border border-emerald-800 bg-emerald-900/30 px-3 py-1 text-xs font-medium uppercase tracking-[0.2em] text-emerald-300">{status}</span>;
   }
 
-  if (ACTIVE_STATUSES.has(normalizedStatus)) {
+  if (isActiveStatus(status)) {
     return <span className="rounded-full border border-amber-800 bg-amber-900/30 px-3 py-1 text-xs font-medium uppercase tracking-[0.2em] text-amber-300">{status}</span>;
   }
 
@@ -275,13 +266,11 @@ function formatDate(value?: string) {
 }
 
 function fallbackStatusDetail(status: string) {
-  const normalizedStatus = status.toUpperCase();
-
-  if (SUCCESS_STATUSES.has(normalizedStatus)) {
+  if (isSuccessStatus(status)) {
     return 'Analysis output is ready for review and document generation.';
   }
 
-  if (ACTIVE_STATUSES.has(normalizedStatus)) {
+  if (isActiveStatus(status)) {
     return 'The backend is still extracting, structuring, or generating the analysis.';
   }
 

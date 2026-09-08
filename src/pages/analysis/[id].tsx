@@ -6,47 +6,11 @@ import axios from 'axios';
 import AuthGuard from '../../components/auth/AuthGuard';
 import Layout from '../../components/layout';
 import api, { getApiErrorMessage, normalizeApiPath } from '../../lib/axios';
-
-interface AnalysisDetailResponse {
-  id: string;
-  document_id: string;
-  documentName?: string;
-  document_name?: string;
-  title: string;
-  summary: string;
-  keyArguments?: string[];
-  key_arguments?: string[];
-  requests?: string[];
-  laws?: string[];
-  evidence?: unknown;
-  defense_theses?: string[];
-  generatedDefenseStrategy?: string;
-  generated_defense_strategy?: string;
-  docxDownloadUrl?: string | null;
-  docx_download_url?: string | null;
-}
-
-interface NormalizedAnalysis {
-  id: string;
-  documentId: string;
-  documentName: string;
-  title: string;
-  summary: string;
-  keyArguments: string[];
-  requests: string[];
-  laws: string[];
-  evidence: string[];
-  defenseTheses: string[];
-  generatedDefenseStrategy: string;
-  docxDownloadUrl: string | null;
-}
-
-interface AnalysisNotReadyDetail {
-  message?: string;
-  task_id?: string;
-  status?: string;
-  status_detail?: string;
-}
+import type {
+  AnalysisDetailResponse,
+  AnalysisNotReadyDetail,
+  NormalizedAnalysis,
+} from '../../types/workflow';
 
 export default function AnalysisPage() {
   const router = useRouter();

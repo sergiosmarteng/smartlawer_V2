@@ -1,56 +1,28 @@
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import AuthGuard from '../components/auth/AuthGuard';
 import Layout from '../components/layout';
+import { useTaskPolling } from '../hooks/useTaskPolling';
 import api, { getApiErrorMessage, normalizeApiPath } from '../lib/axios';
-
-interface UploadResponse {
-  id: string;
-  task_id?: string;
-  taskStatusUrl?: string;
-  status: string;
-}
-
-interface TaskStatusResponse {
-  task_id?: string;
-  document_id?: string;
-  status?: string;
-  progress?: number;
-  analysis_id?: string | null;
-  status_detail?: string | null;
-  error_message?: string | null;
-}
-
-const ACTIVE_STATUSES = new Set(['PENDING', 'PROCESSING', 'STARTED', 'RETRY']);
-const SUCCESS_STATUSES = new Set(['SUCCESS', 'COMPLETED', 'DONE']);
-const FAILURE_STATUSES = new Set(['FAILURE', 'FAILED', 'ERROR']);
+import {
+  isActiveStatus,
+  isFailureStatus,
+  isSuccessStatus,
+  normalizeWorkflowStatus,
+  type TaskStatusResponse,
+  type UploadResponse,
+} from '../types/workflow';
 
 export default function UploadPage() {
   const router = useRouter();
-  const pollTimeoutRef = useRef<number | null>(null);
+  const { schedulePoll, cancelPoll } = useTaskPolling();
 
   const [file, setFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState('');
   const [statusMessage, setStatusMessage] = useState('Select a PDF to begin a new analysis.');
-
-  useEffect(() => {
-    return () => {
-      if (pollTimeoutRef.current) {
-        window.clearTimeout(pollTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  const schedulePoll = (callback: () => void, delay = 1800) => {
-    if (pollTimeoutRef.current) {
-      window.clearTimeout(pollTimeoutRef.current);
-    }
-
-    pollTimeoutRef.current = window.setTimeout(callback, delay);
-  };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const nextFile = event.target.files?.[0] ?? null;
@@ -82,7 +54,7 @@ export default function UploadPage() {
 
     setIsProcessing(true);
     setError('');
-    setProgress(12);
+    setProgress(1);
     setStatusMessage('Uploading document to the backend pipeline...');
 
     try {
@@ -92,6 +64,14 @@ export default function UploadPage() {
       const uploadResponse = await api.post<UploadResponse>('/documents/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
+        },
+        // Real byte-level upload progress (1-20% band); the backend
+        // pipeline progress takes over once the POST completes.
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const percent = Math.round((progressEvent.loaded / progressEvent.total) * 20);
+            setProgress(Math.max(1, Math.min(percent, 20)));
+          }
         },
       });
 
@@ -119,7 +99,7 @@ export default function UploadPage() {
             status_detail,
             error_message,
           } = taskResponse.data;
-          const normalizedStatus = status.toUpperCase();
+          const normalizedStatus = normalizeWorkflowStatus(status);
 
           if (status_detail) {
             setStatusMessage(status_detail);
@@ -127,11 +107,11 @@ export default function UploadPage() {
 
           if (typeof nextProgress === 'number') {
             setProgress(Math.max(15, Math.min(nextProgress, 100)));
-          } else if (ACTIVE_STATUSES.has(normalizedStatus)) {
+          } else if (isActiveStatus(normalizedStatus)) {
             setProgress((current) => Math.min(current + 8, 92));
           }
 
-          if (SUCCESS_STATUSES.has(normalizedStatus)) {
+          if (isSuccessStatus(normalizedStatus)) {
             if (analysis_id) {
               setProgress(100);
               setStatusMessage('Analysis completed. Opening the detail view...');
@@ -147,7 +127,7 @@ export default function UploadPage() {
             return;
           }
 
-          if (FAILURE_STATUSES.has(normalizedStatus)) {
+          if (isFailureStatus(normalizedStatus)) {
             setError(error_message || 'The backend marked this analysis as failed.');
             setStatusMessage('Processing stopped before the analysis could finish.');
             setIsProcessing(false);
@@ -171,9 +151,7 @@ export default function UploadPage() {
   };
 
   const resetFlow = () => {
-    if (pollTimeoutRef.current) {
-      window.clearTimeout(pollTimeoutRef.current);
-    }
+    cancelPoll();
 
     setFile(null);
     setIsProcessing(false);
@@ -288,7 +266,7 @@ export default function UploadPage() {
                     <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">Backend checkpoints</p>
                     <ul className="mt-4 space-y-3 text-sm text-zinc-400">
                       <li className="flex items-start gap-3">
-                        <StatusDot active={progress >= 12} />
+                        <StatusDot active={progress >= 24} />
                         `POST /documents/upload` stores the file and returns the document id.
                       </li>
                       <li className="flex items-start gap-3">

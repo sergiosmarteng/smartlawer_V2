@@ -41,6 +41,18 @@ Last updated: 2026-05-12
 | BL-023 | P2 | Add jurisprudence enrichment to analysis results | ai/backend | BL-016, BL-020 | planned | Extend the analysis with related precedents and traceable legal references. |
 | BL-024 | P2 | Add stronger security and governance controls | platform/backend/frontend | BL-018 | planned | Cover auditability, role-based access, and higher-assurance auth expectations from the PRD non-functional section. |
 
+## Onda B/C Issue Tracker (2026-09-08)
+
+| Issue | Scope | Status | Notes |
+| --- | --- | --- | --- |
+| #18 A6 | PII masking + prompt-injection defense | completed | `reports/worker-a6-security.md`; 64 passed, gate PASSED |
+| #19 B1 | Normalize integrated runtime (BL-011) | in progress | Recipe landed, `compose config` valid, image built; all-healthy `up` evidence pending WSL daemon. `reports/worker-b1-env.md` |
+| #20 B2 | Smoke end-to-end + defect sweep (BL-010/012) | planned | WSL-only (rule 7); needs B1 healthy + B4 codified (done) |
+| #21 B3 | Validate real DOCX in integrated env (BL-013) | planned | WSL-only; prove `/analysis/{id}/docx` with active template |
+| #22 B4 | Workflow identifiers (BL-014) | completed | `task_id == document id` codified. `reports/worker-b4-identifiers.md` |
+| #23 B5 | Frontend hygiene + archive microharness docs | completed | Shared types/hook, real upload progress, archive. `reports/worker-b5-hygiene.md` |
+| #24 C1 | Template management MVP (BL-015) | ready for Session C | Constraints in `handoff-c1-template-mvp.md` (B owns migrations/B4) |
+
 ## Recommended Handoff Order
 
 1. Finish BL-011 before spending more time on UI-only fixes.
