@@ -11,5 +11,6 @@ pytest-cache-files-*/
 .venv/
 *.tmp
 .env
+.env*.local
 
 *.tsbuildinfo
