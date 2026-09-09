@@ -131,13 +131,14 @@ export default function ChatPage() {
 
         <div className="mx-auto flex h-[calc(100vh-10rem)] max-w-5xl flex-col px-4 sm:px-6">
           <div className="mb-4">
-            <h1 className="text-xl font-medium text-slate-100">Chat jurídico fundamentado</h1>
+            <p className="font-mono text-xs uppercase tracking-[0.32em] text-ouro-400">Chat jurídico</p>
+            <h1 className="mt-2 font-display text-3xl font-black text-slate-50">Pergunte com fundamento</h1>
             <p className="mt-1 text-sm text-zinc-400">
-              Pergunte sobre os seus documentos. Cada afirmação vem com a fonte clicável.
+              Sobre os seus documentos. Cada afirmação vem com a fonte clicável.
             </p>
           </div>
 
-          <div className="flex-1 space-y-4 overflow-y-auto rounded-3xl border border-zinc-800 bg-zinc-900/40 p-5">
+          <div className="flex-1 space-y-4 overflow-y-auto rounded-3xl border border-zinc-800 bg-tribunal-900/40 p-5">
             {messages.length === 0 && (
               <p className="text-sm text-zinc-500">
                 Nenhuma mensagem ainda. Experimente: “Qual o prazo para contestação nos meus documentos?”
@@ -149,8 +150,8 @@ export default function ChatPage() {
                 <div
                   className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-6 ${
                     message.role === 'user'
-                      ? 'bg-sky-500/15 text-sky-100'
-                      : 'border border-zinc-800 bg-zinc-950 text-slate-200'
+                      ? 'bg-ouro-500/15 text-ouro-100'
+                      : 'border border-zinc-800 bg-tribunal-950 text-slate-200'
                   }`}
                 >
                   <p className="whitespace-pre-wrap">{message.text || '…'}</p>
@@ -162,7 +163,7 @@ export default function ChatPage() {
                         const isPrecedent = citation.document_name.startsWith('[Jurisprudência]');
                         const body = (
                           <>
-                            <p className="text-xs font-medium text-sky-300">
+                            <p className="text-xs font-medium text-ouro-300">
                               {citation.ref} {citation.document_name}
                               {typeof citation.page_start === 'number'
                                 ? ` · p. ${citation.page_start}`
@@ -184,7 +185,7 @@ export default function ChatPage() {
                           <Link
                             key={citation.chunk_id}
                             href={`/analysis/${citation.document_id}`}
-                            className="block rounded-xl border border-zinc-800 bg-zinc-900/80 px-3 py-2 transition-colors hover:border-sky-500/40"
+                            className="block rounded-xl border border-zinc-800 bg-tribunal-900/80 px-3 py-2 transition-colors hover:border-ouro-500/40"
                           >
                             {body}
                           </Link>
@@ -210,14 +211,15 @@ export default function ChatPage() {
                 }
               }}
               placeholder="Pergunte sobre os seus documentos…"
+              aria-label="Pergunta para o chat jurídico"
               disabled={isStreaming}
-              className="flex-1 rounded-2xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-slate-100 placeholder:text-zinc-600 focus:border-sky-500/50 focus:outline-none disabled:opacity-60"
+              className="flex-1 rounded-2xl border border-zinc-800 bg-tribunal-950 px-4 py-3 text-sm text-slate-100 placeholder:text-zinc-600 focus:border-ouro-500/60 focus:outline-none disabled:opacity-60"
             />
             <button
               type="button"
               onClick={sendMessage}
               disabled={isStreaming || !input.trim()}
-              className="rounded-2xl border border-sky-400/30 bg-sky-400/10 px-5 py-3 text-sm font-medium text-sky-200 transition-colors hover:bg-sky-400/20 disabled:opacity-50"
+              className="rounded-2xl border border-ouro-500/40 bg-ouro-500/10 px-5 py-3 text-sm font-medium text-ouro-200 transition-colors hover:bg-ouro-500/20 disabled:opacity-50"
             >
               {isStreaming ? 'Aguarde…' : 'Enviar'}
             </button>

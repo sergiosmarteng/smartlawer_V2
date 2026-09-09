@@ -15,7 +15,7 @@ export default function Layout({ children, hideSidebar = false }: LayoutProps) {
   const showSidebar = Boolean(user) && !hideSidebar;
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-slate-100">
+    <div className="min-h-screen bg-tribunal-950 bg-tribunal-texture font-sans text-slate-100">
       <Header onToggleSidebar={() => setSidebarOpen((current) => !current)} />
 
       <div className="flex min-h-[calc(100vh-4rem)]">

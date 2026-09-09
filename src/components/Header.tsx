@@ -8,12 +8,12 @@ interface HeaderProps {
 }
 
 const primaryLinks = [
-  { href: '/dashboard', label: 'Dashboard' },
-  { href: '/upload', label: 'New Analysis' },
-  { href: '/chat', label: 'Legal Chat' },
+  { href: '/dashboard', label: 'Painel' },
+  { href: '/upload', label: 'Nova análise' },
+  { href: '/chat', label: 'Chat jurídico' },
   { href: '/prompts', label: 'Prompts' },
-  { href: '/audit', label: 'Audit' },
-  { href: '/user-profile', label: 'Profile' },
+  { href: '/audit', label: 'Auditoria' },
+  { href: '/user-profile', label: 'Perfil' },
 ];
 
 export default function Header({ onToggleSidebar }: HeaderProps) {
@@ -24,14 +24,14 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
   const userInitials = userLabel.slice(0, 2).toUpperCase();
 
   return (
-    <header className="sticky top-0 z-30 border-b border-zinc-800 bg-zinc-950/95 backdrop-blur">
+    <header className="sticky top-0 z-30 border-b border-ouro-700/30 bg-tribunal-950/95 backdrop-blur">
       <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-3">
           <button
             type="button"
-            className="inline-flex items-center justify-center rounded-xl border border-zinc-800 p-2 text-slate-300 transition-colors hover:border-zinc-700 hover:bg-zinc-900 lg:hidden"
+            className="inline-flex items-center justify-center rounded-xl border border-zinc-800 p-2 text-slate-300 transition-colors hover:border-ouro-600/50 hover:bg-tribunal-900 lg:hidden"
             onClick={onToggleSidebar}
-            aria-label="Toggle sidebar"
+            aria-label="Abrir menu"
           >
             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6h16M4 12h16M4 18h16" />
@@ -39,12 +39,12 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
           </button>
 
           <Link href={user ? '/dashboard' : '/'} className="flex items-center gap-3">
-            <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-sky-500/30 bg-sky-500/10 text-sm font-semibold tracking-[0.3em] text-sky-300">
+            <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-ouro-500/40 bg-gradient-to-br from-ouro-500/25 to-ouro-700/10 font-display text-sm font-black tracking-[0.2em] text-ouro-300">
               SL
             </span>
             <div>
-              <p className="text-sm uppercase tracking-[0.3em] text-zinc-500">SmartLawer</p>
-              <p className="text-base font-medium text-slate-100">Legal workflow cockpit</p>
+              <p className="font-display text-base font-bold tracking-wide text-slate-100">SmartLawer</p>
+              <p className="font-mono text-[0.65rem] uppercase tracking-[0.3em] text-ouro-500/90">Resultado sólido</p>
             </div>
           </Link>
         </div>
@@ -65,38 +65,38 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
           {!user ? (
             <Link
               href="/sign-in"
-              className="inline-flex items-center rounded-full border border-sky-400/30 bg-sky-400/10 px-4 py-2 text-sm font-medium text-sky-200 transition-colors hover:border-sky-300/40 hover:bg-sky-400/20"
+              className="inline-flex items-center rounded-full border border-ouro-500/40 bg-ouro-500/10 px-4 py-2 text-sm font-medium text-ouro-200 transition-colors hover:border-ouro-400/60 hover:bg-ouro-500/20"
             >
-              Sign In
+              Entrar
             </Link>
           ) : (
             <>
-              <div className="hidden items-center gap-3 rounded-full border border-zinc-800 bg-zinc-900/80 px-4 py-2 sm:flex">
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/15 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-300">
+              <div className="hidden items-center gap-3 rounded-full border border-zinc-800 bg-tribunal-900/80 px-4 py-2 sm:flex">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-ouro-500/15 text-xs font-semibold uppercase tracking-[0.2em] text-ouro-300">
                   {userInitials}
                 </span>
                 <div className="text-right">
-                  <p className="text-xs uppercase tracking-[0.24em] text-zinc-500">Signed in</p>
+                  <p className="font-mono text-[0.65rem] uppercase tracking-[0.24em] text-zinc-500">Logado</p>
                   <p className="max-w-[12rem] truncate text-sm text-slate-200">{userLabel}</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => logout()}
-                className="hidden rounded-full border border-zinc-800 px-4 py-2 text-sm font-medium text-slate-300 transition-colors hover:border-zinc-700 hover:bg-zinc-900 sm:inline-flex"
+                className="hidden rounded-full border border-zinc-800 px-4 py-2 text-sm font-medium text-slate-300 transition-colors hover:border-zinc-700 hover:bg-tribunal-900 sm:inline-flex"
               >
-                Logout
+                Sair
               </button>
             </>
           )}
 
           {user && (
-            <button
-              type="button"
-              className="inline-flex items-center justify-center rounded-xl border border-zinc-800 p-2 text-slate-300 transition-colors hover:border-zinc-700 hover:bg-zinc-900 md:hidden"
-              onClick={() => setMobileMenuOpen((current) => !current)}
-              aria-label="Toggle menu"
-            >
+          <button
+            type="button"
+            className="inline-flex items-center justify-center rounded-xl border border-zinc-800 p-2 text-slate-300 transition-colors hover:border-ouro-600/50 hover:bg-tribunal-900 md:hidden"
+            onClick={() => setMobileMenuOpen((current) => !current)}
+            aria-label="Abrir menu"
+          >
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 {mobileMenuOpen ? (
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
@@ -130,9 +130,9 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
           <button
             type="button"
             onClick={() => logout()}
-            className="mt-4 inline-flex w-full items-center justify-center rounded-xl border border-zinc-800 px-4 py-3 text-sm font-medium text-slate-300 transition-colors hover:border-zinc-700 hover:bg-zinc-900"
+            className="mt-4 inline-flex w-full items-center justify-center rounded-xl border border-zinc-800 px-4 py-3 text-sm font-medium text-slate-300 transition-colors hover:border-zinc-700 hover:bg-tribunal-900"
           >
-            Logout
+            Sair
           </button>
         </div>
       )}
@@ -146,8 +146,8 @@ function NavLink({ href, children, active }: { href: string; children: React.Rea
       href={href}
       className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
         active
-          ? 'bg-zinc-900 text-slate-100 shadow-[inset_0_0_0_1px_rgba(63,63,70,0.9)]'
-          : 'text-zinc-400 hover:bg-zinc-900/80 hover:text-slate-100'
+          ? 'bg-ouro-500/15 text-ouro-200 shadow-[inset_0_0_0_1px_rgba(201,162,39,0.45)]'
+          : 'text-zinc-400 hover:bg-tribunal-900/80 hover:text-slate-100'
       }`}
     >
       {children}

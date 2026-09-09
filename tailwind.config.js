@@ -10,6 +10,22 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        // Identidade "Tribunal premium": verde-tribunal profundo dominante,
+        // dourado-latão como acento de resultado/valor. Sem roxo genérico.
+        tribunal: {
+          700: '#1c2b22',
+          800: '#121b15',
+          900: '#0b120e',
+          950: '#070b09',
+        },
+        ouro: {
+          200: '#f0d992',
+          300: '#e7c86b',
+          400: '#d9b44a',
+          500: '#c9a227',
+          600: '#a8861d',
+          700: '#7d6316',
+        },
         primary: {
           50: '#eff6ff',
           100: '#dbeafe',
@@ -38,8 +54,9 @@ module.exports = {
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        serif: ['Playfair Display', 'Georgia', 'serif'],
+        sans: ['var(--font-sora)', 'system-ui', 'sans-serif'],
+        display: ['var(--font-fraunces)', 'Georgia', 'serif'],
+        mono: ['var(--font-jetbrains-mono)', 'ui-monospace', 'monospace'],
       },
       spacing: {
         '18': '4.5rem',

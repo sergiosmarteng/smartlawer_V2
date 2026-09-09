@@ -37,6 +37,8 @@ export const config = {
     '/upload/:path*',
     '/analysis/:path*',
     '/chat/:path*',
+    '/prompts/:path*',
+    '/audit/:path*',
     '/user-profile/:path*',
   ],
 };
