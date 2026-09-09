@@ -49,6 +49,13 @@ export default function ChatPage() {
       return;
     }
 
+    // Backend requires min_length=3 (ChatRequest); fail fast with a
+    // friendly message instead of a bare "HTTP 422".
+    if (query.length < 3) {
+      setError('Escreva uma pergunta com pelo menos 3 caracteres.');
+      return;
+    }
+
     const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
     if (!token) {
       setError('Sessão expirada. Entre novamente.');
