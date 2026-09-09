@@ -103,6 +103,18 @@ This file is append-only. Add one short entry per landed worker or coordinator m
 
 ## 2026-09-08
 
+### CORS fix — browser login/register unblocked (pilot)
+
+- Source: operator report (login + signup failing in browser, API 200 via curl)
+- Root cause: no `CORSMiddleware` — browser cross-origin (:3001 → :8000)
+  blocked while curl worked; first browser-path bug (all prior smoke was API-level)
+- Workspace impact:
+  - `Settings.CORS_ORIGINS` + middleware in `main.py`, compose/`.env.example` parity
+  - preflight test in `test_auth.py` (suite 114 passed); live preflight 200 + header verified
+- Follow-up carried forward:
+  - uvicorn `--reload` watcher crashes on the OneDrive bind mount
+    (`WatchfilesRustInternalError`) — always `up -d`/`restart` explicitly after backend edits
+
 ### Gemini provider wired (live-LLM enablement)
 
 - Scope: operator chose Gemini 3 Flash; `AI_PROVIDER=gemini` added via Google's OpenAI-compatible endpoint (no new deps)

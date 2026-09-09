@@ -4,6 +4,10 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/smartlawer"
     REDIS_URL: str = "redis://localhost:6379/0"
     ENVIRONMENT: str = "development"
+    CORS_ORIGINS: str = (
+        "http://localhost:3000,http://localhost:3001,"
+        "http://127.0.0.1:3000,http://127.0.0.1:3001"
+    )
     SKIP_STARTUP_MIGRATIONS: bool = False
     SECRET_KEY: str = "supersecretkey-dev-replace-in-prod"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7 # 7 days

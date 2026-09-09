@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import auth, audit, chat, documents, precedents, prompts, templates, users, versions, workflow
 from app.core.config import settings
@@ -23,6 +24,16 @@ async def lifespan(_app: FastAPI):
 
 
 app = FastAPI(title="SmartLawer V2 API", lifespan=lifespan)
+
+# Browser frontend (Next.js dev on :3000/:3001) calls this API cross-origin;
+# without CORS the browser blocks register/login/uploads while curl works.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[o.strip() for o in settings.CORS_ORIGINS.split(",") if o.strip()],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(auth.router, prefix="/api/v1", tags=["login"])
 app.include_router(audit.router, prefix="/api/v1", tags=["audit"])

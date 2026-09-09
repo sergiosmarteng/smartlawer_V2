@@ -11,6 +11,7 @@ x-backend-env: &backend-env
   DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@db:5432/smartlawer}
   REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
   ENVIRONMENT: ${ENVIRONMENT:-development}
+  CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001}
   SECRET_KEY: ${SECRET_KEY:-dev-insecure-secret-change-me}
   ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-10080}
   SKIP_STARTUP_MIGRATIONS: ${SKIP_STARTUP_MIGRATIONS:-false}
