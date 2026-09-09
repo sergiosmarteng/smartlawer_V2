@@ -21,6 +21,39 @@ class AnalysisResult(BaseModel):
     defense_theses: List[str] = Field(description="Possiveis teses preliminares e de merito para a defesa.")
 
 
+def resolve_chat_config() -> dict | None:
+    """Pure provider resolution (no SDK imports — unit-testable).
+
+    Returns ``{"model", "base_url" | None, "api_key"}`` or ``None`` when
+    the configured provider has no key. ``openai``/``gemini`` honor
+    ``CHAT_MODEL``; ``openrouter`` keeps its pinned model.
+    """
+    provider = settings.AI_PROVIDER.lower()
+    if provider == "openrouter":
+        if not settings.OPENROUTER_API_KEY:
+            return None
+        return {
+            "model": "anthropic/claude-3-opus",
+            "base_url": "https://openrouter.ai/api/v1",
+            "api_key": settings.OPENROUTER_API_KEY,
+        }
+    if provider == "gemini":
+        if not settings.GEMINI_API_KEY:
+            return None
+        return {
+            "model": settings.CHAT_MODEL,
+            "base_url": settings.GEMINI_BASE_URL,
+            "api_key": settings.GEMINI_API_KEY,
+        }
+    if not settings.OPENAI_API_KEY:
+        return None
+    return {
+        "model": settings.CHAT_MODEL,
+        "base_url": None,
+        "api_key": settings.OPENAI_API_KEY,
+    }
+
+
 class LegalAnalyzer:
     FALLBACK_THESES = [
         "Exigir comprovacao documental integral dos fatos constitutivos alegados pelo autor.",
@@ -33,27 +66,25 @@ class LegalAnalyzer:
         self.api_key = ""
         self.llm = None
 
-        if self.provider == "openrouter":
-            self.api_key = settings.OPENROUTER_API_KEY
-            if not self.api_key:
-                logger.warning("OPENROUTER_API_KEY is not set. Falling back to heuristic summary.")
-            else:
-                self.llm = ChatOpenAI(
-                    model="anthropic/claude-3-opus",
-                    openai_api_base="https://openrouter.ai/api/v1",
-                    openai_api_key=self.api_key,
-                    temperature=0.0,
-                )
+        config = resolve_chat_config()
+        if config is None:
+            logger.warning(
+                "%s is not set for provider '%s'. Falling back to heuristic summary.",
+                "GEMINI_API_KEY" if self.provider == "gemini" else (
+                    "OPENROUTER_API_KEY" if self.provider == "openrouter" else "OPENAI_API_KEY"
+                ),
+                self.provider,
+            )
         else:
-            self.api_key = settings.OPENAI_API_KEY
-            if not self.api_key:
-                logger.warning("OPENAI_API_KEY is not set. Falling back to heuristic summary.")
-            else:
-                self.llm = ChatOpenAI(
-                    model="gpt-4-turbo",
-                    temperature=0.0,
-                    api_key=self.api_key,
-                )
+            self.api_key = config["api_key"]
+            chat_kwargs: dict = {
+                "model": config["model"],
+                "temperature": 0.0,
+                "api_key": config["api_key"],
+            }
+            if config["base_url"]:
+                chat_kwargs["openai_api_base"] = config["base_url"]
+            self.llm = ChatOpenAI(**chat_kwargs)
 
         self.parser = PydanticOutputParser(pydantic_object=AnalysisResult)
 

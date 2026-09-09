@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7 # 7 days
     OPENAI_API_KEY: str = ""
     OPENROUTER_API_KEY: str = ""
-    AI_PROVIDER: str = "openai" # 'openai' or 'openrouter'
+    AI_PROVIDER: str = "openai" # 'openai', 'openrouter' or 'gemini'
     EMBEDDING_MODEL: str = "text-embedding-3-small"
     EMBEDDING_MODEL_VERSION: str = "v1"
     EMBEDDING_DIMENSIONS: int = 1536
@@ -22,6 +22,8 @@ class Settings(BaseSettings):
     COHERE_API_KEY: str = ""
     COHERE_RERANK_MODEL: str = "rerank-3"
     CHAT_MODEL: str = "gpt-4-turbo"
+    GEMINI_API_KEY: str = ""
+    GEMINI_BASE_URL: str = "https://generativelanguage.googleapis.com/v1beta/openai/"
     GENERATED_KEEP_LATEST: int = 10
     PRECEDENTS_AUTO_SEED: bool = True
 

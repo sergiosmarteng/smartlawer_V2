@@ -61,22 +61,28 @@ def build_grounded_prompt(
 
 def is_configured() -> bool:
     """True when chat generation can run (same key gate as embeddings)."""
-    provider_key = (
-        settings.OPENROUTER_API_KEY
-        if settings.AI_PROVIDER.lower() == "openrouter"
-        else settings.OPENAI_API_KEY
-    )
-    return bool(provider_key)
+    provider = settings.AI_PROVIDER.lower()
+    if provider == "openrouter":
+        return bool(settings.OPENROUTER_API_KEY)
+    if provider == "gemini":
+        return bool(settings.GEMINI_API_KEY)
+    return bool(settings.OPENAI_API_KEY)
 
 
 def _chat_client():
     from openai import OpenAI
 
-    if settings.AI_PROVIDER.lower() == "openrouter":
+    provider = settings.AI_PROVIDER.lower()
+    if provider == "openrouter":
         return OpenAI(
             base_url="https://openrouter.ai/api/v1",
             api_key=settings.OPENROUTER_API_KEY,
         ), "anthropic/claude-3-opus"
+    if provider == "gemini":
+        return OpenAI(
+            base_url=settings.GEMINI_BASE_URL,
+            api_key=settings.GEMINI_API_KEY,
+        ), settings.CHAT_MODEL
     return OpenAI(api_key=settings.OPENAI_API_KEY), settings.CHAT_MODEL
 
 

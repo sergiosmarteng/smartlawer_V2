@@ -17,6 +17,8 @@ x-backend-env: &backend-env
   AI_PROVIDER: ${AI_PROVIDER:-openai}
   OPENAI_API_KEY: ${OPENAI_API_KEY:-}
   OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+  GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+  GEMINI_BASE_URL: ${GEMINI_BASE_URL:-https://generativelanguage.googleapis.com/v1beta/openai/}
   CHAT_MODEL: ${CHAT_MODEL:-gpt-4-turbo}
   EMBEDDING_MODEL: ${EMBEDDING_MODEL:-text-embedding-3-small}
   EMBEDDING_MODEL_VERSION: ${EMBEDDING_MODEL_VERSION:-v1}

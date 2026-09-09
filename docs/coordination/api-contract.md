@@ -138,6 +138,15 @@ Frontend session behavior in the current workspace:
   noop vectors (FTS-visible, vector-excluded) and upgrade on reseed.
 - Golden g31/g32 + corpus c13/c14 keep the eval gate green (0.969).
 
+### AI Providers (live-LLM wiring)
+
+- `AI_PROVIDER`: `openai` (direct) | `openrouter` (gateway, pinned model) |
+  `gemini` (Google OpenAI-compatible endpoint, honors `CHAT_MODEL`).
+  `openai` branch now honors `CHAT_MODEL` too (default `gpt-4-turbo`,
+  behavior unchanged unless overridden).
+- Embeddings stay on the OpenAI client; without an OpenAI key, retrieval
+  degrades to FTS-only by design (proven in tests + live).
+
 ## Known Gaps And Assumptions
 
 - BL-005 may change how much of the dashboard uses `analysis_url` and `docxDownloadUrl` directly.

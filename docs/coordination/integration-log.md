@@ -103,6 +103,17 @@ This file is append-only. Add one short entry per landed worker or coordinator m
 
 ## 2026-09-08
 
+### Gemini provider wired (live-LLM enablement)
+
+- Scope: operator chose Gemini 3 Flash; `AI_PROVIDER=gemini` added via Google's OpenAI-compatible endpoint (no new deps)
+- Workspace impact:
+  - `config.py` (`GEMINI_API_KEY`, `GEMINI_BASE_URL`), compose + `.env.example` parity, `resolve_chat_config()` seam in `ai_engine.py`, gemini branches in `rag_answer` (`is_configured` + `_chat_client`)
+  - `openai` analyzer branch now honors `CHAT_MODEL` (was hardcoded `gpt-4-turbo`; default keeps behavior)
+  - 7 new tests (suite 113 passed)
+- Follow-up carried forward:
+  - operator must revoke the chat-pasted key, set a fresh `GEMINI_API_KEY` + `CHAT_MODEL` in local `.env`, confirm the exact Flash model ID via the models list, `up -d`, then validate upload + chat live
+  - embeddings remain OpenAI-keyed (FTS-only until addressed)
+
 ### C5 landed — traceable jurisprudence in RAG (Onda C)
 
 - Source: `reports/worker-c5-precedents.md`
