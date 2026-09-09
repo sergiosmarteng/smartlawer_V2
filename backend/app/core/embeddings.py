@@ -24,14 +24,13 @@ def is_configured() -> bool:
 
 
 def _get_client():
-    from openai import OpenAI
+    from app.core.openai_compat import build_client
 
     if settings.AI_PROVIDER.lower() == "openrouter":
-        return OpenAI(
-            base_url="https://openrouter.ai/api/v1",
-            api_key=settings.OPENROUTER_API_KEY,
+        return build_client(
+            settings.OPENROUTER_API_KEY, "https://openrouter.ai/api/v1"
         )
-    return OpenAI(api_key=settings.OPENAI_API_KEY)
+    return build_client(settings.OPENAI_API_KEY)
 
 
 def embed_texts(texts: list[str]) -> list[list[float]] | None:

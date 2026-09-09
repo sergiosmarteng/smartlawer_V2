@@ -15,8 +15,6 @@ pymupdf==1.26.1
 pytesseract==0.3.10
 Pillow==11.2.1
 openai==1.30.5
-langchain==0.2.1
-langchain-openai==0.1.7
 pgvector==0.5.0
 docling==2.94.0
 cohere==7.1.1

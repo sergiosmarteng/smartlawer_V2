@@ -1,11 +1,9 @@
+import json
 import logging
 import re
 from typing import Any
 from typing import List
 
-from langchain.output_parsers import PydanticOutputParser
-from langchain.prompts import PromptTemplate
-from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
 
 from app.core.config import settings
@@ -19,6 +17,19 @@ class AnalysisResult(BaseModel):
     laws: List[str] = Field(description="Lista de leis, artigos e jurisprudencias citadas pelo autor.")
     evidence: Any = Field(description="Descricao agregada das provas que o autor diz possuir ou anexa.")
     defense_theses: List[str] = Field(description="Possiveis teses preliminares e de merito para a defesa.")
+
+
+#: Static format instructions for the analysis JSON (replaces the former
+#: langchain output parser — same contract, no extra dependency).
+FORMAT_INSTRUCTIONS = (
+    "Responda APENAS com um objeto JSON valido (sem markdown, sem cercas de codigo) "
+    "com exatamente estas chaves: "
+    '{"summary": "resumo detalhado e profissional da peticao", '
+    '"requests": ["pedido 1", "pedido 2"], '
+    '"laws": ["lei/artigo/jurisprudencia 1"], '
+    '"evidence": "descricao agregada das provas ou lista", '
+    '"defense_theses": ["tese preliminar ou de merito 1", "tese 2", "tese 3"]}'
+)
 
 
 def resolve_chat_config() -> dict | None:
@@ -64,7 +75,8 @@ class LegalAnalyzer:
     def __init__(self):
         self.provider = settings.AI_PROVIDER.lower()
         self.api_key = ""
-        self.llm = None
+        self.model: str | None = None
+        self.client = None
 
         config = resolve_chat_config()
         if config is None:
@@ -75,18 +87,17 @@ class LegalAnalyzer:
                 ),
                 self.provider,
             )
-        else:
-            self.api_key = config["api_key"]
-            chat_kwargs: dict = {
-                "model": config["model"],
-                "temperature": 0.0,
-                "api_key": config["api_key"],
-            }
-            if config["base_url"]:
-                chat_kwargs["openai_api_base"] = config["base_url"]
-            self.llm = ChatOpenAI(**chat_kwargs)
+            return
 
-        self.parser = PydanticOutputParser(pydantic_object=AnalysisResult)
+        self.api_key = config["api_key"]
+        self.model = config["model"]
+        try:
+            from app.core.openai_compat import build_client
+
+            self.client = build_client(config["api_key"], config["base_url"])
+        except Exception as exc:
+            logger.warning("LLM client unavailable (%s); using heuristic summary.", exc)
+            self.client = None
 
     @staticmethod
     def _first_non_empty_lines(text: str, *, limit: int, max_lines: int) -> list[str]:
@@ -211,25 +222,38 @@ class LegalAnalyzer:
         )
         return (
             f"{instructions}\n\n"
-            f"{self.parser.get_format_instructions()}\n\n"
+            f"{FORMAT_INSTRUCTIONS}\n\n"
             f"TEXTO DA PETICAO:\n{text[:20000]}"
         )
 
     def analyze_petition(self, text: str, strategy_prompt: str | None = None) -> dict:
-        if not self.api_key or self.llm is None:
+        if not self.api_key or self.client is None or not self.model:
             return self._fallback_analysis(text, reason="AI provider is not configured")
 
-        prompt = PromptTemplate(
-            template="{prompt_text}",
-            input_variables=["prompt_text"],
-        )
-
-        chain = prompt | self.llm | self.parser
-
         try:
-            result: AnalysisResult = chain.invoke(
-                {"prompt_text": self.build_prompt_text(text, strategy_prompt)}
+            response = self.client.chat.completions.create(
+                model=self.model,
+                temperature=0.0,
+                response_format={"type": "json_object"},
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "Voce e um Especialista de Inteligencia Artificial Juridica. "
+                            "Responda APENAS com o objeto JSON pedido, sem texto extra."
+                        ),
+                    },
+                    {
+                        "role": "user",
+                        "content": self.build_prompt_text(text, strategy_prompt),
+                    },
+                ],
             )
+            content = (response.choices[0].message.content or "").strip()
+            try:
+                result = AnalysisResult.model_validate_json(content)
+            except Exception:
+                result = AnalysisResult.model_validate(json.loads(content))
             return self._normalize_analysis_payload(result.model_dump())
         except Exception as exc:
             logger.error("Erro no processamento da IA: %s", exc)

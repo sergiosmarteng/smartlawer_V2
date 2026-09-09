@@ -1,6 +1,14 @@
 from app.core import rag_answer
 from app.core.ai_engine import LegalAnalyzer, resolve_chat_config
 from app.core.config import settings
+from app.core.openai_compat import build_client
+
+
+def test_shared_client_factory_survives_httpx_skew():
+    """Regression: openai 1.30.5 + httpx 0.28 break plain OpenAI(...)."""
+    client = build_client("k", "https://example.invalid/v1/")
+    assert str(client.base_url) == "https://example.invalid/v1/"
+    assert build_client("k") is not None
 
 
 def _provider(monkeypatch, **overrides):
@@ -70,6 +78,6 @@ def test_rag_chat_client_gemini_passthrough(monkeypatch):
 def test_analyzer_gemini_without_key_falls_back(monkeypatch):
     _provider(monkeypatch, AI_PROVIDER="gemini", GEMINI_API_KEY="")
     analyzer = LegalAnalyzer()
-    assert analyzer.llm is None
+    assert analyzer.client is None
     result = analyzer.analyze_petition("Algum texto")
     assert result["summary"]

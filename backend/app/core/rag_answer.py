@@ -70,20 +70,18 @@ def is_configured() -> bool:
 
 
 def _chat_client():
-    from openai import OpenAI
+    from app.core.openai_compat import build_client
 
     provider = settings.AI_PROVIDER.lower()
     if provider == "openrouter":
-        return OpenAI(
-            base_url="https://openrouter.ai/api/v1",
-            api_key=settings.OPENROUTER_API_KEY,
+        return build_client(
+            settings.OPENROUTER_API_KEY, "https://openrouter.ai/api/v1"
         ), "anthropic/claude-3-opus"
     if provider == "gemini":
-        return OpenAI(
-            base_url=settings.GEMINI_BASE_URL,
-            api_key=settings.GEMINI_API_KEY,
+        return build_client(
+            settings.GEMINI_API_KEY, settings.GEMINI_BASE_URL
         ), settings.CHAT_MODEL
-    return OpenAI(api_key=settings.OPENAI_API_KEY), settings.CHAT_MODEL
+    return build_client(settings.OPENAI_API_KEY), settings.CHAT_MODEL
 
 
 def complete(prompt: str) -> tuple[str, str]:

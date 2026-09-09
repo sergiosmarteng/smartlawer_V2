@@ -103,6 +103,25 @@ This file is append-only. Add one short entry per landed worker or coordinator m
 
 ## 2026-09-08
 
+### Proxies skew fixed — first live Gemini analysis (pilot)
+
+- Source: operator report (upload stuck at 50% + `ChatOpenAI ... 'proxies'` error)
+- Root cause: image pins `openai==1.30.5` + `httpx==0.28.1`; httpx 0.28
+  removed the `proxies` kwarg that openai 1.30.x still passes when building
+  its own HTTP client — EVERY LLM client construction crashed (latent since
+  day one; first live key exposed it). Worker retried 3x → stuck PROCESSING.
+- Workspace impact:
+  - dropped `langchain`/`langchain-openai` from the hot path (`ai_engine`
+    now uses the plain OpenAI client + `json_object` + pydantic validation;
+    same prompt, same fallback); removed from `requirements.txt`
+  - NEW `core/openai_compat.py` factory (explicit `httpx.Client`) used by
+    analyzer, chat and embeddings clients — single place to revisit on repin
+  - live proof: real Gemini 3 Flash analysis in PT (rich summary, structured
+    requests/theses with CPC/CC cites — not heuristic)
+- Follow-up carried forward:
+  - operator must RE-UPLOAD the stuck PDF (old task exhausted retries);
+    progress should now move in seconds–minutes, not stall
+
 ### CORS fix — browser login/register unblocked (pilot)
 
 - Source: operator report (login + signup failing in browser, API 200 via curl)
