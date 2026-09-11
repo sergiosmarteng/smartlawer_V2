@@ -47,7 +47,7 @@ export default function Home() {
   return (
     <Layout>
       <Head>
-        <title>SmartLawer — Inteligência jurídica que entrega resultado sólido</title>
+        <title>SmartLawer — Inteligência jurídica para escritórios de excelência</title>
       </Head>
       <div className="bg-tribunal-texture px-4 py-10 text-slate-200 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-6xl">
@@ -57,11 +57,11 @@ export default function Home() {
                 Advocacia brasileira · IA com fundamento
               </p>
               <h1 className="mt-5 font-display text-5xl font-black leading-[1.05] tracking-tight text-slate-50 md:text-7xl">
-                O sistema <span className="text-ouro-300">fodão</span> da sua banca.
+                A inteligência jurídica <span className="text-ouro-300">do seu escritório</span>.
               </h1>
               <p className="mt-6 max-w-xl text-lg font-light leading-9 text-zinc-400">
-                Petição entra, <strong className="font-semibold text-slate-100">resultado sólido</strong> sai:
-                análise com tese, peça em DOCX no modelo do escritório e cada afirmação com a fonte citada.
+                Da petição à peça pronta: <strong className="font-semibold text-slate-100">análise com tese</strong>,
+                minuta em DOCX no padrão do escritório e cada fundamento com a fonte citada.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 {!isLoading && !user && (

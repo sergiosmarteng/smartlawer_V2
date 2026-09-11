@@ -4,7 +4,7 @@ export default function Document() {
   return (
     <Html lang="pt-BR">
       <Head>
-        <meta name="description" content="SmartLawer — inteligência jurídica que entrega resultado sólido." />
+        <meta name="description" content="SmartLawer — inteligência jurídica para escritórios de excelência." />
       </Head>
       <body>
         <Main />

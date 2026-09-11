@@ -75,8 +75,8 @@ export default function UploadPage() {
     setProgress(1);
     setStatusMessage(
       files.length === 1
-        ? 'Enviando documento para a esteira...'
-        : `Enviando ${files.length} documentos para a esteira...`,
+        ? 'Enviando documento para análise...'
+        : `Enviando ${files.length} documentos para análise...`,
     );
 
     try {
@@ -315,7 +315,7 @@ export default function UploadPage() {
 
                 <aside className="space-y-5 rounded-[1.75rem] border border-zinc-800 bg-zinc-950/60 p-6">
                   <div>
-                    <p className="font-mono text-xs uppercase tracking-[0.3em] text-zinc-500">Estado da esteira</p>
+                    <p className="font-mono text-xs uppercase tracking-[0.3em] text-zinc-500">Estado do processamento</p>
                     <h2 className="mt-2 font-display text-2xl font-bold text-slate-100">
                       {isProcessing ? 'Processando documento' : 'Pronto para começar'}
                     </h2>

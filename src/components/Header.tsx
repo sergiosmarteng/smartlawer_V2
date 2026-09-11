@@ -44,7 +44,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
             </span>
             <div>
               <p className="font-display text-base font-bold tracking-wide text-slate-100">SmartLawer</p>
-              <p className="font-mono text-[0.65rem] uppercase tracking-[0.3em] text-ouro-500/90">Resultado sólido</p>
+              <p className="font-mono text-[0.65rem] uppercase tracking-[0.3em] text-ouro-500/90">Advocacia de excelência</p>
             </div>
           </Link>
         </div>

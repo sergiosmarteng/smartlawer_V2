@@ -1,7 +1,7 @@
 import { Fraunces, JetBrains_Mono, Sora } from 'next/font/google';
 
 /**
- * Tipografia da identidade "Tribunal premium" (branch redesign/br-fodao).
+ * Tipografia da identidade institucional SmartLawer.
  *
  * - Fraunces: serifada de autoridade p/ títulos e números de resultado.
  * - Sora: texto corrido com caráter, sem cair no Inter genérico.

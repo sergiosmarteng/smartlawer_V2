@@ -8,9 +8,9 @@ interface SidebarProps {
 
 const sidebarLinks = [
   { href: '/dashboard', label: 'Painel', icon: DashboardIcon, description: 'Acompanhe o andamento dos documentos' },
-  { href: '/upload', label: 'Nova análise', icon: DocumentIcon, description: 'Envie um PDF para a esteira' },
+  { href: '/upload', label: 'Nova análise', icon: DocumentIcon, description: 'Envie um PDF para análise' },
   { href: '/chat', label: 'Chat jurídico', icon: ChatIcon, description: 'Perguntas com fontes citadas' },
-  { href: '/prompts', label: 'Prompts', icon: DocumentIcon, description: 'Perfis de IA da banca' },
+  { href: '/prompts', label: 'Prompts', icon: DocumentIcon, description: 'Perfis de IA do escritório' },
   { href: '/audit', label: 'Auditoria', icon: ClientIcon, description: 'Trilha de eventos da conta' },
   { href: '/user-profile', label: 'Perfil', icon: ClientIcon, description: 'Dados da sua conta' },
 ];
@@ -29,7 +29,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       >
         <div className="border-selo-ouro rounded-r-3xl border border-zinc-800 border-l-0 bg-tribunal-900/70 p-5 shadow-2xl shadow-black/20">
           <p className="font-mono text-[0.65rem] uppercase tracking-[0.3em] text-ouro-500">Fluxo de trabalho</p>
-          <h2 className="mt-2 font-display text-lg font-bold text-slate-100">Operação da banca</h2>
+          <h2 className="mt-2 font-display text-lg font-bold text-slate-100">Operação do escritório</h2>
           <p className="mt-2 text-sm leading-6 text-zinc-400">
             Envie, acompanhe e receba a análise com tese, fundamento e peça pronta para protocolar.
           </p>

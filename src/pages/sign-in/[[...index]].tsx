@@ -77,7 +77,7 @@ export default function SignInPage() {
         <div className="w-full max-w-md rounded-[2rem] border border-zinc-800 bg-tribunal-900/90 p-8 shadow-2xl shadow-black/40">
           <div className="mb-8 text-center">
             <p className="font-mono text-xs uppercase tracking-[0.32em] text-ouro-500">SmartLawer</p>
-            <h1 className="mt-3 font-display text-3xl font-black text-slate-50">Entrar na banca</h1>
+            <h1 className="mt-3 font-display text-3xl font-black text-slate-50">Acessar a plataforma</h1>
             <p className="mt-2 text-sm text-zinc-400">Acesse seu escritório jurídico digital</p>
           </div>
 

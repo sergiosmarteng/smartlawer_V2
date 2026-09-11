@@ -4,7 +4,7 @@ export default function Footer() {
       <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
         <div className="flex flex-col items-center justify-between gap-2 text-sm text-zinc-500 sm:flex-row">
           <p>
-            &copy; {new Date().getFullYear()} SmartLawer. Resultado sólido na advocacia brasileira.
+            &copy; {new Date().getFullYear()} SmartLawer. Excelência jurídica para a advocacia brasileira.
           </p>
           <p className="font-mono text-xs uppercase tracking-[0.24em] text-ouro-600">
             Feito para o mercado brasileiro

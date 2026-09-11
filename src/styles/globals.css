@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 /*
- * Identidade "Tribunal premium" (branch redesign/br-fodao):
+ * Identidade institucional SmartLawer:
  * fundo verde-tribunal profundo, dourado-latão como acento de valor,
  * serifada Fraunces nos títulos, Sora no texto, JetBrains Mono em
  * etiquetas/prazos/IDs. Nada de roxo genérico, nada de Inter.
@@ -64,7 +64,7 @@
       radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.35) 100%);
   }
 
-  /* Filete dourado lateral: marca de "resultado sólido". */
+  /* Filete dourado lateral: selo institucional. */
   .border-selo-ouro {
     border-left: 3px solid #c9a227;
   }
