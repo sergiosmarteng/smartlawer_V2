@@ -27,8 +27,8 @@ export default function AuthGuard({ children, fallback }: AuthGuardProps) {
   if (isLoading) {
     return (
       fallback ?? (
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+        <div className="flex min-h-screen items-center justify-center bg-tribunal-950">
+          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-ouro-400" />
         </div>
       )
     );
@@ -37,8 +37,8 @@ export default function AuthGuard({ children, fallback }: AuthGuardProps) {
   if (!user) {
     return (
       fallback ?? (
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+        <div className="flex min-h-screen items-center justify-center bg-tribunal-950">
+          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-ouro-400" />
         </div>
       )
     );

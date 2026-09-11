@@ -25,7 +25,7 @@ export default function UploadPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState('');
-  const [statusMessage, setStatusMessage] = useState('Select PDFs to begin new analyses.');
+  const [statusMessage, setStatusMessage] = useState('Selecione PDFs para iniciar novas análises.');
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const picked = Array.from(event.target.files ?? []);
@@ -33,7 +33,7 @@ export default function UploadPage() {
 
     if (picked.length === 0) {
       setFiles([]);
-      setStatusMessage('Select PDFs to begin new analyses.');
+      setStatusMessage('Selecione PDFs para iniciar novas análises.');
       return;
     }
 
@@ -41,16 +41,16 @@ export default function UploadPage() {
     const rejected = picked.length - pdfs.length;
     if (pdfs.length === 0) {
       setFiles([]);
-      setStatusMessage('Select PDFs to begin new analyses.');
-      setError('The backend currently accepts only PDF uploads.');
+      setStatusMessage('Selecione PDFs para iniciar novas análises.');
+      setError('O sistema aceita apenas PDFs por enquanto.');
       event.target.value = '';
       return;
     }
 
     if (pdfs.length > MAX_BATCH_FILES) {
       setFiles([]);
-      setStatusMessage('Select PDFs to begin new analyses.');
-      setError(`At most ${MAX_BATCH_FILES} files per batch.`);
+      setStatusMessage('Selecione PDFs para iniciar novas análises.');
+      setError(`No máximo ${MAX_BATCH_FILES} arquivos por lote.`);
       event.target.value = '';
       return;
     }
@@ -58,15 +58,15 @@ export default function UploadPage() {
     setFiles(pdfs);
     setStatusMessage(
       pdfs.length === 1
-        ? `Ready to upload ${pdfs[0].name}.`
-        : `Ready to upload ${pdfs.length} PDFs as one batch.` +
-          (rejected > 0 ? ` (${rejected} non-PDF file(s) skipped.)` : ''),
+        ? `Pronto para enviar ${pdfs[0].name}.`
+        : `Pronto para enviar ${pdfs.length} PDFs em um lote.` +
+          (rejected > 0 ? ` (${rejected} arquivo(s) fora do padrão ignorado(s).)` : ''),
     );
   };
 
   const handleUpload = async () => {
     if (files.length === 0) {
-      setError('Select at least one PDF before starting the workflow.');
+      setError('Selecione ao menos um PDF antes de iniciar.');
       return;
     }
 
@@ -75,8 +75,8 @@ export default function UploadPage() {
     setProgress(1);
     setStatusMessage(
       files.length === 1
-        ? 'Uploading document to the backend pipeline...'
-        : `Uploading ${files.length} documents to the backend pipeline...`,
+        ? 'Enviando documento para a esteira...'
+        : `Enviando ${files.length} documentos para a esteira...`,
     );
 
     try {
@@ -114,16 +114,16 @@ export default function UploadPage() {
         const batch = uploadResponse.data;
         if (batch.items.length === 0) {
           const reasons = batch.errors.map((item) => `${item.filename}: ${item.detail}`).join('; ');
-          throw new Error(reasons || 'The backend rejected every file in the batch.');
+          throw new Error(reasons || 'O sistema recusou todos os arquivos do lote.');
         }
         first = batch.items[0];
         const queued = batch.items.length - 1;
         const rejected = batch.errors.length;
         setStatusMessage(
-          `Batch accepted (${batch.items.length} queued` +
-            (rejected > 0 ? `, ${rejected} rejected` : '') +
-            '). Tracking the first document below' +
-            (queued > 0 ? '; the rest are visible on the dashboard' : '') +
+          `Lote aceito (${batch.items.length} na fila` +
+            (rejected > 0 ? `, ${rejected} recusado(s)` : '') +
+            '). Acompanhando o primeiro documento abaixo' +
+            (queued > 0 ? '; os demais estão no painel' : '') +
             '.',
         );
       } else {
@@ -132,7 +132,7 @@ export default function UploadPage() {
 
       const taskId = first?.id;
       if (!taskId) {
-        throw new Error('The backend did not return a document identifier for task tracking.');
+        throw new Error('O sistema não devolveu o identificador para acompanhar a tarefa.');
       }
 
       // BL-014: task_id == document id by design; poll the canonical URL
@@ -142,7 +142,7 @@ export default function UploadPage() {
         (taskStatusUrl && normalizeApiPath(taskStatusUrl)) || `/tasks/${taskId}`;
 
       setProgress(24);
-      setStatusMessage('Upload completed. Waiting for extraction and analysis...');
+      setStatusMessage('Envio concluído. Extraindo e analisando...');
 
       const pollTask = async () => {
         try {
@@ -169,38 +169,38 @@ export default function UploadPage() {
           if (isSuccessStatus(normalizedStatus)) {
             if (analysis_id) {
               setProgress(100);
-              setStatusMessage('Analysis completed. Opening the detail view...');
+              setStatusMessage('Análise pronta. Abrindo o resultado...');
               schedulePoll(() => {
                 router.push(`/analysis/${analysis_id}`);
               }, 600);
               return;
             }
 
-            setStatusMessage('Analysis finished on the backend. Finalizing the result record...');
+            setStatusMessage('Análise concluída no sistema. Finalizando o registro...');
             setProgress(95);
             schedulePoll(pollTask, 1500);
             return;
           }
 
           if (isFailureStatus(normalizedStatus)) {
-            setError(error_message || 'The backend marked this analysis as failed.');
-            setStatusMessage('Processing stopped before the analysis could finish.');
+            setError(error_message || 'O sistema marcou esta análise como falha.');
+            setStatusMessage('O processamento parou antes de concluir a análise.');
             setIsProcessing(false);
             return;
           }
 
           schedulePoll(pollTask);
         } catch (pollError) {
-          setError(getApiErrorMessage(pollError, 'The connection to the processing status endpoint was lost.'));
-          setStatusMessage('Processing status is temporarily unavailable.');
+          setError(getApiErrorMessage(pollError, 'Perdemos a conexão com o andamento do processamento.'));
+          setStatusMessage('Andamento temporariamente indisponível.');
           setIsProcessing(false);
         }
       };
 
       schedulePoll(pollTask, 1200);
     } catch (uploadError) {
-      setError(getApiErrorMessage(uploadError, 'Failed to upload the document.'));
-      setStatusMessage('The upload could not be started.');
+      setError(getApiErrorMessage(uploadError, 'Não foi possível enviar o documento.'));
+      setStatusMessage('O envio não pôde ser iniciado.');
       setIsProcessing(false);
     }
   };
@@ -212,7 +212,7 @@ export default function UploadPage() {
     setIsProcessing(false);
     setProgress(0);
     setError('');
-    setStatusMessage('Select PDFs to begin new analyses.');
+    setStatusMessage('Selecione PDFs para iniciar novas análises.');
   };
 
   return (
@@ -226,18 +226,18 @@ export default function UploadPage() {
           <div className="mx-auto max-w-5xl">
             <div className="overflow-hidden rounded-[2rem] border border-zinc-800 bg-zinc-900 shadow-2xl shadow-black/20">
               <div className="border-b border-zinc-800 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.14),_transparent_28%),radial-gradient(circle_at_top_right,_rgba(16,185,129,0.12),_transparent_22%)] px-8 py-10 sm:px-10">
-                <p className="text-xs uppercase tracking-[0.32em] text-sky-400">Upload Workflow</p>
+                <p className="font-mono text-xs uppercase tracking-[0.32em] text-ouro-400">Envio de peças</p>
                 <div className="mt-4 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
                   <div className="max-w-2xl">
-                    <h1 className="text-3xl font-light tracking-tight text-slate-100 sm:text-4xl">Start a document analysis</h1>
+                    <h1 className="font-display text-3xl font-black tracking-tight text-slate-50 sm:text-4xl">Iniciar análise de documento</h1>
                     <p className="mt-3 text-sm leading-7 text-zinc-400">
-                      The current backend contract accepts PDF files, returns the document `id` immediately, and uses that identifier on `/tasks/{'{id}'}` until an `analysis_id` becomes available.
+                      O sistema aceita PDFs, devolve o identificador na hora e usa esse identificador até a análise ficar pronta.
                     </p>
                   </div>
-                  <div className="rounded-2xl border border-zinc-800 bg-zinc-950/70 px-5 py-4">
-                    <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">Accepted input</p>
-                    <p className="mt-2 text-lg font-medium text-slate-100">PDF only</p>
-                    <p className="mt-1 text-sm text-zinc-500">Up to {MAX_BATCH_FILES} PDFs per batch</p>
+                  <div className="rounded-2xl border border-zinc-800 bg-tribunal-950/70 px-5 py-4">
+                    <p className="font-mono text-xs uppercase tracking-[0.3em] text-zinc-500">Entrada aceita</p>
+                    <p className="mt-2 text-lg font-medium text-slate-100">Somente PDF</p>
+                    <p className="mt-1 text-sm text-zinc-500">Até {MAX_BATCH_FILES} PDFs por lote</p>
                   </div>
                 </div>
               </div>
@@ -246,7 +246,7 @@ export default function UploadPage() {
                 <section className="space-y-6">
                   {error && (
                     <div className="rounded-2xl border border-rose-900/80 bg-rose-950/50 px-5 py-4 text-sm text-rose-200">
-                      <p className="font-medium uppercase tracking-[0.24em] text-rose-300">Workflow issue</p>
+                      <p className="font-medium uppercase tracking-[0.24em] text-rose-300">Algo travou</p>
                       <p className="mt-2 leading-6">{error}</p>
                     </div>
                   )}
@@ -261,14 +261,14 @@ export default function UploadPage() {
                       disabled={isProcessing}
                     />
                     <div className="flex flex-col items-center justify-center text-center">
-                      <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-900 text-sky-300">
+                      <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl border border-ouro-700/40 bg-ouro-500/10 text-ouro-300">
                         <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                         </svg>
                       </div>
-                      <h2 className="mt-6 text-xl font-medium text-slate-100">Drop a legal PDF here or browse from disk</h2>
+                      <h2 className="mt-6 font-display text-xl font-bold text-slate-100">Solte a petição aqui ou busque no disco</h2>
                       <p className="mt-3 max-w-xl text-sm leading-7 text-zinc-500">
-                        Once the upload is accepted, the frontend tracks the same document identifier through the processing endpoint until the analysis detail view is ready.
+                        Aceito o envio, o sistema acompanha o mesmo identificador até a análise ficar pronta para revisão.
                       </p>
                     </div>
                   </label>
@@ -276,18 +276,18 @@ export default function UploadPage() {
                   <div className="rounded-[1.75rem] border border-zinc-800 bg-zinc-950/70 p-6">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                       <div>
-                        <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">Selected files</p>
+                        <p className="font-mono text-xs uppercase tracking-[0.3em] text-zinc-500">Arquivos escolhidos</p>
                         <p className="mt-2 text-lg font-medium text-slate-100">
                           {files.length === 0
-                            ? 'No documents selected yet'
+                            ? 'Nenhum documento ainda'
                             : files.length === 1
                               ? files[0].name
-                              : `${files.length} PDFs selected`}
+                              : `${files.length} PDFs escolhidos`}
                         </p>
                         <p className="mt-1 text-sm text-zinc-500">
                           {files.length === 0
-                            ? 'Pick PDFs to unlock processing.'
-                            : `${(files.reduce((total, item) => total + item.size, 0) / (1024 * 1024)).toFixed(2)} MB total`}
+                            ? 'Escolha PDFs para liberar o processamento.'
+                            : `${(files.reduce((total, item) => total + item.size, 0) / (1024 * 1024)).toFixed(2)} MB no total`}
                         </p>
                         {files.length > 1 && (
                           <ul className="mt-3 max-h-28 space-y-1 overflow-y-auto text-sm text-zinc-400">
@@ -304,10 +304,10 @@ export default function UploadPage() {
                         <button
                           type="button"
                           onClick={resetFlow}
-                          className="inline-flex items-center justify-center rounded-full border border-zinc-800 px-4 py-2 text-sm font-medium text-zinc-300 transition-colors hover:border-zinc-700 hover:bg-zinc-900 hover:text-slate-100"
-                        >
-                          Clear files
-                        </button>
+                            className="inline-flex items-center justify-center rounded-full border border-zinc-800 px-4 py-2 text-sm font-medium text-zinc-300 transition-colors hover:border-zinc-700 hover:bg-tribunal-900 hover:text-slate-100"
+                          >
+                            Limpar
+                          </button>
                       )}
                     </div>
                   </div>
@@ -315,40 +315,40 @@ export default function UploadPage() {
 
                 <aside className="space-y-5 rounded-[1.75rem] border border-zinc-800 bg-zinc-950/60 p-6">
                   <div>
-                    <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">Pipeline status</p>
-                    <h2 className="mt-2 text-2xl font-light text-slate-100">
-                      {isProcessing ? 'Processing in progress' : 'Ready to begin'}
+                    <p className="font-mono text-xs uppercase tracking-[0.3em] text-zinc-500">Estado da esteira</p>
+                    <h2 className="mt-2 font-display text-2xl font-bold text-slate-100">
+                      {isProcessing ? 'Processando documento' : 'Pronto para começar'}
                     </h2>
                     <p className="mt-3 text-sm leading-7 text-zinc-400">{statusMessage}</p>
                   </div>
 
                   <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-5">
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-zinc-400">Workflow completion</span>
-                      <span className="font-medium text-slate-100">{progress}%</span>
+                      <span className="text-zinc-400">Andamento</span>
+                      <span className="font-mono font-medium tabular-nums text-ouro-300">{progress}%</span>
                     </div>
                     <div className="mt-4 h-2 overflow-hidden rounded-full bg-zinc-800">
                       <div
-                        className="h-full rounded-full bg-gradient-to-r from-sky-500 via-cyan-300 to-emerald-400 transition-all duration-500"
+                        className="h-full rounded-full bg-gradient-to-r from-ouro-600 via-ouro-400 to-ouro-200 transition-all duration-500"
                         style={{ width: `${progress}%` }}
                       />
                     </div>
                   </div>
 
                   <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-5">
-                    <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">Backend checkpoints</p>
+                    <p className="font-mono text-xs uppercase tracking-[0.3em] text-zinc-500">Etapas do sistema</p>
                     <ul className="mt-4 space-y-3 text-sm text-zinc-400">
                       <li className="flex items-start gap-3">
                         <StatusDot active={progress >= 24} />
-                        `POST /documents/upload` stores the file and returns the document id.
+                        O envio guarda o arquivo e devolve o identificador na hora.
                       </li>
                       <li className="flex items-start gap-3">
                         <StatusDot active={progress >= 24} />
-                        `GET /tasks/{'{id}'}` exposes status, progress, and `analysis_id` when ready.
+                        O acompanhamento mostra estado, andamento e a análise quando pronta.
                       </li>
                       <li className="flex items-start gap-3">
                         <StatusDot active={progress >= 95} />
-                        The frontend redirects to `/analysis/{'{analysis_id}'}` only after the backend exposes it.
+                        O sistema só abre a análise depois que ela existe de verdade.
                       </li>
                     </ul>
                   </div>
@@ -358,22 +358,22 @@ export default function UploadPage() {
                       type="button"
                       onClick={handleUpload}
                       disabled={files.length === 0 || isProcessing}
-                      className={`inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-medium uppercase tracking-[0.24em] transition-all ${
+                      className={`inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-bold uppercase tracking-[0.2em] transition-all ${
                         files.length === 0 || isProcessing
                           ? 'cursor-not-allowed bg-zinc-800 text-zinc-500'
-                          : 'bg-slate-100 text-zinc-950 shadow-[0_0_25px_rgba(255,255,255,0.08)] hover:-translate-y-0.5 hover:shadow-[0_0_35px_rgba(255,255,255,0.15)]'
+                          : 'bg-ouro-500 text-tribunal-950 shadow-[0_0_25px_rgba(201,162,39,0.2)] hover:-translate-y-0.5 hover:bg-ouro-400'
                       }`}
                     >
-                      {isProcessing ? 'Processing...' : 'Start processing'}
+                      {isProcessing ? 'Processando...' : 'Iniciar processamento'}
                     </button>
 
                     {(error || isProcessing) && (
                       <button
                         type="button"
                         onClick={resetFlow}
-                        className="inline-flex items-center justify-center rounded-full border border-zinc-800 px-6 py-3 text-sm font-medium text-zinc-300 transition-colors hover:border-zinc-700 hover:bg-zinc-900 hover:text-slate-100"
+                        className="inline-flex items-center justify-center rounded-full border border-zinc-800 px-6 py-3 text-sm font-medium text-zinc-300 transition-colors hover:border-zinc-700 hover:bg-tribunal-900 hover:text-slate-100"
                       >
-                        Reset workflow
+                        Recomeçar
                       </button>
                     )}
                   </div>

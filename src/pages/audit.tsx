@@ -39,7 +39,7 @@ export default function AuditPage() {
       setEvents(Array.isArray(response.data) ? response.data : []);
     } catch (fetchError) {
       setEvents([]);
-      setError(getApiErrorMessage(fetchError, 'Failed to load audit events.'));
+      setError(getApiErrorMessage(fetchError, 'Não foi possível carregar a auditoria.'));
     } finally {
       setIsLoading(false);
     }
@@ -53,30 +53,30 @@ export default function AuditPage() {
     <AuthGuard>
       <Layout>
         <Head>
-          <title>Audit Trail - SmartLawer</title>
+          <title>Auditoria - SmartLawer</title>
         </Head>
 
-        <div className="min-h-[calc(100vh-4rem)] bg-zinc-950 px-4 py-10 text-slate-300 sm:px-6 lg:px-8">
+        <div className="min-h-[calc(100vh-4rem)] px-4 py-10 text-slate-300 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-6xl">
-            <section className="overflow-hidden rounded-[2rem] border border-zinc-800 bg-zinc-900 px-8 py-10 shadow-2xl shadow-black/20 sm:px-10">
+            <section className="overflow-hidden rounded-[2rem] border border-zinc-800 bg-tribunal-900/70 px-8 py-10 shadow-2xl shadow-black/20 sm:px-10">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.32em] text-sky-300">Governance</p>
-                  <h1 className="mt-4 text-3xl font-light tracking-tight text-slate-100 sm:text-4xl">
-                    Audit trail
+                  <p className="font-mono text-xs uppercase tracking-[0.32em] text-ouro-400">Governança</p>
+                  <h1 className="mt-4 font-display text-3xl font-black tracking-tight text-slate-50 sm:text-4xl">
+                    Trilha de auditoria
                   </h1>
                   <p className="mt-3 max-w-2xl text-sm leading-7 text-zinc-400">
-                    Your account&apos;s security and workflow events, newest first. Raw document
-                    content and queries are never stored here — only ids, states and timings.
+                    Eventos de segurança e de fluxo da sua conta, do mais novo ao mais antigo. Conteúdo
+                    de documentos e perguntas nunca ficam gravados aqui — só identificadores, estados e tempos.
                   </p>
                 </div>
                 <select
                   value={eventType}
                   onChange={(event) => setEventType(event.target.value)}
-                  className="rounded-full border border-zinc-700 bg-zinc-950 px-4 py-2.5 text-sm text-slate-200 outline-none transition-colors hover:border-zinc-500 focus:border-sky-500"
-                  aria-label="Filter by event type"
+                  className="rounded-full border border-zinc-700 bg-tribunal-950 px-4 py-2.5 text-sm text-slate-200 outline-none transition-colors hover:border-zinc-500 focus:border-ouro-500"
+                  aria-label="Filtrar por tipo de evento"
                 >
-                  <option value="">All event types</option>
+                  <option value="">Todos os tipos</option>
                   {KNOWN_EVENT_TYPES.map((type) => (
                     <option key={type} value={type}>
                       {type}
@@ -93,10 +93,10 @@ export default function AuditPage() {
 
               <div className="mt-6 overflow-hidden rounded-[1.5rem] border border-zinc-800">
                 {isLoading ? (
-                  <p className="px-5 py-8 text-sm text-zinc-500">Loading…</p>
+                  <p className="px-5 py-8 text-sm text-zinc-500">Carregando…</p>
                 ) : events.length === 0 ? (
                   <p className="px-5 py-8 text-sm leading-7 text-zinc-500">
-                    No events yet. Upload a document or generate a defense to populate this trail.
+                    Nada por aqui ainda. Envie um documento ou gere uma defesa para preencher esta trilha.
                   </p>
                 ) : (
                   <ul className="divide-y divide-zinc-800">

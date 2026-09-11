@@ -2,18 +2,71 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Identidade "Tribunal premium" (branch redesign/br-fodao):
+ * fundo verde-tribunal profundo, dourado-latão como acento de valor,
+ * serifada Fraunces nos títulos, Sora no texto, JetBrains Mono em
+ * etiquetas/prazos/IDs. Nada de roxo genérico, nada de Inter.
+ */
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-tribunal-950 font-sans text-slate-300 antialiased selection:bg-ouro-500/30 selection:text-ouro-200;
+  }
+
+  /* Anel de foco visível e dourado em tudo que é interativo. */
+  :focus-visible {
+    outline: 2px solid #d9b44a;
+    outline-offset: 2px;
+    border-radius: 0.25rem;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #0b120e;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #1c2b22;
+    border-radius: 8px;
+    border: 2px solid #0b120e;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #a8861d;
+  }
+}
+
 @layer utilities {
   .animate-fade-in-up {
     animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
-  
+
   .animate-gradient-x {
     background-size: 200% 200%;
     animation: gradientX 5s ease infinite;
   }
-  
+
   .animate-shimmer {
     animation: shimmer 2s infinite linear;
+  }
+
+  /* Textura sutil de "mármore do tribunal": vinheta radial verde + grão. */
+  .bg-tribunal-texture {
+    background-image:
+      radial-gradient(circle at top left, rgba(201, 162, 39, 0.07), transparent 32%),
+      radial-gradient(circle at bottom right, rgba(16, 185, 129, 0.06), transparent 28%),
+      radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.35) 100%);
+  }
+
+  /* Filete dourado lateral: marca de "resultado sólido". */
+  .border-selo-ouro {
+    border-left: 3px solid #c9a227;
   }
 }
 
@@ -43,6 +96,20 @@
   }
 }
 
-body {
-  @apply bg-zinc-950 text-slate-300 antialiased selection:bg-blue-500/30;
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .animate-fade-in-up,
+  .animate-gradient-x,
+  .animate-shimmer {
+    animation: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+  }
 }
