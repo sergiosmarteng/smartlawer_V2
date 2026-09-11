@@ -192,3 +192,123 @@ def test_grounded_prompt_numbers_contexts():
     assert "[1] texto um" in prompt
     assert "[2] texto dois" in prompt
     assert "prazo?" in prompt
+
+
+class _FakeCompletions:
+    def __init__(self, content=None, error=None):
+        self._content = content
+        self._error = error
+
+    def create(self, **_kwargs):
+        if self._error is not None:
+            raise self._error
+        message = type("Message", (), {"content": self._content})()
+        choice = type("Choice", (), {"message": message})()
+        return type("Response", (), {"choices": [choice]})()
+
+
+class _FakeChat:
+    def __init__(self, content=None, error=None):
+        self.completions = _FakeCompletions(content, error)
+
+
+class _FakeClient:
+    def __init__(self, content=None, error=None):
+        self.chat = _FakeChat(content, error)
+
+
+def test_suggest_followups_parses_and_caps_at_three(monkeypatch):
+    monkeypatch.setattr(rag_answer, "is_configured", lambda: True)
+    content = (
+        "1. Qual a conclusao sobre o prazo?\n"
+        "2) Que estrategia de defesa cabe aqui?\n"
+        "- Que ponto do caso elucidar primeiro?\n"
+        "4. Pergunta excedente que deve cair\n"
+        "Qual a conclusao sobre o prazo?"
+    )
+    monkeypatch.setattr(
+        rag_answer, "_chat_client", lambda: (_FakeClient(content), "fake-model")
+    )
+    suggestions = rag_answer.suggest_followups("prazo?", "O prazo e de 15 dias [1].")
+    assert suggestions == [
+        "Qual a conclusao sobre o prazo?",
+        "Que estrategia de defesa cabe aqui?",
+        "Que ponto do caso elucidar primeiro?",
+    ]
+
+
+def test_suggest_followups_empty_on_llm_failure(monkeypatch):
+    monkeypatch.setattr(rag_answer, "is_configured", lambda: True)
+    monkeypatch.setattr(
+        rag_answer,
+        "_chat_client",
+        lambda: (_FakeClient(error=RuntimeError("boom")), "fake-model"),
+    )
+    assert rag_answer.suggest_followups("prazo?", "resposta") == []
+
+
+def test_suggest_followups_empty_when_unconfigured_or_blank(monkeypatch):
+    monkeypatch.setattr(rag_answer, "is_configured", lambda: False)
+    assert rag_answer.suggest_followups("prazo?", "resposta") == []
+    monkeypatch.setattr(rag_answer, "is_configured", lambda: True)
+    assert rag_answer.suggest_followups("prazo?", "   ") == []
+
+
+def test_chat_response_carries_suggested_questions(
+    monkeypatch, client, db_session, make_user, auth_headers_for
+):
+    user, _document, chunk = _make_doc_with_chunk(
+        db_session, make_user, "O prazo para contestacao e de 15 dias."
+    )
+    monkeypatch.setattr(rag_answer, "is_configured", lambda: True)
+    monkeypatch.setattr(rag_answer, "embed_query", lambda _q: [0.1, 0.2, 0.3])
+    monkeypatch.setattr(
+        "app.core.retrieval.hybrid_search", lambda *a, **kw: [chunk]
+    )
+    monkeypatch.setattr(
+        rag_answer, "complete", lambda _p: ("O prazo e de 15 dias [1].", "gpt-4-turbo")
+    )
+    monkeypatch.setattr(
+        rag_answer,
+        "suggest_followups",
+        lambda _q, _a: ["Que estrategia de defesa cabe aqui?"],
+    )
+
+    response = client.post(
+        "/api/v1/chat",
+        json={"query": "qual o prazo para contestacao?"},
+        headers=auth_headers_for(user),
+    )
+    assert response.status_code == 200
+    assert response.json()["suggested_questions"] == [
+        "Que estrategia de defesa cabe aqui?"
+    ]
+
+
+def test_chat_stream_done_event_carries_suggested_questions(
+    monkeypatch, client, db_session, make_user, auth_headers_for
+):
+    user, _document, chunk = _make_doc_with_chunk(
+        db_session, make_user, "O prazo para contestacao e de 15 dias."
+    )
+    monkeypatch.setattr(rag_answer, "is_configured", lambda: True)
+    monkeypatch.setattr(chat_route, "embed_query", lambda _q: [0.1])
+    monkeypatch.setattr(chat_route, "hybrid_search", lambda *a, **kw: [chunk])
+    monkeypatch.setattr(
+        rag_answer, "complete_stream", lambda _p: iter([("ok [1].", "gpt-4-turbo")])
+    )
+    monkeypatch.setattr(
+        rag_answer,
+        "suggest_followups",
+        lambda _q, _a: ["Qual a conclusao sobre o prazo?"],
+    )
+
+    response = client.post(
+        "/api/v1/chat/stream",
+        json={"query": "qual o prazo?"},
+        headers=auth_headers_for(user),
+    )
+    assert response.status_code == 200
+    done = [e for e in _sse_events(response.text) if e.get("done")]
+    assert len(done) == 1
+    assert done[0]["suggested_questions"] == ["Qual a conclusao sobre o prazo?"]

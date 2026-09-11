@@ -51,8 +51,8 @@ Frontend session behavior in the current workspace:
 | ops | `GET` | `/api/v1/ops/summary` | States, 24h counts, recent failures (admin-only) | Implemented (C4) |
 | `/precedents` | `GET` | `/api/v1/precedents` | Shared corpus labels (any authed user) | Implemented (C5) |
 | `/precedents` | `POST` | `/api/v1/precedents/seed` | (Re)seed shared corpus (admin-only) | Implemented (C5) |
-| `/chat` | `POST` | `/api/v1/chat` | `{ answer, citations[{ref, chunk_id, document_id, document_name, page_start, excerpt}], model }` | Implemented (A4); 503 without AI key |
-| `/chat` streaming | `POST` | `/api/v1/chat/stream` | SSE `token` frames + final `done` with `citations` | Implemented (A4); tenant from JWT, optional `document_id` scope (404 cross-user) |
+| `/chat` | `POST` | `/api/v1/chat` | `{ answer, citations[{ref, chunk_id, document_id, document_name, page_start, excerpt}], suggested_questions[≤3], model }` | Implemented (A4); 503 without AI key; follow-ups added (chat-scope) |
+| `/chat` streaming | `POST` | `/api/v1/chat/stream` | SSE `token` frames + final `done` with `citations` + `suggested_questions` | Implemented (A4); tenant from JWT, optional `document_id` scope (404 cross-user); UI sends scope from the history listbox |
 | compatibility only | `GET` | `/api/v1/templates/{analysis_id}/generate` | DOCX file response | Keep until callers are fully migrated |
 
 ## Response Shape Notes

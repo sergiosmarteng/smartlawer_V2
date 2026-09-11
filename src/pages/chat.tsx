@@ -1,9 +1,13 @@
 import Head from 'next/head';
 import Link from 'next/link';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import AuthGuard from '../components/auth/AuthGuard';
 import Layout from '../components/layout';
-import { getApiErrorMessage } from '../lib/axios';
+import api, { getApiErrorMessage } from '../lib/axios';
+import {
+  isSuccessStatus,
+  type ProcessItem,
+} from '../types/workflow';
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1').replace(/\/+$/, '');
 
@@ -20,6 +24,7 @@ interface ChatMessage {
   role: 'user' | 'assistant';
   text: string;
   citations?: Citation[];
+  suggestions?: string[];
 }
 
 function parseSseEvents(raw: string): Array<Record<string, unknown>> {
@@ -41,10 +46,39 @@ export default function ChatPage() {
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState('');
+  const [documents, setDocuments] = useState<ProcessItem[]>([]);
+  const [docsLoading, setDocsLoading] = useState(true);
+  const [docsError, setDocsError] = useState('');
+  const [documentId, setDocumentId] = useState('');
   const abortRef = useRef<AbortController | null>(null);
 
-  const sendMessage = async () => {
-    const query = input.trim();
+  useEffect(() => {
+    const fetchDocuments = async () => {
+      setDocsLoading(true);
+      setDocsError('');
+      try {
+        const response = await api.get<ProcessItem[]>('/processes');
+        setDocuments(Array.isArray(response.data) ? response.data : []);
+      } catch (fetchError) {
+        setDocsError(getApiErrorMessage(fetchError, 'Não foi possível carregar o histórico.'));
+      } finally {
+        setDocsLoading(false);
+      }
+    };
+    fetchDocuments();
+  }, []);
+
+  const handleScopeChange = (nextDocumentId: string) => {
+    abortRef.current?.abort();
+    setIsStreaming(false);
+    setDocumentId(nextDocumentId);
+    setMessages([]);
+    setError('');
+    setInput('');
+  };
+
+  const sendMessage = async (override?: string) => {
+    const query = (override ?? input).trim();
     if (!query || isStreaming) {
       return;
     }
@@ -75,7 +109,7 @@ export default function ChatPage() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ query }),
+        body: JSON.stringify(documentId ? { query, document_id: documentId } : { query }),
         signal: abortRef.current.signal,
       });
 
@@ -100,15 +134,28 @@ export default function ChatPage() {
           const last = next[next.length - 1];
           let text = '';
           let citations: Citation[] | undefined;
+          let suggestions: string[] | undefined;
           for (const event of events) {
             if (typeof event.token === 'string') {
               text += event.token;
             }
             if (event.done === true) {
               citations = (event.citations as Citation[]) ?? [];
+              if (Array.isArray(event.suggested_questions)) {
+                suggestions = (event.suggested_questions as unknown[]).filter(
+                  (item): item is string => typeof item === 'string' && item.trim().length > 0,
+                );
+              } else {
+                suggestions = [];
+              }
             }
           }
-          next[next.length - 1] = { ...last, text, citations: citations ?? last.citations };
+          next[next.length - 1] = {
+            ...last,
+            text,
+            citations: citations ?? last.citations,
+            suggestions: suggestions ?? last.suggestions,
+          };
           return next;
         });
       }
@@ -134,8 +181,43 @@ export default function ChatPage() {
             <p className="font-mono text-xs uppercase tracking-[0.32em] text-ouro-400">Chat jurídico</p>
             <h1 className="mt-2 font-display text-3xl font-black text-slate-50">Pergunte com fundamento</h1>
             <p className="mt-1 text-sm text-zinc-400">
-              Sobre os seus documentos. Cada afirmação vem com a fonte clicável.
+              Selecione o caso no histórico e questione. Cada afirmação vem com a fonte clicável.
             </p>
+          </div>
+
+          <div className="mb-4 rounded-2xl border border-zinc-800 bg-tribunal-900/60 p-4">
+            <label
+              htmlFor="chat-document-scope"
+              className="font-mono text-xs uppercase tracking-[0.24em] text-zinc-500"
+            >
+              Caso em análise
+            </label>
+            <select
+              id="chat-document-scope"
+              value={documentId}
+              onChange={(event) => handleScopeChange(event.target.value)}
+              disabled={docsLoading || isStreaming}
+              className="mt-2 w-full rounded-xl border border-zinc-700 bg-tribunal-950 px-3 py-2.5 text-sm text-slate-100 focus:border-ouro-500/60 focus:outline-none disabled:opacity-60"
+            >
+              <option value="">Todos os documentos do histórico</option>
+              {documents.map((document) => (
+                <option key={document.id} value={document.id}>
+                  {document.title}
+                  {isSuccessStatus(document.status) ? '' : ` — ${document.status}`}
+                </option>
+              ))}
+            </select>
+            {docsLoading && <p className="mt-2 text-xs text-zinc-500">Carregando histórico…</p>}
+            {docsError && <p className="mt-2 text-xs text-red-400">{docsError}</p>}
+            {!docsLoading && !docsError && documents.length === 0 && (
+              <p className="mt-2 text-xs text-zinc-500">
+                Nenhum documento no histórico ainda.{' '}
+                <Link href="/upload" className="text-ouro-300 underline underline-offset-4 hover:text-ouro-200">
+                  Envie o primeiro PDF
+                </Link>
+                .
+              </p>
+            )}
           </div>
 
           <div className="flex-1 space-y-4 overflow-y-auto rounded-3xl border border-zinc-800 bg-tribunal-900/40 p-5">
@@ -155,6 +237,29 @@ export default function ChatPage() {
                   }`}
                 >
                   <p className="whitespace-pre-wrap">{message.text || '…'}</p>
+
+                  {message.role === 'assistant' &&
+                    message.suggestions &&
+                    message.suggestions.length > 0 && (
+                      <div className="mt-3 border-t border-zinc-800 pt-3">
+                        <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">
+                          Aprofundar
+                        </p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {message.suggestions.map((suggestion) => (
+                            <button
+                              key={suggestion}
+                              type="button"
+                              onClick={() => sendMessage(suggestion)}
+                              disabled={isStreaming}
+                              className="rounded-full border border-ouro-500/40 bg-ouro-500/10 px-3 py-1.5 text-left text-xs text-ouro-200 transition-colors hover:bg-ouro-500/20 disabled:opacity-50"
+                            >
+                              {suggestion}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                   {message.citations && message.citations.length > 0 && (
                     <div className="mt-3 space-y-2 border-t border-zinc-800 pt-3">
@@ -217,7 +322,7 @@ export default function ChatPage() {
             />
             <button
               type="button"
-              onClick={sendMessage}
+              onClick={() => sendMessage()}
               disabled={isStreaming || !input.trim()}
               className="rounded-2xl border border-ouro-500/40 bg-ouro-500/10 px-5 py-3 text-sm font-medium text-ouro-200 transition-colors hover:bg-ouro-500/20 disabled:opacity-50"
             >

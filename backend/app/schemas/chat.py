@@ -19,6 +19,7 @@ class Citation(BaseModel):
 class ChatResponse(BaseModel):
     answer: str
     citations: list[Citation]
+    suggested_questions: list[str] = Field(default_factory=list)
     model: str
     ai_draft: bool = True
     requires_human_review: bool = True

@@ -106,6 +106,7 @@ def chat_stream(
                 {
                     "done": True,
                     "citations": [],
+                    "suggested_questions": [],
                     "ai_draft": True,
                     "requires_human_review": True,
                 }
@@ -135,6 +136,7 @@ def chat_stream(
                 {
                     "done": True,
                     "citations": [],
+                    "suggested_questions": [],
                     "ai_draft": True,
                     "requires_human_review": True,
                 }
@@ -142,17 +144,25 @@ def chat_stream(
             return
         contexts = [(str(c.id), c.content) for c in chunks]
         prompt = rag_answer.build_grounded_prompt(payload.query, contexts)
+        full_text = ""
         try:
             for token, _model in rag_answer.complete_stream(prompt):
+                full_text += token
                 yield _sse({"token": token})
         except Exception as exc:
             logger.exception("Falha no streaming para user_id=%s", current_user.id)
             yield _sse({"error": "Falha ao gerar resposta"})
             return
+        try:
+            suggestions = rag_answer.suggest_followups(payload.query, full_text)
+        except Exception:
+            logger.exception("Falha ao gerar follow-ups no stream para user_id=%s", current_user.id)
+            suggestions = []
         yield _sse(
             {
                 "done": True,
                 "citations": citations,
+                "suggested_questions": suggestions,
                 "ai_draft": True,
                 "requires_human_review": True,
             }
