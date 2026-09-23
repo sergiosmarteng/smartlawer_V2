@@ -23,7 +23,8 @@ logger = logging.getLogger(__name__)
 
 def _resolve_scope(
     db: Session, *, current_user: User, document_id: str | None
-) -> UUID | None:
+):
+    """Validate and return the scoped Document (with analysis) or None."""
     if document_id is None:
         return None
     try:
@@ -34,11 +35,11 @@ def _resolve_scope(
             detail="document_id inválido",
         )
     document = get_document_for_user(
-        db, id=identifier, user_id=current_user.id
+        db, id=identifier, user_id=current_user.id, load_analysis=True
     )
     if document is None:
         raise HTTPException(status_code=404, detail="Documento não encontrado")
-    return document.id
+    return document
 
 
 def _require_ai() -> None:
@@ -56,7 +57,10 @@ def chat(
     current_user: User = Depends(deps.get_current_active_user),
 ):
     _require_ai()
-    scope = _resolve_scope(db, current_user=current_user, document_id=payload.document_id)
+    scoped_document = _resolve_scope(
+        db, current_user=current_user, document_id=payload.document_id
+    )
+    scope = scoped_document.id if scoped_document is not None else None
     try:
         result = rag_answer.answer_query(
             db,
@@ -93,7 +97,10 @@ def chat_stream(
     current_user: User = Depends(deps.get_current_active_user),
 ):
     _require_ai()
-    scope = _resolve_scope(db, current_user=current_user, document_id=payload.document_id)
+    scoped_document = _resolve_scope(
+        db, current_user=current_user, document_id=payload.document_id
+    )
+    scope = scoped_document.id if scoped_document is not None else None
 
     if is_injection_attempt(payload.query):
         logger.warning(
@@ -124,14 +131,20 @@ def chat_stream(
         document_id=scope,
     )
     citations = rag_answer._to_citations(chunks)
+    case_brief = ""
+    if scoped_document is not None and scoped_document.analysis is not None:
+        case_brief = rag_answer.build_case_brief(
+            scoped_document.filename, scoped_document.analysis
+        )
+        citations.append(
+            rag_answer.analysis_citation(
+                scoped_document.id, scoped_document.filename, scoped_document.analysis
+            )
+        )
 
     def event_stream():
-        if not chunks:
-            yield _sse(
-                {
-                    "token": "Nao encontrei fundamento nos seus documentos para responder a essa pergunta."
-                }
-            )
+        if not chunks and not case_brief:
+            yield _sse({"token": rag_answer.FALLBACK_NO_BASIS})
             yield _sse(
                 {
                     "done": True,
@@ -143,10 +156,12 @@ def chat_stream(
             )
             return
         contexts = [(str(c.id), c.content) for c in chunks]
-        prompt = rag_answer.build_grounded_prompt(payload.query, contexts)
+        prompt = rag_answer.build_counsel_prompt(payload.query, contexts, case_brief)
         full_text = ""
         try:
-            for token, _model in rag_answer.complete_stream(prompt):
+            for token, _model in rag_answer.complete_stream(
+                prompt, system=rag_answer.COUNSEL_SYSTEM_PROMPT
+            ):
                 full_text += token
                 yield _sse({"token": token})
         except Exception as exc:

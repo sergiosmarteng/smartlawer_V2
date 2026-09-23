@@ -222,9 +222,29 @@ export default function ChatPage() {
 
           <div className="flex-1 space-y-4 overflow-y-auto rounded-3xl border border-zinc-800 bg-tribunal-900/40 p-5">
             {messages.length === 0 && (
-              <p className="text-sm text-zinc-500">
-                Nenhuma mensagem ainda. Experimente: “Qual o prazo para contestação nos meus documentos?”
-              </p>
+              <div className="space-y-3">
+                <p className="text-sm text-zinc-500">
+                  Selecione o caso acima e pergunte como a um sócio sênior — o assistente
+                  passa a atuar como especialista na área daquele documento.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    'Qual a tese de defesa mais forte deste caso?',
+                    'Monte uma estratégia de ataque focando o juiz nos pontos da contestação',
+                    'O que devo elucidar antes de protocolar?',
+                  ].map((suggestion) => (
+                    <button
+                      key={suggestion}
+                      type="button"
+                      onClick={() => sendMessage(suggestion)}
+                      disabled={isStreaming}
+                      className="rounded-full border border-zinc-700 bg-tribunal-900/70 px-3 py-1.5 text-left text-xs text-zinc-300 transition-colors hover:border-ouro-500/40 hover:text-ouro-200 disabled:opacity-50"
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+              </div>
             )}
 
             {messages.map((message, index) => (
@@ -331,7 +351,8 @@ export default function ChatPage() {
           </div>
 
           <p className="mt-2 text-xs text-zinc-600">
-            Rascunho gerado por IA — revise antes de usar. Nunca protocola sozinho.
+            Parecer e estratégia elaborados por IA — fatos com fonte citada; a decisão e a
+            responsabilidade são do advogado. Nunca protocola sozinho.
           </p>
         </div>
       </Layout>

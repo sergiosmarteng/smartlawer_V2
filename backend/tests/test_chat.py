@@ -75,7 +75,9 @@ def test_chat_returns_grounded_answer_with_citations(
         "app.core.retrieval.hybrid_search", lambda *a, **kw: [chunk]
     )
     monkeypatch.setattr(
-        rag_answer, "complete", lambda _p: ("O prazo e de 15 dias [1].", "gpt-4-turbo")
+        rag_answer,
+        "complete",
+        lambda _p, system=None: ("O prazo e de 15 dias [1].", "gpt-4-turbo"),
     )
 
     response = client.post(
@@ -107,7 +109,7 @@ def test_chat_stream_tokens_then_citations(
     monkeypatch.setattr(chat_route, "embed_query", lambda _q: [0.1])
     monkeypatch.setattr(chat_route, "hybrid_search", lambda *a, **kw: [chunk])
 
-    def fake_stream(_prompt):
+    def fake_stream(_prompt, system=None):
         yield "O prazo ", "gpt-4-turbo"
         yield "e de 15 dias [1].", "gpt-4-turbo"
 
@@ -144,7 +146,7 @@ def test_chat_no_chunks_returns_fallback(
     assert response.status_code == 200
     payload = response.json()
     assert payload["citations"] == []
-    assert "Nao encontrei fundamento" in payload["answer"]
+    assert "Não encontrei fundamento" in payload["answer"]
 
 
 def test_chat_cross_user_document_scope_is_404(
@@ -266,7 +268,9 @@ def test_chat_response_carries_suggested_questions(
         "app.core.retrieval.hybrid_search", lambda *a, **kw: [chunk]
     )
     monkeypatch.setattr(
-        rag_answer, "complete", lambda _p: ("O prazo e de 15 dias [1].", "gpt-4-turbo")
+        rag_answer,
+        "complete",
+        lambda _p, system=None: ("O prazo e de 15 dias [1].", "gpt-4-turbo"),
     )
     monkeypatch.setattr(
         rag_answer,
@@ -295,7 +299,9 @@ def test_chat_stream_done_event_carries_suggested_questions(
     monkeypatch.setattr(chat_route, "embed_query", lambda _q: [0.1])
     monkeypatch.setattr(chat_route, "hybrid_search", lambda *a, **kw: [chunk])
     monkeypatch.setattr(
-        rag_answer, "complete_stream", lambda _p: iter([("ok [1].", "gpt-4-turbo")])
+        rag_answer,
+        "complete_stream",
+        lambda _p, system=None: iter([("ok [1].", "gpt-4-turbo")]),
     )
     monkeypatch.setattr(
         rag_answer,
@@ -312,3 +318,125 @@ def test_chat_stream_done_event_carries_suggested_questions(
     done = [e for e in _sse_events(response.text) if e.get("done")]
     assert len(done) == 1
     assert done[0]["suggested_questions"] == ["Qual a conclusao sobre o prazo?"]
+
+
+def test_counsel_prompt_frames_case_and_keeps_data_boundary():
+    brief = (
+        "DOCUMENTO: reclamatoria.pdf\n"
+        "RESUMO DOS FATOS (análise registrada — cite como [A]):\n"
+        "Acidente com trituradora sem trava de segurança.\n"
+    )
+    prompt = rag_answer.build_counsel_prompt(
+        "qual a tese de defesa?", [("id1", "trecho do caso")], brief
+    )
+    assert "sócio sênior" in rag_answer.COUNSEL_SYSTEM_PROMPT
+    assert "40 anos" in rag_answer.COUNSEL_SYSTEM_PROMPT
+    assert "estratégia" in rag_answer.COUNSEL_SYSTEM_PROMPT.lower()
+    assert "ANÁLISE REGISTRADA DO CASO (referência [A])" in prompt
+    assert "[1] trecho do caso" in prompt
+    assert "TRECHOS RECUPERADOS" in prompt
+
+    briefless = rag_answer.build_counsel_prompt("resumo do caso?", [], "")
+    assert "SEM TRECHOS RECUPERADOS" in briefless
+    assert "PERGUNTA DO ADVOGADO" in briefless
+
+
+def test_chat_answers_from_analysis_brief_when_no_chunks(
+    monkeypatch, client, db_session, make_user, auth_headers_for
+):
+    from app.models.analysis import Analysis
+
+    user, document, _chunk = _make_doc_with_chunk(
+        db_session, make_user, "texto qualquer"
+    )
+    db_session.query(DocumentChunk).filter(
+        DocumentChunk.document_id == document.id
+    ).delete()
+    analysis = Analysis(
+        document_id=document.id,
+        summary="Reclamatoria por acidente de trabalho com trituradora sem trava.",
+        requests=["indenizacao por danos materiais"],
+        laws=["Art. 927 CC"],
+        defense_theses=["culpa exclusiva da vitima"],
+    )
+    db_session.add(analysis)
+    db_session.commit()
+    db_session.refresh(analysis)
+
+    monkeypatch.setattr(rag_answer, "is_configured", lambda: True)
+    monkeypatch.setattr(rag_answer, "embed_query", lambda _q: None)
+    monkeypatch.setattr(
+        "app.core.retrieval.hybrid_search", lambda *a, **kw: []
+    )
+    captured = {}
+
+    def fake_complete(prompt, system=None):
+        captured["prompt"] = prompt
+        captured["system"] = system
+        return ("Tese: culpa exclusiva da vitima [A].", "gpt-4-turbo")
+
+    monkeypatch.setattr(rag_answer, "complete", fake_complete)
+    monkeypatch.setattr(rag_answer, "suggest_followups", lambda _q, _a: [])
+
+    response = client.post(
+        "/api/v1/chat",
+        json={
+            "query": "qual a melhor tese de defesa?",
+            "document_id": str(document.id),
+        },
+        headers=auth_headers_for(user),
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["answer"].startswith("Tese:")
+    assert "Não encontrei fundamento" not in payload["answer"]
+    # Case brief grounded the prompt, counsel persona drove the system.
+    assert "RESUMO DOS FATOS" in captured["prompt"]
+    assert "trituradora" in captured["prompt"]
+    assert captured["system"] == rag_answer.COUNSEL_SYSTEM_PROMPT
+    # Synthetic [A] citation links to the analysis page.
+    assert len(payload["citations"]) == 1
+    citation = payload["citations"][0]
+    assert citation["ref"] == "[A]"
+    assert citation["document_id"] == str(document.id)
+    assert "análise registrada" in citation["document_name"]
+
+
+def test_chat_stream_analysis_brief_fallback(
+    monkeypatch, client, db_session, make_user, auth_headers_for
+):
+    from app.models.analysis import Analysis
+
+    user, document, _chunk = _make_doc_with_chunk(
+        db_session, make_user, "texto qualquer"
+    )
+    db_session.query(DocumentChunk).filter(
+        DocumentChunk.document_id == document.id
+    ).delete()
+    db_session.add(
+        Analysis(document_id=document.id, summary="Caso trabalhista com dano moral.")
+    )
+    db_session.commit()
+
+    monkeypatch.setattr(rag_answer, "is_configured", lambda: True)
+    monkeypatch.setattr(chat_route, "embed_query", lambda _q: None)
+    monkeypatch.setattr(chat_route, "hybrid_search", lambda *a, **kw: [])
+    monkeypatch.setattr(
+        rag_answer,
+        "complete_stream",
+        lambda _p, system=None: iter([("Estrategia [A].", "gpt-4-turbo")]),
+    )
+    monkeypatch.setattr(rag_answer, "suggest_followups", lambda _q, _a: [])
+
+    response = client.post(
+        "/api/v1/chat/stream",
+        json={"query": "monte a estrategia", "document_id": str(document.id)},
+        headers=auth_headers_for(user),
+    )
+    assert response.status_code == 200
+    events = _sse_events(response.text)
+    tokens = "".join(e["token"] for e in events if "token" in e)
+    assert tokens == "Estrategia [A]."
+    done = [e for e in events if e.get("done")]
+    assert len(done) == 1
+    assert [c["ref"] for c in done[0]["citations"]] == ["[A]"]
