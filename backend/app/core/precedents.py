@@ -117,11 +117,15 @@ def precedent_content(item: dict) -> str:
 
 
 def _expected_version() -> str:
-    return f"seed:{CORPUS_VERSION}:{settings.EMBEDDING_MODEL}"
+    from app.core.embeddings import resolve_embedding_model
+
+    return f"seed:{CORPUS_VERSION}:{resolve_embedding_model()}"
 
 
 def _keys_available() -> bool:
-    return bool(settings.OPENAI_API_KEY or settings.OPENROUTER_API_KEY)
+    from app.core.embeddings import is_configured
+
+    return is_configured()
 
 
 def _seed_state(db: Session) -> tuple[str | None, str | None, int]:
@@ -152,6 +156,7 @@ def ensure_precedents(db: Session, *, embed_fn=None) -> dict:
     changes (e.g. API keys configured after a keyless seed). Returns a
     status dict. Never raises — seeding must not break boot or requests.
     """
+    from app.core.embeddings import resolve_embedding_model
     from app.models.document import Document
     from app.models.document_chunk import DocumentChunk
     from app.models.user import User
@@ -231,7 +236,7 @@ def ensure_precedents(db: Session, *, embed_fn=None) -> dict:
                     token_count=len(texts[index].split()),
                     embedding=list(vectors[index]) if use_real_vectors else list(zero_vector),
                     embedding_model=(
-                        settings.EMBEDDING_MODEL if use_real_vectors else NOOP_EMBEDDING_MODEL
+                        resolve_embedding_model() if use_real_vectors else NOOP_EMBEDDING_MODEL
                     ),
                     embedding_model_version=marker,
                 )

@@ -101,6 +101,20 @@ This file is append-only. Add one short entry per landed worker or coordinator m
   - BL-007 still needs a real DOCX runtime download check
   - BL-010 still needs the integrated manual smoke execution
 
+## 2026-09-11
+
+### Embeddings provider-aware — fim do "nada indexado" com Gemini (bug)
+
+- Source: operator report (chat "Não encontrei fundamento" para tudo com `AI_PROVIDER=gemini`)
+- Root cause: `embeddings.is_configured()`, `_get_client()` e `precedents._keys_available()` só olhavam chaves OpenAI/OpenRouter — provider gemini nunca indexava chunks; retrieval sempre vazio; chat caía no fallback universal
+- Workspace impact:
+  - `embeddings.py` reescrito: `is_configured()`/`_get_client()` por provider; `resolve_embedding_model()` (gemini + default OpenAI → `gemini-embedding-001`, Matryoshka 1536 = sem migração); batching `EMBEDDING_BATCH_SIZE` (limite ~100 inputs/request do Gemini); guarda de dimensionalidade (mismatch → log + skip, nunca corrompe o HNSW)
+  - `precedents.py`: `_expected_version()`/`_keys_available()`/label do seed usam o resolvedor — corpus re-semeado com vetores reais (`seed:v1:gemini-embedding-001`, 6×1536)
+  - live: documento real re-indexado (29 chunks); chat scoped respondeu citando [1][2]… do PDF (modelo da máquina só constava no documento) + [A]
+- Follow-up carried forward:
+  - `page_start=None` nos chunks do raw_text (sem Docling, não há páginas) — característica pré-existente
+  - rotacionar PAT do GitHub ainda aberto
+
 ## 2026-09-08
 
 ### Proxies skew fixed — first live Gemini analysis (pilot)
