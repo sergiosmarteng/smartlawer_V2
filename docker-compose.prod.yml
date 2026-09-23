@@ -1,0 +1,119 @@
+# SmartLawer V2 - Production Docker Compose
+# Architecture: Next.js Frontend + FastAPI API + Celery Worker + Postgres pgvector + Redis
+# Reverse proxied via smarteng-proxy on smartlawer_network
+
+services:
+  db:
+    restart: unless-stopped
+    image: pgvector/pgvector:pg15
+    container_name: smartlawer-db
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB:-smartlawer}
+    volumes:
+      - smartlawer_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d smartlawer"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - smartlawer_network
+
+  redis:
+    restart: unless-stopped
+    image: redis:7-alpine
+    container_name: smartlawer-redis
+    volumes:
+      - smartlawer_redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - smartlawer_network
+
+  api:
+    restart: unless-stopped
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: smartlawer-api
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@smartlawer-db:5432/${POSTGRES_DB:-smartlawer}
+      - REDIS_URL=redis://smartlawer-redis:6379/0
+      - ENVIRONMENT=production
+    volumes:
+      - smartlawer_uploads:/data/uploads
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\"",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - smartlawer_network
+
+  worker:
+    restart: unless-stopped
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: smartlawer-worker
+    command: celery -A app.worker:celery_app worker --loglevel=info --concurrency=2
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@smartlawer-db:5432/${POSTGRES_DB:-smartlawer}
+      - REDIS_URL=redis://smartlawer-redis:6379/0
+      - ENVIRONMENT=production
+    volumes:
+      - smartlawer_uploads:/data/uploads
+    depends_on:
+      api:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - smartlawer_network
+
+  frontend:
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: frontend.Dockerfile
+    container_name: smartlawer-frontend
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - smartlawer_network
+
+networks:
+  smartlawer_network:
+    external: true
+    name: smartlawer_network
+
+volumes:
+  smartlawer_pgdata:
+  smartlawer_redisdata:
+  smartlawer_uploads:
