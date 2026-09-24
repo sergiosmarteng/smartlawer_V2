@@ -63,12 +63,20 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
 
         <div className="flex items-center gap-3">
           {!user ? (
-            <Link
-              href="/sign-in"
-              className="inline-flex items-center rounded-full border border-ouro-500/40 bg-ouro-500/10 px-4 py-2 text-sm font-medium text-ouro-200 transition-colors hover:border-ouro-400/60 hover:bg-ouro-500/20"
-            >
-              Entrar
-            </Link>
+            <>
+              <Link
+                href="/sign-up"
+                className="inline-flex items-center rounded-full bg-ouro-500 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider text-tribunal-950 shadow-sm transition hover:bg-ouro-400 sm:px-4 sm:py-2 sm:text-sm"
+              >
+                Cadastre-se
+              </Link>
+              <Link
+                href="/sign-in"
+                className="inline-flex items-center rounded-full border border-ouro-500/40 bg-ouro-500/10 px-3.5 py-1.5 text-xs font-medium text-ouro-200 transition-colors hover:border-ouro-400/60 hover:bg-ouro-500/20 sm:px-4 sm:py-2 sm:text-sm"
+              >
+                Entrar
+              </Link>
+            </>
           ) : (
             <>
               <div className="hidden items-center gap-3 rounded-full border border-zinc-800 bg-tribunal-900/80 px-4 py-2 sm:flex">

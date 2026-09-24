@@ -6,7 +6,7 @@ from app.api import deps
 from app.core.config import settings
 from app.core import security
 from app.core.audit import record_audit
-from app.crud.user import get_user_by_email
+from app.crud.user import get_user_by_email, get_user_by_username
 from app.models.audit_event import AuditEvent
 from app.schemas.user import Token
 
@@ -19,8 +19,9 @@ def login_access_token(
 ) -> Token:
     """
     OAuth2 compatible token login, get an access token for future requests.
+    Supports login via email or username.
     """
-    user = get_user_by_email(db, email=form_data.username)
+    user = get_user_by_email(db, email=form_data.username) or get_user_by_username(db, username=form_data.username)
     if not user or not security.verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
