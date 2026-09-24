@@ -167,6 +167,15 @@ def chat_stream(
         except Exception as exc:
             logger.exception("Falha no streaming para user_id=%s", current_user.id)
             yield _sse({"error": "Falha ao gerar resposta"})
+            yield _sse(
+                {
+                    "done": True,
+                    "citations": citations,
+                    "suggested_questions": [],
+                    "ai_draft": True,
+                    "requires_human_review": True,
+                }
+            )
             return
         try:
             suggestions = rag_answer.suggest_followups(payload.query, full_text)

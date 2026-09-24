@@ -440,3 +440,43 @@ def test_chat_stream_analysis_brief_fallback(
     done = [e for e in events if e.get("done")]
     assert len(done) == 1
     assert [c["ref"] for c in done[0]["citations"]] == ["[A]"]
+
+
+def test_chat_stream_llm_failure_emits_error_and_done(
+    monkeypatch, client, db_session, make_user, auth_headers_for
+):
+    """Regressao chat-sem-resposta: falha do LLM nao pode deixar bolha vazia.
+
+    Antes do fix o stream emitia so {"error": ...} sem "done" e o frontend
+    ignorava "error" -> bolha ficava em '…' para sempre. Agora emite
+    error + done terminal para o frontend exibir mensagem visivel.
+    """
+    user, _document, chunk = _make_doc_with_chunk(
+        db_session, make_user, "trecho do caso"
+    )
+    monkeypatch.setattr(rag_answer, "is_configured", lambda: True)
+    monkeypatch.setattr(chat_route, "embed_query", lambda _q: [0.1])
+    monkeypatch.setattr(chat_route, "hybrid_search", lambda *a, **kw: [chunk])
+
+    def _boom(_prompt, system=None):
+        raise RuntimeError("boom llm")
+        yield  # pragma: no cover - torna a funcao um generator
+
+    monkeypatch.setattr(rag_answer, "complete_stream", _boom)
+    monkeypatch.setattr(rag_answer, "suggest_followups", lambda _q, _a: [])
+
+    response = client.post(
+        "/api/v1/chat/stream",
+        json={"query": "qual a tese?"},
+        headers=auth_headers_for(user),
+    )
+    assert response.status_code == 200
+    events = _sse_events(response.text)
+    errors = [e for e in events if "error" in e]
+    assert len(errors) == 1
+    assert errors[0]["error"] == "Falha ao gerar resposta"
+    done = [e for e in events if e.get("done") is True]
+    assert len(done) == 1
+    # Resposta visivel nunca vazia: error ou token alimenta a bolha.
+    visible = "".join(e.get("token", "") for e in events) or errors[0]["error"]
+    assert visible.strip() != ""

@@ -120,6 +120,7 @@ export default function ChatPage() {
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
+      let streamError: string | null = null;
 
       for (;;) {
         const { done, value } = await reader.read();
@@ -139,6 +140,9 @@ export default function ChatPage() {
             if (typeof event.token === 'string') {
               text += event.token;
             }
+            if (typeof event.error === 'string' && (event.error as string).trim().length > 0) {
+              streamError = event.error as string;
+            }
             if (event.done === true) {
               citations = (event.citations as Citation[]) ?? [];
               if (Array.isArray(event.suggested_questions)) {
@@ -150,6 +154,11 @@ export default function ChatPage() {
               }
             }
           }
+          // Erro do stream nunca pode deixar a bolha vazia (sintoma "não responde nada"):
+          // exibe a mensagem de erro como texto visível.
+          if (streamError && !text) {
+            text = streamError;
+          }
           next[next.length - 1] = {
             ...last,
             text,
@@ -158,6 +167,9 @@ export default function ChatPage() {
           };
           return next;
         });
+      }
+      if (streamError) {
+        setError(streamError);
       }
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') {
