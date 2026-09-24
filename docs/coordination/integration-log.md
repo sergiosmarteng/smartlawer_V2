@@ -101,6 +101,25 @@ This file is append-only. Add one short entry per landed worker or coordinator m
   - BL-007 still needs a real DOCX runtime download check
   - BL-010 still needs the integrated manual smoke execution
 
+## 2026-09-24
+
+### Publicação VPS verificada + deploy BL-028 (landing clara + Docling)
+
+- VPS Oracle (164.152.35.112): `https://smartlawer.com.br/` 200 (nova landing),
+  `/health` 200 `healthy`, `/sign-in` 200; proxy `/api/`→api:8000; SSL ECDSA
+  válido até 23/12/2026; deploy key `smartlawer_smarteng_V2` OK
+  (`Hi sergiosmarteng/smartlawer_V2!`); HEAD em sync `1ad37b8`
+- Smoke prod: register→login OK, usuário + auditoria removidos (prod intacta)
+- BL-028: landing commitada (era untracked na VPS e local) + app interno
+  convertido ao sistema claro (papel/tinta/latiim/linha, Fraunces 400,
+  raio 5px); tsc/build/pytest verdes
+- Docling A/B (PDF real 645KB): raw 54.834c/1.195ln/0,1s vs md 54.173c
+  (99%)/484ln/58 headings/~3min (1ª vez). Veredito: MELHOR (fallback intacto)
+- Achado no worker: `libGL.so.1` ausente quebrava a conversão silenciosa
+  (fallback salvava, mas sem markdown) — `libgl1 libglib2.0-0` no Dockerfile
+- `DOCLING_ENABLED=true` no `.env` local e da VPS; rebuild api/worker
+  (local + prod) + rebuild frontend prod com a nova UI
+
 ## 2026-09-11
 
 ### Embeddings provider-aware — fim do "nada indexado" com Gemini (bug)
