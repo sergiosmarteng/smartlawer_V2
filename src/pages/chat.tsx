@@ -176,19 +176,19 @@ export default function ChatPage() {
           <title>Chat jurídico — SmartLawer</title>
         </Head>
 
-        <div className="mx-auto flex h-[calc(100vh-10rem)] max-w-5xl flex-col px-4 sm:px-6">
+        <div className="mx-auto flex h-[calc(100vh-10rem)] max-w-5xl flex-col bg-papel px-4 text-tinta sm:px-6">
           <div className="mb-4">
-            <p className="font-mono text-xs uppercase tracking-[0.32em] text-ouro-400">Chat jurídico</p>
-            <h1 className="mt-2 font-display text-3xl font-black text-slate-50">Pergunte com fundamento</h1>
-            <p className="mt-1 text-sm text-zinc-400">
+            <p className="font-mono text-[9px] uppercase tracking-[2.25px] text-latiim-texto">Chat jurídico</p>
+            <h1 className="mt-2 font-display text-3xl font-normal tracking-tight text-tinta">Pergunte com fundamento</h1>
+            <p className="mt-1 text-sm text-tinta-suave">
               Selecione o caso no histórico e questione. Cada afirmação vem com a fonte clicável.
             </p>
           </div>
 
-          <div className="mb-4 rounded-2xl border border-zinc-800 bg-tribunal-900/60 p-4">
+          <div className="mb-4 rounded-[5px] border border-linha bg-white p-4 shadow-[0_4px_10px_rgba(41,69,50,0.05)]">
             <label
               htmlFor="chat-document-scope"
-              className="font-mono text-xs uppercase tracking-[0.24em] text-zinc-500"
+              className="font-mono text-[9px] uppercase tracking-[2.25px] text-tinta-muda"
             >
               Caso em análise
             </label>
@@ -197,7 +197,7 @@ export default function ChatPage() {
               value={documentId}
               onChange={(event) => handleScopeChange(event.target.value)}
               disabled={docsLoading || isStreaming}
-              className="mt-2 w-full rounded-xl border border-zinc-700 bg-tribunal-950 px-3 py-2.5 text-sm text-slate-100 focus:border-ouro-500/60 focus:outline-none disabled:opacity-60"
+              className="mt-2 w-full rounded-[5px] border border-linha bg-white px-3 py-2.5 text-sm text-tinta placeholder:text-tinta-muda/60 focus:border-latiim focus:outline-none disabled:opacity-60"
             >
               <option value="">Todos os documentos do histórico</option>
               {documents.map((document) => (
@@ -207,12 +207,12 @@ export default function ChatPage() {
                 </option>
               ))}
             </select>
-            {docsLoading && <p className="mt-2 text-xs text-zinc-500">Carregando histórico…</p>}
-            {docsError && <p className="mt-2 text-xs text-red-400">{docsError}</p>}
+            {docsLoading && <p className="mt-2 text-xs text-tinta-muda">Carregando histórico…</p>}
+            {docsError && <p className="mt-2 text-xs text-red-700">{docsError}</p>}
             {!docsLoading && !docsError && documents.length === 0 && (
-              <p className="mt-2 text-xs text-zinc-500">
+              <p className="mt-2 text-xs text-tinta-muda">
                 Nenhum documento no histórico ainda.{' '}
-                <Link href="/upload" className="text-ouro-300 underline underline-offset-4 hover:text-ouro-200">
+                <Link href="/upload" className="text-latiim-texto underline underline-offset-4 hover:text-tinta-profunda">
                   Envie o primeiro PDF
                 </Link>
                 .
@@ -220,10 +220,10 @@ export default function ChatPage() {
             )}
           </div>
 
-          <div className="flex-1 space-y-4 overflow-y-auto rounded-3xl border border-zinc-800 bg-tribunal-900/40 p-5">
+          <div className="flex-1 space-y-4 overflow-y-auto rounded-[5px] border border-linha bg-papel-alta p-5">
             {messages.length === 0 && (
               <div className="space-y-3">
-                <p className="text-sm text-zinc-500">
+                <p className="text-sm text-tinta-muda">
                   Selecione o caso acima e pergunte como a um sócio sênior — o assistente
                   passa a atuar como especialista na área daquele documento.
                 </p>
@@ -238,7 +238,7 @@ export default function ChatPage() {
                       type="button"
                       onClick={() => sendMessage(suggestion)}
                       disabled={isStreaming}
-                      className="rounded-full border border-zinc-700 bg-tribunal-900/70 px-3 py-1.5 text-left text-xs text-zinc-300 transition-colors hover:border-ouro-500/40 hover:text-ouro-200 disabled:opacity-50"
+                      className="rounded-[5px] border border-latiim bg-white px-3 py-1.5 text-left text-xs text-latiim-texto transition-colors hover:bg-latiim-clara/30 disabled:opacity-50"
                     >
                       {suggestion}
                     </button>
@@ -250,10 +250,10 @@ export default function ChatPage() {
             {messages.map((message, index) => (
               <div key={index} className={message.role === 'user' ? 'flex justify-end' : 'flex justify-start'}>
                 <div
-                  className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-6 ${
+                  className={`max-w-[85%] rounded-[5px] px-4 py-3 text-sm leading-6 ${
                     message.role === 'user'
-                      ? 'bg-ouro-500/15 text-ouro-100'
-                      : 'border border-zinc-800 bg-tribunal-950 text-slate-200'
+                      ? 'bg-papel-areia text-tinta'
+                      : 'border border-linha bg-white text-tinta shadow-[0_4px_10px_rgba(41,69,50,0.05)]'
                   }`}
                 >
                   <p className="whitespace-pre-wrap">{message.text || '…'}</p>
@@ -261,8 +261,8 @@ export default function ChatPage() {
                   {message.role === 'assistant' &&
                     message.suggestions &&
                     message.suggestions.length > 0 && (
-                      <div className="mt-3 border-t border-zinc-800 pt-3">
-                        <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">
+                      <div className="mt-3 border-t border-linha pt-3">
+                        <p className="font-mono text-[9px] uppercase tracking-[2.25px] text-tinta-muda">
                           Aprofundar
                         </p>
                         <div className="mt-2 flex flex-wrap gap-2">
@@ -272,7 +272,7 @@ export default function ChatPage() {
                               type="button"
                               onClick={() => sendMessage(suggestion)}
                               disabled={isStreaming}
-                              className="rounded-full border border-ouro-500/40 bg-ouro-500/10 px-3 py-1.5 text-left text-xs text-ouro-200 transition-colors hover:bg-ouro-500/20 disabled:opacity-50"
+                              className="rounded-[5px] border border-latiim bg-white px-3 py-1.5 text-left text-xs text-latiim-texto transition-colors hover:bg-latiim-clara/30 disabled:opacity-50"
                             >
                               {suggestion}
                             </button>
@@ -282,19 +282,19 @@ export default function ChatPage() {
                     )}
 
                   {message.citations && message.citations.length > 0 && (
-                    <div className="mt-3 space-y-2 border-t border-zinc-800 pt-3">
-                      <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Fontes</p>
+                    <div className="mt-3 space-y-2 border-t border-linha pt-3">
+                      <p className="font-mono text-[9px] uppercase tracking-[2.25px] text-tinta-muda">Fontes</p>
                       {message.citations.map((citation) => {
                         const isPrecedent = citation.document_name.startsWith('[Jurisprudência]');
                         const body = (
                           <>
-                            <p className="text-xs font-medium text-ouro-300">
+                            <p className="text-xs font-medium text-tinta-profunda">
                               {citation.ref} {citation.document_name}
                               {typeof citation.page_start === 'number'
                                 ? ` · p. ${citation.page_start}`
                                 : ''}
                             </p>
-                            <p className="mt-1 line-clamp-2 text-xs text-zinc-400">{citation.excerpt}</p>
+                            <p className="mt-1 line-clamp-2 text-xs text-tinta-suave">{citation.excerpt}</p>
                           </>
                         );
                         // Precedent chunks have no analysis page — render as a
@@ -302,7 +302,7 @@ export default function ChatPage() {
                         return isPrecedent ? (
                           <div
                             key={citation.chunk_id}
-                            className="block rounded-xl border border-amber-800/60 bg-amber-950/20 px-3 py-2"
+                            className="block rounded-[5px] border border-amber-800/25 bg-amber-50 px-3 py-2"
                           >
                             {body}
                           </div>
@@ -310,7 +310,7 @@ export default function ChatPage() {
                           <Link
                             key={citation.chunk_id}
                             href={`/analysis/${citation.document_id}`}
-                            className="block rounded-xl border border-zinc-800 bg-tribunal-900/80 px-3 py-2 transition-colors hover:border-ouro-500/40"
+                            className="block rounded-[5px] border border-linha bg-papel-alta px-3 py-2 transition-colors hover:border-latiim"
                           >
                             {body}
                           </Link>
@@ -323,7 +323,7 @@ export default function ChatPage() {
             ))}
           </div>
 
-          {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
+          {error && <p className="mt-3 rounded-[5px] border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
           <div className="mt-4 flex gap-2">
             <input
@@ -338,19 +338,19 @@ export default function ChatPage() {
               placeholder="Pergunte sobre os seus documentos…"
               aria-label="Pergunta para o chat jurídico"
               disabled={isStreaming}
-              className="flex-1 rounded-2xl border border-zinc-800 bg-tribunal-950 px-4 py-3 text-sm text-slate-100 placeholder:text-zinc-600 focus:border-ouro-500/60 focus:outline-none disabled:opacity-60"
+              className="flex-1 rounded-[5px] border border-linha bg-white px-4 py-3 text-sm text-tinta placeholder:text-tinta-muda/60 focus:border-latiim focus:outline-none disabled:opacity-60"
             />
             <button
               type="button"
               onClick={() => sendMessage()}
               disabled={isStreaming || !input.trim()}
-              className="rounded-2xl border border-ouro-500/40 bg-ouro-500/10 px-5 py-3 text-sm font-medium text-ouro-200 transition-colors hover:bg-ouro-500/20 disabled:opacity-50"
+              className="rounded-[5px] bg-tinta-profunda px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-tinta disabled:opacity-50"
             >
               {isStreaming ? 'Aguarde…' : 'Enviar'}
             </button>
           </div>
 
-          <p className="mt-2 text-xs text-zinc-600">
+          <p className="mt-2 text-xs text-tinta-muda">
             Parecer e estratégia elaborados por IA — fatos com fonte citada; a decisão e a
             responsabilidade são do advogado. Nunca protocola sozinho.
           </p>

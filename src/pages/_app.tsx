@@ -9,6 +9,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
     <AuthProvider>
       <Head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="description" content="SmartLawer — inteligência jurídica para escritórios de excelência." key="description" />
         <title>SmartLawer — Inteligência jurídica para escritórios de excelência</title>
       </Head>
       <div className={`${fontDisplay.variable} ${fontSans.variable} ${fontMono.variable}`}>

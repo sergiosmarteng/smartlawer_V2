@@ -15,10 +15,10 @@ export default function Layout({ children, hideSidebar = false }: LayoutProps) {
   const showSidebar = Boolean(user) && !hideSidebar;
 
   return (
-    <div className="min-h-screen bg-tribunal-950 bg-tribunal-texture font-sans text-slate-100">
+    <div className="min-h-screen bg-papel font-sans text-tinta">
       <Header onToggleSidebar={() => setSidebarOpen((current) => !current)} />
 
-      <div className="flex min-h-[calc(100vh-4rem)]">
+      <div className="flex min-h-[calc(100vh-88px)]">
         {showSidebar && <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />}
 
         <main className="min-w-0 flex-1">

@@ -20,17 +20,17 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   return (
     <>
-      {isOpen && <div className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm lg:hidden" onClick={onClose} />}
+      {isOpen && <div className="fixed inset-0 z-40 bg-tinta-profunda/40 backdrop-blur-sm lg:hidden" onClick={onClose} />}
 
       <aside
-        className={`fixed left-0 top-16 z-40 h-[calc(100vh-4rem)] w-72 border-r border-ouro-700/20 bg-tribunal-950/95 px-4 py-6 transition-transform duration-200 ease-out ${
+        className={`fixed left-0 top-[88px] z-40 h-[calc(100vh-88px)] w-72 border-r border-linha bg-papel-alta px-4 py-6 transition-transform duration-200 ease-out ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         } lg:static lg:z-0 lg:translate-x-0`}
       >
-        <div className="border-selo-ouro rounded-r-3xl border border-zinc-800 border-l-0 bg-tribunal-900/70 p-5 shadow-2xl shadow-black/20">
-          <p className="font-mono text-[0.65rem] uppercase tracking-[0.3em] text-ouro-500">Fluxo de trabalho</p>
-          <h2 className="mt-2 font-display text-lg font-bold text-slate-100">Operação do escritório</h2>
-          <p className="mt-2 text-sm leading-6 text-zinc-400">
+        <div className="border-selo-ouro rounded-r-[5px] border border-linha border-l-0 bg-white p-5 shadow-[0_4px_10px_rgba(41,69,50,0.05)]">
+          <p className="font-mono text-[0.65rem] uppercase tracking-[0.3em] text-latiim-texto">Fluxo de trabalho</p>
+          <h2 className="mt-2 font-display text-lg font-normal tracking-[-0.7px] text-tinta">Operação do escritório</h2>
+          <p className="mt-2 text-[11px] leading-[1.9] text-tinta-muda">
             Envie, acompanhe e receba a análise com tese, fundamento e peça pronta para protocolar.
           </p>
         </div>
@@ -43,16 +43,16 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 key={link.href}
                 href={link.href}
                 onClick={onClose}
-                className={`group flex items-start gap-3 rounded-2xl border px-4 py-3 transition-all ${
+                className={`group flex items-start gap-3 rounded-[5px] border px-4 py-3 transition-all ${
                   isActive
-                    ? 'border-ouro-500/40 bg-ouro-500/10 text-ouro-100'
-                    : 'border-transparent bg-transparent text-zinc-400 hover:border-zinc-800 hover:bg-tribunal-900/80 hover:text-slate-100'
+                    ? 'border-tinta-profunda/25 bg-tinta-profunda/[0.07] text-tinta'
+                    : 'border-transparent bg-transparent text-tinta-suave hover:border-linha hover:bg-white hover:text-tinta'
                 }`}
               >
-                <link.icon className={`mt-0.5 h-5 w-5 flex-shrink-0 ${isActive ? 'text-ouro-300' : 'text-zinc-500 group-hover:text-slate-200'}`} />
+                <link.icon className={`mt-0.5 h-5 w-5 flex-shrink-0 ${isActive ? 'text-tinta-profunda' : 'text-tinta-muda group-hover:text-tinta'}`} />
                 <div className="min-w-0">
                   <p className="text-sm font-medium">{link.label}</p>
-                  <p className="mt-1 text-xs leading-5 text-zinc-500 group-hover:text-zinc-400">{link.description}</p>
+                  <p className="mt-1 text-xs leading-5 text-tinta-muda">{link.description}</p>
                 </div>
               </Link>
             );

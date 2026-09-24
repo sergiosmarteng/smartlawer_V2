@@ -231,56 +231,56 @@ export default function AnalysisPage() {
           <title>Análise da peça - SmartLawer</title>
         </Head>
 
-        <div className="min-h-[calc(100vh-4rem)] px-4 py-10 text-slate-300 sm:px-6 lg:px-8">
+        <div className="min-h-[calc(100vh-4rem)] bg-papel px-4 py-10 text-tinta sm:px-6 lg:px-8">
           <div className="mx-auto max-w-7xl">
             {isLoading ? (
-              <div className="overflow-hidden rounded-[2rem] border border-zinc-800 bg-zinc-900 px-8 py-16 shadow-2xl shadow-black/20">
+              <div className="overflow-hidden rounded-[5px] border border-linha bg-white px-8 py-16 shadow-[0_4px_10px_rgba(41,69,50,0.05)]">
                 <div className="animate-pulse space-y-5">
-                  <div className="h-3 w-40 rounded bg-zinc-800" />
-                  <div className="h-10 w-3/5 rounded bg-zinc-800" />
-                  <div className="h-4 w-2/5 rounded bg-zinc-800" />
+                  <div className="h-3 w-40 rounded bg-papel-areia" />
+                  <div className="h-10 w-3/5 rounded bg-papel-areia" />
+                  <div className="h-4 w-2/5 rounded bg-papel-areia" />
                   <div className="grid gap-6 pt-8 lg:grid-cols-2">
-                    <div className="space-y-4 rounded-[1.75rem] border border-zinc-800 bg-zinc-950/60 p-6">
-                      <div className="h-5 w-36 rounded bg-zinc-800" />
-                      <div className="h-24 rounded bg-zinc-900" />
+                    <div className="space-y-4 rounded-[5px] border border-linha bg-papel-alta p-6">
+                      <div className="h-5 w-36 rounded bg-papel-areia" />
+                      <div className="h-24 rounded bg-papel-areia" />
                     </div>
-                    <div className="space-y-4 rounded-[1.75rem] border border-zinc-800 bg-zinc-950/60 p-6">
-                      <div className="h-5 w-44 rounded bg-zinc-800" />
-                      <div className="h-24 rounded bg-zinc-900" />
+                    <div className="space-y-4 rounded-[5px] border border-linha bg-papel-alta p-6">
+                      <div className="h-5 w-44 rounded bg-papel-areia" />
+                      <div className="h-24 rounded bg-papel-areia" />
                     </div>
                   </div>
                 </div>
               </div>
             ) : error ? (
-              <div className="overflow-hidden rounded-[2rem] border border-rose-900/80 bg-rose-950/50 px-8 py-12 shadow-2xl shadow-black/20">
-                <p className="font-mono text-xs uppercase tracking-[0.32em] text-rose-300">Análise indisponível</p>
-                <h1 className="mt-4 font-display text-3xl font-black text-rose-50">Ainda não abrimos esta análise</h1>
-                <p className="mt-4 max-w-2xl text-sm leading-7 text-rose-100/90">{error}</p>
+              <div className="overflow-hidden rounded-[5px] border border-red-200 bg-red-50 px-8 py-12 shadow-[0_4px_10px_rgba(41,69,50,0.05)]">
+                <p className="font-mono text-[9px] uppercase tracking-[2.25px] text-red-700">Análise indisponível</p>
+                <h1 className="mt-4 font-display text-3xl font-normal tracking-tight text-red-700">Ainda não abrimos esta análise</h1>
+                <p className="mt-4 max-w-2xl text-sm leading-7 text-red-700">{error}</p>
                 {notReadyDetail && (
-                  <div className="mt-5 rounded-2xl border border-rose-900/80 bg-black/10 p-4 text-sm text-rose-100/90">
+                  <div className="mt-5 rounded-[5px] border border-red-200 bg-white p-4 text-sm text-red-700">
                     <p>Estado: {notReadyDetail.status || 'PENDENTE'}</p>
                     {notReadyDetail.status_detail && <p className="mt-2">Detalhe: {notReadyDetail.status_detail}</p>}
-                    {notReadyDetail.task_id && <p className="mt-2 font-mono text-xs">Tarefa: {notReadyDetail.task_id}</p>}
+                    {notReadyDetail.task_id && <p className="mt-2 font-mono text-xs text-tinta-muda">Tarefa: {notReadyDetail.task_id}</p>}
                   </div>
                 )}
                 <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                   <button
                     type="button"
                     onClick={() => router.reload()}
-                    className="inline-flex items-center justify-center rounded-full border border-rose-800 px-5 py-3 text-sm font-medium text-rose-100 transition-colors hover:bg-rose-900/40"
+                    className="inline-flex items-center justify-center rounded-[5px] border border-red-200 bg-white px-5 py-3 text-sm font-medium text-red-700 transition-colors hover:bg-red-100"
                   >
                     Tentar de novo
                   </button>
                   <Link
                     href="/dashboard"
-                    className="inline-flex items-center justify-center rounded-full bg-slate-100 px-5 py-3 text-sm font-medium uppercase tracking-[0.24em] text-zinc-950"
+                    className="inline-flex items-center justify-center rounded-[5px] bg-tinta-profunda px-5 py-3 text-sm font-medium uppercase tracking-[0.24em] text-white transition-colors hover:bg-tinta"
                   >
                     Voltar ao painel
                   </Link>
                   {notReadyDetail?.task_id && (
                     <Link
                       href="/upload"
-                      className="inline-flex items-center justify-center rounded-full border border-zinc-700 px-5 py-3 text-sm font-medium text-zinc-200 transition-colors hover:border-zinc-500 hover:bg-tribunal-900"
+                      className="inline-flex items-center justify-center rounded-[5px] border border-linha bg-white px-5 py-3 text-sm font-medium text-tinta-suave transition-colors hover:border-latiim hover:text-tinta"
                     >
                       Ver processamento
                     </Link>
@@ -288,36 +288,36 @@ export default function AnalysisPage() {
                 </div>
               </div>
             ) : !analysis ? (
-              <div className="overflow-hidden rounded-[2rem] border border-zinc-800 bg-tribunal-900/70 px-8 py-12 shadow-2xl shadow-black/20">
-                <p className="font-mono text-xs uppercase tracking-[0.32em] text-zinc-500">Sem registro</p>
-                <h1 className="mt-4 font-display text-3xl font-black text-slate-100">Análise não encontrada</h1>
-                <p className="mt-4 max-w-2xl text-sm leading-7 text-zinc-400">
+              <div className="overflow-hidden rounded-[5px] border border-linha bg-white px-8 py-12 shadow-[0_4px_10px_rgba(41,69,50,0.05)]">
+                <p className="font-mono text-[9px] uppercase tracking-[2.25px] text-latiim-texto">Sem registro</p>
+                <h1 className="mt-4 font-display text-3xl font-normal tracking-tight text-tinta">Análise não encontrada</h1>
+                <p className="mt-4 max-w-2xl text-sm leading-7 text-tinta-suave">
                   O painel pode ainda estar aguardando o sistema. Volte à fila e atualize a lista de processos.
                 </p>
                 <Link
                   href="/dashboard"
-                  className="mt-8 inline-flex items-center justify-center rounded-full bg-slate-100 px-5 py-3 text-sm font-medium uppercase tracking-[0.24em] text-zinc-950"
+                  className="mt-8 inline-flex items-center justify-center rounded-[5px] bg-tinta-profunda px-5 py-3 text-sm font-medium uppercase tracking-[0.24em] text-white transition-colors hover:bg-tinta"
                 >
                   Voltar ao painel
                 </Link>
               </div>
             ) : (
               <div className="space-y-8">
-                <section className="overflow-hidden rounded-[2rem] border border-zinc-800 bg-tribunal-900/70 shadow-2xl shadow-black/20">
-                  <div className="border-b border-ouro-700/20 bg-[radial-gradient(circle_at_top_left,_rgba(201,162,39,0.12),_transparent_26%),radial-gradient(circle_at_top_right,_rgba(16,185,129,0.1),_transparent_24%)] px-8 py-10 sm:px-10">
+                <section className="overflow-hidden rounded-[5px] border border-linha bg-white shadow-[0_4px_10px_rgba(41,69,50,0.05)]">
+                  <div className="border-b border-linha bg-papel-alta px-8 py-10 sm:px-10">
                     <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
                       <div className="max-w-3xl">
-                        <p className="font-mono text-xs uppercase tracking-[0.32em] text-ouro-400">Resultado da análise</p>
-                        <h1 className="mt-4 font-display text-3xl font-black tracking-tight text-slate-50 sm:text-4xl">{analysis.title}</h1>
-                        <p className="mt-3 text-sm leading-7 text-zinc-400">
-                          Peça de origem: <span className="text-slate-200">{analysis.documentName}</span>
+                        <p className="font-mono text-[9px] uppercase tracking-[2.25px] text-latiim-texto">Resultado da análise</p>
+                        <h1 className="mt-4 font-display text-3xl font-normal tracking-tight text-tinta sm:text-4xl">{analysis.title}</h1>
+                        <p className="mt-3 text-sm leading-7 text-tinta-suave">
+                          Peça de origem: <span className="text-tinta">{analysis.documentName}</span>
                         </p>
                       </div>
 
                       <div className="flex flex-col gap-3 sm:flex-row">
                         <Link
                           href="/dashboard"
-                          className="inline-flex items-center justify-center rounded-full border border-zinc-700 px-5 py-3 text-sm font-medium text-zinc-300 transition-colors hover:border-zinc-500 hover:bg-tribunal-900 hover:text-slate-100"
+                          className="inline-flex items-center justify-center rounded-[5px] border border-linha bg-white px-5 py-3 text-sm font-medium text-tinta-suave transition-colors hover:border-latiim hover:text-tinta"
                         >
                           Voltar à fila
                         </Link>
@@ -325,10 +325,10 @@ export default function AnalysisPage() {
                           type="button"
                           onClick={handleDownloadTemplate}
                           disabled={isDownloading}
-                          className={`inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-bold uppercase tracking-[0.2em] transition-all ${
+                          className={`inline-flex items-center justify-center rounded-[5px] px-6 py-3 text-sm font-medium uppercase tracking-[0.2em] transition-colors ${
                             isDownloading
-                              ? 'cursor-not-allowed bg-zinc-800 text-zinc-500'
-                              : 'bg-ouro-500 text-tribunal-950 shadow-[0_0_24px_rgba(201,162,39,0.2)] hover:-translate-y-0.5 hover:bg-ouro-400'
+                              ? 'cursor-not-allowed bg-papel-areia text-tinta-muda'
+                              : 'bg-tinta-profunda text-white hover:bg-tinta'
                           }`}
                         >
                           {isDownloading ? 'Gerando DOCX...' : 'Baixar defesa DOCX'}
@@ -337,7 +337,7 @@ export default function AnalysisPage() {
                           type="button"
                           onClick={handleDownloadSummary}
                           disabled={isDownloadingSummary}
-                          className="inline-flex items-center justify-center rounded-full border border-zinc-700 px-5 py-3 text-sm font-medium text-zinc-200 transition-colors hover:border-zinc-500 hover:bg-tribunal-900 disabled:cursor-not-allowed disabled:text-zinc-500"
+                          className="inline-flex items-center justify-center rounded-[5px] border border-linha bg-white px-5 py-3 text-sm font-medium text-tinta-suave transition-colors hover:border-latiim hover:text-tinta disabled:cursor-not-allowed disabled:text-tinta-muda"
                         >
                           {isDownloadingSummary ? 'Preparando...' : 'Resumo (.md)'}
                         </button>
@@ -345,11 +345,11 @@ export default function AnalysisPage() {
                     </div>
                   </div>
 
-                  <div className="border-b border-zinc-800 px-8 py-6 sm:px-10">
+                  <div className="border-b border-linha px-8 py-6 sm:px-10">
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                       <div className="max-w-2xl">
-                        <h2 className="font-mono text-sm font-medium uppercase tracking-[0.28em] text-zinc-300">Modelo da peça</h2>
-                        <p className="mt-2 text-sm leading-7 text-zinc-400">
+                        <h2 className="font-mono text-[9px] uppercase tracking-[2.25px] text-tinta-muda">Modelo da peça</h2>
+                        <p className="mt-2 text-sm leading-7 text-tinta-suave">
                           {selectedTemplate?.name
                             ? `Gerando com "${selectedTemplate.name}" (${selectedTemplate.placeholders?.length || 0} campos).`
                             : 'Gerando com o modelo padrão de defesa.'}
@@ -362,7 +362,7 @@ export default function AnalysisPage() {
                             setSelectedTemplateId(event.target.value);
                             setTemplateNotice('');
                           }}
-                          className="rounded-full border border-zinc-700 bg-tribunal-950 px-4 py-2.5 text-sm text-slate-200 outline-none transition-colors hover:border-zinc-500 focus:border-ouro-500"
+                          className="rounded-[5px] border border-linha bg-white px-4 py-2.5 text-sm text-tinta outline-none transition-colors hover:border-latiim focus:border-latiim"
                           aria-label="Escolher modelo DOCX"
                         >
                           <option value={BASE_TEMPLATE_OPTION}>Modelo padrão</option>
@@ -373,7 +373,7 @@ export default function AnalysisPage() {
                             </option>
                           ))}
                         </select>
-                        <label className="inline-flex cursor-pointer items-center justify-center rounded-full border border-zinc-700 px-5 py-2.5 text-sm font-medium text-zinc-200 transition-colors hover:border-zinc-500 hover:bg-tribunal-900">
+                        <label className="inline-flex cursor-pointer items-center justify-center rounded-[5px] border border-linha bg-white px-5 py-2.5 text-sm font-medium text-tinta-suave transition-colors hover:border-latiim hover:text-tinta">
                           {isUploadingTemplate ? 'Enviando...' : 'Enviar .docx'}
                           <input
                             type="file"
@@ -389,13 +389,13 @@ export default function AnalysisPage() {
                       </div>
                     </div>
                     {(templatesHint || templateNotice) && (
-                      <p className="mt-3 text-sm leading-7 text-amber-200/90">{templateNotice || templatesHint}</p>
+                      <p className="mt-3 rounded-[5px] border border-amber-800/25 bg-amber-50 px-3 py-2 text-sm leading-7 text-amber-800">{templateNotice || templatesHint}</p>
                     )}
                   </div>
 
                   {versions.length > 0 && (
-                    <div className="border-b border-zinc-800 px-8 py-6 sm:px-10">
-                      <h2 className="font-mono text-sm font-medium uppercase tracking-[0.28em] text-zinc-300">
+                    <div className="border-b border-linha px-8 py-6 sm:px-10">
+                      <h2 className="font-mono text-[9px] uppercase tracking-[2.25px] text-tinta-muda">
                         Versões anteriores ({versions.length})
                       </h2>
                       <ul className="mt-4 flex flex-wrap gap-3">
@@ -404,11 +404,11 @@ export default function AnalysisPage() {
                             <button
                               type="button"
                               onClick={() => handleDownloadVersion(version)}
-                              className="inline-flex items-center gap-2 rounded-full border border-zinc-700 px-4 py-2 text-sm text-zinc-200 transition-colors hover:border-ouro-600/60 hover:bg-tribunal-900"
+                              className="inline-flex items-center gap-2 rounded-[5px] border border-linha bg-white px-4 py-2 text-sm text-tinta transition-colors hover:border-latiim hover:bg-papel-alta"
                             >
                               v{version.version}
                               {version.created_at && (
-                                <span className="text-xs text-zinc-500">
+                                <span className="text-xs text-tinta-muda">
                                   {new Date(version.created_at).toLocaleString('pt-BR')}
                                 </span>
                               )}
@@ -419,10 +419,10 @@ export default function AnalysisPage() {
                     </div>
                   )}
 
-                  <div className="grid gap-8 px-8 py-8 sm:px-10 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+                  <div className="grid gap-8 bg-papel px-8 py-8 sm:px-10 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
                     <div className="space-y-6">
                       <Panel title="Resumo executivo" accent="ouro">
-                        <p className="text-sm leading-7 text-slate-300">
+                        <p className="text-sm leading-7 text-tinta">
                           {analysis.summary || 'O sistema devolveu um resumo vazio para esta análise.'}
                         </p>
                       </Panel>
@@ -458,8 +458,8 @@ export default function AnalysisPage() {
                       </Panel>
 
                       <Panel title="Estratégia de defesa gerada" accent="ouro">
-                        <div className="rounded-[1.5rem] border border-ouro-700/30 bg-tribunal-950/70 p-5">
-                          <p className="whitespace-pre-wrap text-sm leading-8 text-slate-300">
+                        <div className="rounded-[5px] border border-latiim/50 bg-papel-alta p-5">
+                          <p className="whitespace-pre-wrap text-sm leading-8 text-tinta">
                             {analysis.generatedDefenseStrategy || 'O sistema ainda não devolveu o texto da estratégia.'}
                           </p>
                         </div>
@@ -546,16 +546,16 @@ function Panel({
   accent: 'ouro' | 'emerald' | 'amber' | 'zinc';
 }) {
   const accentClass = {
-    ouro: 'text-ouro-300',
-    emerald: 'text-emerald-300',
-    amber: 'text-amber-300',
-    zinc: 'text-zinc-300',
+    ouro: 'text-latiim-texto',
+    emerald: 'text-green-800',
+    amber: 'text-amber-800',
+    zinc: 'text-tinta-muda',
   }[accent];
 
   return (
-    <section className="rounded-[1.75rem] border border-zinc-800 bg-tribunal-900/70 p-6 shadow-xl shadow-black/10">
-      <div className="mb-5 flex items-center justify-between border-b border-zinc-800 pb-4">
-        <h2 className={`font-mono text-sm font-medium uppercase tracking-[0.28em] ${accentClass}`}>{title}</h2>
+    <section className="rounded-[5px] border border-linha bg-white p-6 shadow-[0_4px_10px_rgba(41,69,50,0.05)]">
+      <div className="mb-5 flex items-center justify-between border-b border-linha pb-4">
+        <h2 className={`font-mono text-[9px] font-medium uppercase tracking-[2.25px] ${accentClass}`}>{title}</h2>
       </div>
       {children}
     </section>
@@ -564,14 +564,14 @@ function Panel({
 
 function BulletList({ items, emptyState }: { items: string[]; emptyState: string }) {
   if (items.length === 0) {
-    return <p className="text-sm leading-7 text-zinc-500">{emptyState}</p>;
+    return <p className="text-sm leading-7 text-tinta-muda">{emptyState}</p>;
   }
 
   return (
     <ul className="space-y-3">
       {items.map((item, index) => (
-        <li key={`${item}-${index}`} className="flex items-start gap-3 text-sm leading-7 text-slate-300">
-          <span className="mt-2 inline-flex h-2.5 w-2.5 flex-shrink-0 rounded-full bg-ouro-400" />
+        <li key={`${item}-${index}`} className="flex items-start gap-3 text-sm leading-7 text-tinta">
+          <span className="mt-2 inline-flex h-2.5 w-2.5 flex-shrink-0 rounded-full bg-tinta-profunda" />
           <span>{item}</span>
         </li>
       ))}
@@ -581,17 +581,17 @@ function BulletList({ items, emptyState }: { items: string[]; emptyState: string
 
 function NumberedList({ items, emptyState }: { items: string[]; emptyState: string }) {
   if (items.length === 0) {
-    return <p className="text-sm leading-7 text-zinc-500">{emptyState}</p>;
+    return <p className="text-sm leading-7 text-tinta-muda">{emptyState}</p>;
   }
 
   return (
     <ol className="space-y-4">
       {items.map((item, index) => (
         <li key={`${item}-${index}`} className="flex items-start gap-4">
-          <span className="inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border border-emerald-800 bg-emerald-900/30 text-xs font-medium text-emerald-300">
+          <span className="inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border border-tinta-profunda/25 bg-tinta-profunda/10 text-xs font-medium text-tinta-profunda">
             {index + 1}
           </span>
-          <span className="text-sm leading-7 text-slate-300">{item}</span>
+          <span className="text-sm leading-7 text-tinta">{item}</span>
         </li>
       ))}
     </ol>
@@ -600,9 +600,9 @@ function NumberedList({ items, emptyState }: { items: string[]; emptyState: stri
 
 function MetaItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4">
-      <dt className="text-xs uppercase tracking-[0.28em] text-zinc-500">{label}</dt>
-      <dd className="mt-2 break-all text-sm leading-7 text-slate-300">{value}</dd>
+    <div className="rounded-[5px] border border-linha bg-papel-alta p-4">
+      <dt className="font-mono text-[9px] uppercase tracking-[2.25px] text-tinta-muda">{label}</dt>
+      <dd className="mt-2 break-all text-sm leading-7 text-tinta">{value}</dd>
     </div>
   );
 }

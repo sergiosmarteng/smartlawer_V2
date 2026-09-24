@@ -3,10 +3,9 @@
 @tailwind utilities;
 
 /*
- * Identidade institucional SmartLawer:
- * fundo verde-tribunal profundo, dourado-latão como acento de valor,
- * serifada Fraunces nos títulos, Sora no texto, JetBrains Mono em
- * etiquetas/prazos/IDs. Nada de roxo genérico, nada de Inter.
+ * Sistema claro SmartLawer (fonte: landing):
+ * papel creme, tinta verde, latiim ouro, Fraunces nos titulos,
+ * Sora no texto, JetBrains Mono em etiquetas/prazos/IDs.
  */
 
 @layer base {
@@ -15,12 +14,12 @@
   }
 
   body {
-    @apply bg-tribunal-950 font-sans text-slate-300 antialiased selection:bg-ouro-500/30 selection:text-ouro-200;
+    @apply bg-papel font-sans text-tinta antialiased selection:bg-latiim-clara/60 selection:text-tinta-profunda;
   }
 
-  /* Anel de foco visível e dourado em tudo que é interativo. */
+  /* Anel de foco visivel em ouro em tudo que e interativo. */
   :focus-visible {
-    outline: 2px solid #d9b44a;
+    outline: 2px solid #d9bc79;
     outline-offset: 2px;
     border-radius: 0.25rem;
   }
@@ -30,15 +29,15 @@
     height: 10px;
   }
   ::-webkit-scrollbar-track {
-    background: #0b120e;
+    background: #eeefe6;
   }
   ::-webkit-scrollbar-thumb {
-    background: #1c2b22;
+    background: #ccd4be;
     border-radius: 8px;
-    border: 2px solid #0b120e;
+    border: 2px solid #eeefe6;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #a8861d;
+    background: #d9bc79;
   }
 }
 
@@ -56,17 +55,16 @@
     animation: shimmer 2s infinite linear;
   }
 
-  /* Textura sutil de "mármore do tribunal": vinheta radial verde + grão. */
+  /* Textura sutil clara: vinheta creme + filete ouro. */
   .bg-tribunal-texture {
     background-image:
-      radial-gradient(circle at top left, rgba(201, 162, 39, 0.07), transparent 32%),
-      radial-gradient(circle at bottom right, rgba(16, 185, 129, 0.06), transparent 28%),
-      radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.35) 100%);
+      radial-gradient(circle at top left, rgba(217, 188, 121, 0.14), transparent 32%),
+      radial-gradient(circle at bottom right, rgba(20, 54, 45, 0.06), transparent 28%);
   }
 
-  /* Filete dourado lateral: selo institucional. */
+  /* Filete verde lateral: selo institucional. */
   .border-selo-ouro {
-    border-left: 3px solid #c9a227;
+    border-left: 3px solid #14362d;
   }
 }
 

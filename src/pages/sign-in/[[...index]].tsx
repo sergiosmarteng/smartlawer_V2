@@ -62,8 +62,8 @@ export default function SignInPage() {
 
   if (isLoading || user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-tribunal-950">
-        <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-ouro-400" />
+      <div className="flex min-h-screen items-center justify-center bg-papel">
+        <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-tinta-profunda" />
       </div>
     );
   }
@@ -73,17 +73,17 @@ export default function SignInPage() {
       <Head>
         <title>Entrar - SmartLawer</title>
       </Head>
-      <div className="bg-tribunal-texture flex min-h-screen items-center justify-center px-4">
-        <div className="w-full max-w-md rounded-[2rem] border border-zinc-800 bg-tribunal-900/90 p-8 shadow-2xl shadow-black/40">
+      <div className="flex min-h-screen items-center justify-center bg-papel px-4">
+        <div className="w-full max-w-md rounded-[5px] border border-linha bg-white p-8 shadow-[0_4px_10px_rgba(41,69,50,0.05)]">
           <div className="mb-8 text-center">
-            <p className="font-mono text-xs uppercase tracking-[0.32em] text-ouro-500">SmartLawer</p>
-            <h1 className="mt-3 font-display text-3xl font-black text-slate-50">Acessar a plataforma</h1>
-            <p className="mt-2 text-sm text-zinc-400">Acesse seu escritório jurídico digital</p>
+            <p className="font-mono text-[9px] uppercase tracking-[2.25px] text-latiim-texto">SmartLawer</p>
+            <h1 className="mt-3 font-display text-3xl font-normal tracking-tight text-tinta">Acessar a plataforma</h1>
+            <p className="mt-2 text-sm text-tinta-suave">Acesse seu escritório jurídico digital</p>
           </div>
 
           <form onSubmit={onSubmit} className="space-y-4">
             <div>
-              <label htmlFor="signin-email" className="mb-1 block text-sm text-slate-300">E-mail</label>
+              <label htmlFor="signin-email" className="mb-1 block text-sm text-tinta">E-mail</label>
               <input
                 id="signin-email"
                 type="email"
@@ -91,11 +91,11 @@ export default function SignInPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 autoComplete="email"
                 required
-                className="w-full rounded-xl border border-zinc-700 bg-tribunal-950 px-3 py-2.5 text-slate-200 outline-none focus:border-ouro-500"
+                className="w-full rounded-[5px] border border-linha bg-white px-3 py-2.5 text-tinta outline-none placeholder:text-tinta-muda/60 focus:border-latiim"
               />
             </div>
             <div>
-              <label htmlFor="signin-password" className="mb-1 block text-sm text-slate-300">Senha</label>
+              <label htmlFor="signin-password" className="mb-1 block text-sm text-tinta">Senha</label>
               <input
                 id="signin-password"
                 type="password"
@@ -103,24 +103,24 @@ export default function SignInPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete="current-password"
                 required
-                className="w-full rounded-xl border border-zinc-700 bg-tribunal-950 px-3 py-2.5 text-slate-200 outline-none focus:border-ouro-500"
+                className="w-full rounded-[5px] border border-linha bg-white px-3 py-2.5 text-tinta outline-none placeholder:text-tinta-muda/60 focus:border-latiim"
               />
             </div>
 
-            {error && <p className="text-sm text-rose-400">{error}</p>}
+            {error && <p className="rounded-[5px] border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-full bg-ouro-500 px-4 py-3 text-sm font-bold uppercase tracking-[0.2em] text-tribunal-950 transition hover:bg-ouro-400 disabled:cursor-not-allowed disabled:opacity-70"
+              className="w-full rounded-[5px] bg-tinta-profunda px-4 py-3 text-sm font-medium uppercase tracking-[0.2em] text-white transition-colors hover:bg-tinta disabled:cursor-not-allowed disabled:opacity-70"
             >
               {loading ? 'Entrando...' : 'Entrar'}
             </button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-zinc-400">
+          <p className="mt-6 text-center text-sm text-tinta-suave">
             Ainda não tem conta?{' '}
-            <Link href={signUpHref} className="font-medium text-ouro-300 underline underline-offset-4 hover:text-ouro-200">
+            <Link href={signUpHref} className="font-medium text-latiim-texto underline underline-offset-4 hover:text-tinta-profunda">
               Criar conta
             </Link>
           </p>

@@ -56,16 +56,16 @@ export default function AuditPage() {
           <title>Auditoria - SmartLawer</title>
         </Head>
 
-        <div className="min-h-[calc(100vh-4rem)] px-4 py-10 text-slate-300 sm:px-6 lg:px-8">
+        <div className="min-h-[calc(100vh-4rem)] bg-papel px-4 py-10 text-tinta sm:px-6 lg:px-8">
           <div className="mx-auto max-w-6xl">
-            <section className="overflow-hidden rounded-[2rem] border border-zinc-800 bg-tribunal-900/70 px-8 py-10 shadow-2xl shadow-black/20 sm:px-10">
+            <section className="overflow-hidden rounded-[5px] border border-linha bg-white px-8 py-10 shadow-[0_4px_10px_rgba(41,69,50,0.05)] sm:px-10">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                  <p className="font-mono text-xs uppercase tracking-[0.32em] text-ouro-400">Governança</p>
-                  <h1 className="mt-4 font-display text-3xl font-black tracking-tight text-slate-50 sm:text-4xl">
+                  <p className="font-mono text-[9px] uppercase tracking-[2.25px] text-latiim-texto">Governança</p>
+                  <h1 className="mt-4 font-display text-3xl font-normal tracking-tight text-tinta sm:text-4xl">
                     Trilha de auditoria
                   </h1>
-                  <p className="mt-3 max-w-2xl text-sm leading-7 text-zinc-400">
+                  <p className="mt-3 max-w-2xl text-sm leading-7 text-tinta-suave">
                     Eventos de segurança e de fluxo da sua conta, do mais novo ao mais antigo. Conteúdo
                     de documentos e perguntas nunca ficam gravados aqui — só identificadores, estados e tempos.
                   </p>
@@ -73,7 +73,7 @@ export default function AuditPage() {
                 <select
                   value={eventType}
                   onChange={(event) => setEventType(event.target.value)}
-                  className="rounded-full border border-zinc-700 bg-tribunal-950 px-4 py-2.5 text-sm text-slate-200 outline-none transition-colors hover:border-zinc-500 focus:border-ouro-500"
+                  className="rounded-[5px] border border-linha bg-white px-4 py-2.5 text-sm text-tinta outline-none transition-colors hover:border-latiim focus:border-latiim"
                   aria-label="Filtrar por tipo de evento"
                 >
                   <option value="">Todos os tipos</option>
@@ -86,32 +86,32 @@ export default function AuditPage() {
               </div>
 
               {error && (
-                <p className="mt-4 rounded-2xl border border-rose-900/80 bg-rose-950/50 px-5 py-3 text-sm text-rose-200">
+                <p className="mt-4 rounded-[5px] border border-red-200 bg-red-50 px-5 py-3 text-sm text-red-700">
                   {error}
                 </p>
               )}
 
-              <div className="mt-6 overflow-hidden rounded-[1.5rem] border border-zinc-800">
+              <div className="mt-6 overflow-hidden rounded-[5px] border border-linha">
                 {isLoading ? (
-                  <p className="px-5 py-8 text-sm text-zinc-500">Carregando…</p>
+                  <p className="bg-papel-alta px-5 py-8 text-sm text-tinta-muda">Carregando…</p>
                 ) : events.length === 0 ? (
-                  <p className="px-5 py-8 text-sm leading-7 text-zinc-500">
+                  <p className="bg-papel-alta px-5 py-8 text-sm leading-7 text-tinta-muda">
                     Nada por aqui ainda. Envie um documento ou gere uma defesa para preencher esta trilha.
                   </p>
                 ) : (
-                  <ul className="divide-y divide-zinc-800">
+                  <ul className="divide-y divide-linha bg-white">
                     {events.map((item) => (
                       <li key={item.id} className="px-5 py-4">
                         <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                          <p className="text-sm font-medium text-slate-100">{item.event_type}</p>
+                          <p className="text-sm font-medium text-tinta">{item.event_type}</p>
                           {item.created_at && (
-                            <p className="text-xs text-zinc-500">
+                            <p className="text-xs text-tinta-muda">
                               {new Date(item.created_at).toLocaleString()}
                             </p>
                           )}
                         </div>
                         {(item.entity_type || item.entity_id) && (
-                          <p className="mt-1 break-all text-xs text-zinc-500">
+                          <p className="mt-1 break-all font-mono text-xs text-tinta-muda">
                             {[item.entity_type, item.entity_id].filter(Boolean).join(' · ')}
                           </p>
                         )}

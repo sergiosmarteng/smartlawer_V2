@@ -10,8 +10,30 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Identidade "Tribunal premium": verde-tribunal profundo dominante,
-        // dourado-latão como acento de resultado/valor. Sem roxo genérico.
+        // Sistema claro da landing (fonte de verdade visual).
+        papel: {
+          DEFAULT: '#f7f7f0',
+          alta: '#fafbf6',
+          areia: '#eeefe6',
+          faixa: '#eaece2',
+        },
+        tinta: {
+          DEFAULT: '#183c31',
+          profunda: '#14362d',
+          suave: '#506158',
+          muda: '#66736c',
+        },
+        latiim: {
+          DEFAULT: '#d9bc79',
+          clara: '#dec48a',
+          suave: '#eed8a7',
+          texto: '#8c6c24',
+        },
+        linha: {
+          DEFAULT: '#dce0d4',
+          escura: '#ccd4be',
+        },
+        // Legado escuro (em migracao para o claro).
         tribunal: {
           700: '#1c2b22',
           800: '#121b15',

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useState } from 'react';
 import { useAuth } from './auth/AuthProvider';
+import Icon from './landing/Icon';
 
 interface HeaderProps {
   onToggleSidebar?: () => void;
@@ -24,12 +25,12 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
   const userInitials = userLabel.slice(0, 2).toUpperCase();
 
   return (
-    <header className="sticky top-0 z-30 border-b border-ouro-700/30 bg-tribunal-950/95 backdrop-blur">
-      <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-30 border-b border-tinta-profunda/10 bg-papel-alta/95 backdrop-blur">
+      <nav className="mx-auto flex h-[88px] max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-3">
           <button
             type="button"
-            className="inline-flex items-center justify-center rounded-xl border border-zinc-800 p-2 text-slate-300 transition-colors hover:border-ouro-600/50 hover:bg-tribunal-900 lg:hidden"
+            className="inline-flex items-center justify-center rounded-[5px] border border-linha p-2 text-tinta-profunda transition-colors hover:border-latiim lg:hidden"
             onClick={onToggleSidebar}
             aria-label="Abrir menu"
           >
@@ -38,13 +39,13 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
             </svg>
           </button>
 
-          <Link href={user ? '/dashboard' : '/'} className="flex items-center gap-3">
-            <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-ouro-500/40 bg-gradient-to-br from-ouro-500/25 to-ouro-700/10 font-display text-sm font-black tracking-[0.2em] text-ouro-300">
-              SL
+          <Link href={user ? '/dashboard' : '/'} className="flex items-center gap-3" aria-label="SmartLawer — início">
+            <span className="inline-flex h-[45px] w-10 items-center justify-center rounded-[20px_20px_5px_5px] border border-tinta-suave/40 text-latiim-texto">
+              <Icon name="scale" size={25} />
             </span>
             <div>
-              <p className="font-display text-base font-bold tracking-wide text-slate-100">SmartLawer</p>
-              <p className="font-mono text-[0.65rem] uppercase tracking-[0.3em] text-ouro-500/90">Advocacia de excelência</p>
+              <p className="font-display text-[27px] leading-none tracking-[-1.2px] text-tinta-profunda">SmartLawer</p>
+              <p className="mt-[9px] font-sans text-[7px] font-normal uppercase tracking-[2.65px] text-tinta-suave">Inteligência jurídica</p>
             </div>
           </Link>
         </div>
@@ -66,32 +67,32 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
             <>
               <Link
                 href="/sign-up"
-                className="inline-flex items-center rounded-full bg-ouro-500 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider text-tribunal-950 shadow-sm transition hover:bg-ouro-400 sm:px-4 sm:py-2 sm:text-sm"
+                className="inline-flex items-center gap-4 rounded-[5px] bg-tinta-profunda px-[19px] py-[14px] text-[11px] font-medium text-white transition-colors hover:bg-tinta"
               >
-                Cadastre-se
+                Criar minha conta
               </Link>
               <Link
                 href="/sign-in"
-                className="inline-flex items-center rounded-full border border-ouro-500/40 bg-ouro-500/10 px-3.5 py-1.5 text-xs font-medium text-ouro-200 transition-colors hover:border-ouro-400/60 hover:bg-ouro-500/20 sm:px-4 sm:py-2 sm:text-sm"
+                className="text-[11px] font-medium text-tinta-suave transition-colors hover:text-latiim-texto"
               >
                 Entrar
               </Link>
             </>
           ) : (
             <>
-              <div className="hidden items-center gap-3 rounded-full border border-zinc-800 bg-tribunal-900/80 px-4 py-2 sm:flex">
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-ouro-500/15 text-xs font-semibold uppercase tracking-[0.2em] text-ouro-300">
+              <div className="hidden items-center gap-3 rounded-[5px] border border-linha bg-papel-alta px-4 py-2 sm:flex">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-tinta-profunda/10 text-xs font-semibold uppercase tracking-[0.2em] text-tinta-profunda">
                   {userInitials}
                 </span>
                 <div className="text-right">
-                  <p className="font-mono text-[0.65rem] uppercase tracking-[0.24em] text-zinc-500">Logado</p>
-                  <p className="max-w-[12rem] truncate text-sm text-slate-200">{userLabel}</p>
+                  <p className="font-mono text-[0.65rem] uppercase tracking-[0.24em] text-tinta-muda">Logado</p>
+                  <p className="max-w-[12rem] truncate text-sm text-tinta">{userLabel}</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => logout()}
-                className="hidden rounded-full border border-zinc-800 px-4 py-2 text-sm font-medium text-slate-300 transition-colors hover:border-zinc-700 hover:bg-tribunal-900 sm:inline-flex"
+                className="hidden rounded-[5px] border border-linha px-4 py-2 text-sm font-medium text-tinta-suave transition-colors hover:border-latiim hover:text-tinta sm:inline-flex"
               >
                 Sair
               </button>
@@ -101,7 +102,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
           {user && (
           <button
             type="button"
-            className="inline-flex items-center justify-center rounded-xl border border-zinc-800 p-2 text-slate-300 transition-colors hover:border-ouro-600/50 hover:bg-tribunal-900 md:hidden"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-[5px] border border-linha text-tinta-profunda transition-colors hover:border-latiim md:hidden"
             onClick={() => setMobileMenuOpen((current) => !current)}
             aria-label="Abrir menu"
           >
@@ -118,7 +119,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
       </nav>
 
       {mobileMenuOpen && user && (
-        <div className="border-t border-zinc-800 bg-zinc-950 px-4 py-4 md:hidden">
+        <div className="border-t border-linha bg-papel-alta px-4 py-4 md:hidden">
           <div className="space-y-2">
             {primaryLinks.map((link) => {
               const isActive = router.pathname === link.href || router.asPath.startsWith(`${link.href}/`);
@@ -138,7 +139,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
           <button
             type="button"
             onClick={() => logout()}
-            className="mt-4 inline-flex w-full items-center justify-center rounded-xl border border-zinc-800 px-4 py-3 text-sm font-medium text-slate-300 transition-colors hover:border-zinc-700 hover:bg-tribunal-900"
+            className="mt-4 inline-flex w-full items-center justify-center rounded-[5px] border border-linha bg-papel-alta px-4 py-3 text-sm font-medium text-tinta transition-colors hover:border-latiim"
           >
             Sair
           </button>
@@ -152,10 +153,10 @@ function NavLink({ href, children, active }: { href: string; children: React.Rea
   return (
     <Link
       href={href}
-      className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+      className={`rounded-[5px] px-4 py-2 text-[11px] font-medium transition-colors ${
         active
-          ? 'bg-ouro-500/15 text-ouro-200 shadow-[inset_0_0_0_1px_rgba(201,162,39,0.45)]'
-          : 'text-zinc-400 hover:bg-tribunal-900/80 hover:text-slate-100'
+          ? 'bg-tinta-profunda/10 text-tinta-profunda shadow-[inset_0_0_0_1px_rgba(20,54,45,0.25)]'
+          : 'text-tinta-suave hover:text-latiim-texto'
       }`}
     >
       {children}
@@ -178,8 +179,8 @@ function MobileNavLink({
     <Link
       href={href}
       onClick={onClick}
-      className={`block rounded-xl px-4 py-3 text-base font-medium transition-colors ${
-        active ? 'bg-zinc-900 text-slate-100' : 'text-zinc-300 hover:bg-zinc-900 hover:text-slate-100'
+      className={`block rounded-[5px] px-4 py-3 text-base font-medium transition-colors ${
+        active ? 'bg-papel-areia text-tinta' : 'text-tinta-suave hover:bg-papel-areia hover:text-tinta'
       }`}
     >
       {children}

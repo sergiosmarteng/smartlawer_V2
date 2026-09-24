@@ -5,9 +5,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Install system dependencies required for some python packages and OCR
+# Install system dependencies required for some python packages, OCR and Docling (OpenCV needs libGL/libglib).
 RUN apt-get update \
-    && apt-get install -y ca-certificates gcc libpq-dev tesseract-ocr libtesseract-dev tesseract-ocr-por tesseract-ocr-eng \
+    && apt-get install -y ca-certificates gcc libpq-dev tesseract-ocr libtesseract-dev tesseract-ocr-por tesseract-ocr-eng libgl1 libglib2.0-0 \
     && update-ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
