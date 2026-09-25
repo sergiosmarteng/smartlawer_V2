@@ -6,6 +6,26 @@ from app.models.analysis import Analysis
 from app.models.document import Document
 
 
+def _run_pipeline_task(tasks, document_id: str, pdf_path: str) -> None:
+    # Compatível com os dois ambientes: stub de celery do conftest
+    # (expõe ``.func``) e celery real (task bound, chama ``.run``).
+    target = getattr(tasks.process_pdf_task, "func", None)
+    if target is not None:
+
+        class _FakeTask:
+            max_retries = 3
+
+            def __init__(self):
+                self.request = type("Req", (), {"retries": 0})()
+
+            def retry(self, exc=None, countdown=None):
+                raise RuntimeError("retry")
+
+        target(_FakeTask(), str(document_id), pdf_path)
+    else:
+        tasks.process_pdf_task.run(str(document_id), pdf_path)
+
+
 def _make_pdf_with_image(path, with_image: bool) -> str:
     import fitz
     from PIL import Image
@@ -93,16 +113,7 @@ def test_pipeline_persists_figures_and_analysis_exposes_array(
         tasks, "figure_directory", lambda _doc_id: str(tmp_path / "figs" / str(_doc_id))
     )
 
-    class _FakeTask:
-        max_retries = 3
-
-        def __init__(self):
-            self.request = type("Req", (), {"retries": 0})()
-
-        def retry(self, exc=None, countdown=None):
-            raise RuntimeError("retry")
-
-    tasks.process_pdf_task.func(_FakeTask(), str(document.id), pdf)
+    _run_pipeline_task(tasks, document.id, pdf)
 
     analysis = (
         db_session.query(Analysis).filter_by(document_id=document.id).one()
@@ -164,16 +175,7 @@ def test_analysis_without_figures_returns_empty_array(
         tasks, "figure_directory", lambda _doc_id: str(tmp_path / "figs2" / str(_doc_id))
     )
 
-    class _FakeTask:
-        max_retries = 3
-
-        def __init__(self):
-            self.request = type("Req", (), {"retries": 0})()
-
-        def retry(self, exc=None, countdown=None):
-            raise RuntimeError("retry")
-
-    tasks.process_pdf_task.func(_FakeTask(), str(document.id), pdf)
+    _run_pipeline_task(tasks, document.id, pdf)
 
     analysis = (
         db_session.query(Analysis).filter_by(document_id=document.id).one()

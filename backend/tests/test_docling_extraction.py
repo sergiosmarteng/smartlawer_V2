@@ -76,9 +76,15 @@ class _FakeTask:
 
 
 def _run_task(stored_document, pdf_path):
-    task = _FakeTask()
-    tasks.process_pdf_task.func(task, str(stored_document.id), pdf_path)
-    return task
+    # Compatível com os dois ambientes: stub de celery do conftest
+    # (expõe ``.func``) e celery real (task bound, chama ``.run``).
+    target = getattr(tasks.process_pdf_task, "func", None)
+    if target is not None:
+        task = _FakeTask()
+        target(task, str(stored_document.id), pdf_path)
+        return task
+    tasks.process_pdf_task.run(str(stored_document.id), pdf_path)
+    return None
 
 
 # --- Adapter unit tests -----------------------------------------------------
