@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.api import deps
 from app.api.routes.templates import _get_owned_analysis, generate_docx_document
 from app.crud.document import get_document_for_user, get_documents_by_user
+from app.crud.figure import list_document_figures
 from app.models.analysis import Analysis
 from app.models.document import Document
 from app.models.user import User
@@ -82,12 +83,37 @@ def _resolve_analysis_by_identifier(
     return None, document
 
 
-def _analysis_payload(analysis: Analysis) -> AnalysisDetailResponse:
+def _analysis_payload(
+    analysis: Analysis, db: Session | None = None
+) -> AnalysisDetailResponse:
     defense_items = analysis.defense_theses or []
     generated_defense = "\n\n".join(
         f"{index + 1}. {item}" for index, item in enumerate(defense_items)
     )
     document = analysis.document
+
+    figuras: list = []
+    if db is not None and document is not None:
+        try:
+            rows = list_document_figures(
+                db, document_id=document.id, user_id=document.user_id
+            )
+        except Exception:
+            rows = []
+        for row in rows:
+            figuras.append(
+                {
+                    "id": row.id,
+                    "page_number": row.page_number,
+                    "bbox": row.bbox,
+                    "caption": row.caption,
+                    "download_url": (
+                        f"/documents/{document.id}/figures/{row.id}"
+                        if row.file_path
+                        else None
+                    ),
+                }
+            )
 
     return AnalysisDetailResponse(
         id=analysis.id,
@@ -106,6 +132,7 @@ def _analysis_payload(analysis: Analysis) -> AnalysisDetailResponse:
         completed_at=document.completed_at,
         generatedDefenseStrategy=generated_defense,
         docxDownloadUrl=_docx_download_url(analysis),
+        figuras=figuras,
     )
 
 
@@ -200,7 +227,7 @@ def get_analysis_result(
             )
         raise HTTPException(status_code=404, detail="Analysis not found")
 
-    return _analysis_payload(analysis)
+    return _analysis_payload(analysis, db)
 
 
 @router.get("/analysis/{analysis_id}/docx")

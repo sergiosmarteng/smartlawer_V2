@@ -4,11 +4,18 @@ from typing import List
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.api import deps
 from app.core.audit import record_audit
-from app.crud.document import create_document, get_documents_by_user, update_document_state
+from app.crud.document import (
+    create_document,
+    get_document_for_user,
+    get_documents_by_user,
+    update_document_state,
+)
+from app.crud.figure import get_document_figure
 from app.models.audit_event import AuditEvent
 from app.models.document import Document
 from app.models.user import User
@@ -160,3 +167,34 @@ def get_user_documents(
     current_user: User = Depends(deps.get_current_active_user),
 ):
     return get_documents_by_user(db, user_id=current_user.id, skip=skip, limit=limit)
+
+
+@router.get("/{document_id}/figures/{figure_id}")
+def download_document_figure(
+    document_id: str,
+    figure_id: str,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_active_user),
+):
+    """Download do crop de uma figura (tenant-checked)."""
+    document = get_document_for_user(
+        db, id=document_id, user_id=current_user.id
+    )
+    if document is None:
+        raise HTTPException(status_code=404, detail="Documento não encontrado")
+    figure = get_document_figure(
+        db, figure_id=figure_id, user_id=current_user.id
+    )
+    if figure is None or str(figure.document_id) != str(document.id):
+        raise HTTPException(status_code=404, detail="Figura não encontrada")
+    if not figure.file_path:
+        raise HTTPException(status_code=404, detail="Figura sem arquivo")
+    import os
+
+    if not os.path.isfile(figure.file_path):
+        raise HTTPException(status_code=404, detail="Arquivo da figura ausente")
+    return FileResponse(
+        figure.file_path,
+        media_type=figure.content_type or "image/png",
+        filename=f"figura_{figure.page_number or 0}_{figure.id}.png",
+    )

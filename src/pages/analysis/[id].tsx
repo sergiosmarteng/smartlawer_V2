@@ -9,6 +9,7 @@ import api, { getApiErrorMessage, normalizeApiPath } from '../../lib/axios';
 import type {
   AnalysisDetailResponse,
   AnalysisNotReadyDetail,
+  Figura,
   GeneratedVersion,
   NormalizedAnalysis,
   TemplateIncompatibilityDetail,
@@ -447,6 +448,28 @@ export default function AnalysisPage() {
                           emptyState="Sem detalhes estruturados de prova."
                         />
                       </Panel>
+
+                      <Panel
+                        title={`Figuras do documento (${analysis.figuras.length})`}
+                        accent="zinc"
+                      >
+                        {analysis.figuras.length === 0 ? (
+                          <p className="text-sm leading-7 text-tinta-muda">
+                            documento sem figuras
+                          </p>
+                        ) : (
+                          <ul className="grid gap-4 sm:grid-cols-2">
+                            {analysis.figuras.map((figura) => (
+                              <FiguraCard
+                                key={figura.id}
+                                figura={figura}
+                                routeId={String(routeId)}
+                                onError={(message) => setError(message)}
+                              />
+                            ))}
+                          </ul>
+                        )}
+                      </Panel>
                     </div>
 
                     <div className="space-y-6">
@@ -499,7 +522,123 @@ function normalizeAnalysis(payload: AnalysisDetailResponse): NormalizedAnalysis 
     defenseTheses: payload.defense_theses || [],
     generatedDefenseStrategy: payload.generatedDefenseStrategy || payload.generated_defense_strategy || '',
     docxDownloadUrl: payload.docxDownloadUrl || payload.docx_download_url || null,
+    figuras: normalizeFiguras(payload.figuras),
   };
+}
+
+function normalizeFiguras(figuras: AnalysisDetailResponse['figuras']): Figura[] {
+  if (!Array.isArray(figuras)) {
+    return [];
+  }
+  return figuras
+    .filter((item) => item && typeof item.id === 'string')
+    .map((item) => ({
+      id: item.id,
+      pageNumber: item.pageNumber ?? item.page_number ?? null,
+      bbox: item.bbox ?? null,
+      caption: item.caption ?? null,
+      downloadUrl: item.downloadUrl ?? item.download_url ?? null,
+    }));
+}
+
+function FiguraCard({
+  figura,
+  routeId,
+  onError,
+}: {
+  figura: Figura;
+  routeId: string;
+  onError: (message: string) => void;
+}) {
+  const [objectUrl, setObjectUrl] = useState<string | null>(null);
+  const [thumbFailed, setThumbFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    let url: string | null = null;
+    const load = async () => {
+      if (!figura.downloadUrl) {
+        return;
+      }
+      try {
+        const response = await api.get(normalizeApiPath(figura.downloadUrl), {
+          responseType: 'blob',
+        });
+        url = window.URL.createObjectURL(new Blob([response.data]));
+        if (!cancelled) {
+          setObjectUrl(url);
+        } else {
+          window.URL.revokeObjectURL(url);
+        }
+      } catch {
+        if (!cancelled) {
+          setThumbFailed(true);
+        }
+      }
+    };
+    load();
+    return () => {
+      cancelled = true;
+      if (url) {
+        window.URL.revokeObjectURL(url);
+      }
+    };
+  }, [figura.downloadUrl]);
+
+  const handleDownload = async () => {
+    if (!figura.downloadUrl) {
+      return;
+    }
+    try {
+      const response = await api.get(normalizeApiPath(figura.downloadUrl), {
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `figura_p${figura.pageNumber ?? 0}_${figura.id}.png`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (downloadError) {
+      onError(getApiErrorMessage(downloadError, 'Não foi possível baixar a figura.'));
+    }
+  };
+
+  return (
+    <li className="overflow-hidden rounded-[5px] border border-linha bg-papel-alta">
+      {figura.downloadUrl && !thumbFailed && objectUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={objectUrl}
+          alt={figura.caption || `Figura da página ${figura.pageNumber ?? '?'}`}
+          className="h-40 w-full object-contain bg-white"
+        />
+      ) : (
+        <div className="flex h-40 items-center justify-center bg-white px-4 text-center text-xs text-tinta-muda">
+          {figura.downloadUrl ? 'Prévia indisponível — use o download.' : 'Figura sem arquivo para prévia.'}
+        </div>
+      )}
+      <div className="space-y-1 p-3">
+        <p className="text-xs font-medium text-tinta-profunda">
+          {figura.caption || 'Sem legenda'}
+        </p>
+        <p className="text-xs text-tinta-suave">
+          {typeof figura.pageNumber === 'number' ? `Página ${figura.pageNumber}` : 'Página não informada'}
+        </p>
+        {figura.downloadUrl && (
+          <button
+            type="button"
+            onClick={handleDownload}
+            className="mt-2 inline-flex items-center rounded-[5px] border border-linha bg-white px-3 py-1.5 text-xs font-medium text-tinta-suave transition-colors hover:border-latiim hover:text-tinta"
+          >
+            Baixar figura
+          </button>
+        )}
+      </div>
+    </li>
+  );
 }
 
 function getAnalysisNotReadyDetail(error: unknown): AnalysisNotReadyDetail | null {

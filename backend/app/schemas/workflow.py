@@ -70,6 +70,17 @@ class AnalysisDetailResponse(WorkflowBase):
     completed_at: datetime | None = None
     generated_defense_strategy: str = Field(alias="generatedDefenseStrategy")
     docx_download_url: str | None = Field(default=None, alias="docxDownloadUrl")
+    figuras: list["FiguraResponse"] = Field(default_factory=list)
+
+
+class FiguraResponse(WorkflowBase):
+    """Uma figura da petição (criterio a/b do Goal)."""
+
+    id: UUID4
+    page_number: int | None = Field(default=None, alias="pageNumber")
+    bbox: dict | None = None
+    caption: str | None = None
+    download_url: str | None = Field(default=None, alias="downloadUrl")
 
 
 class GeneratedVersionResponse(WorkflowBase):

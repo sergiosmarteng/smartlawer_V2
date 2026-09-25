@@ -60,6 +60,7 @@ export interface AnalysisDetailResponse {
   generated_defense_strategy?: string;
   docxDownloadUrl?: string | null;
   docx_download_url?: string | null;
+  figuras?: FiguraResponse[];
 }
 
 /** Normalized analysis shape used by the analysis page UI. */
@@ -76,6 +77,7 @@ export interface NormalizedAnalysis {
   defenseTheses: string[];
   generatedDefenseStrategy: string;
   docxDownloadUrl: string | null;
+  figuras: Figura[];
 }
 
 /** Structured `404 analysis-not-ready` detail from the backend. */
@@ -105,6 +107,26 @@ export interface TemplateIncompatibilityDetail {
   message?: string;
   unsupported_placeholders?: string[];
   supported_keys?: string[];
+}
+
+/** Uma figura da petição (Goal figuras a/b). */
+export interface FiguraResponse {
+  id: string;
+  page_number?: number | null;
+  pageNumber?: number | null;
+  bbox?: Record<string, number | null> | null;
+  caption?: string | null;
+  download_url?: string | null;
+  downloadUrl?: string | null;
+}
+
+/** Figura normalizada para a UI. */
+export interface Figura {
+  id: string;
+  pageNumber: number | null;
+  bbox: Record<string, number | null> | null;
+  caption: string | null;
+  downloadUrl: string | null;
 }
 
 /** `GET /api/v1/analysis/{id}/versions` item (C2 generation history). */
