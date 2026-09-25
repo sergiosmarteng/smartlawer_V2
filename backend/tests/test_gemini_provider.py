@@ -76,11 +76,21 @@ def test_rag_chat_client_gemini_passthrough(monkeypatch):
 
 
 def test_analyzer_gemini_without_key_falls_back(monkeypatch):
+    from app.core.ai_engine import ProviderUnavailableError
+
     _provider(monkeypatch, AI_PROVIDER="gemini", GEMINI_API_KEY="")
     analyzer = LegalAnalyzer()
     assert analyzer.client is None
-    result = analyzer.analyze_petition("Algum texto")
-    assert result["summary"]
+    # V2 T01: sem provedor, falha explicada — nunca tese genérica em relatório.
+    try:
+        analyzer.analyze_petition("Algum texto")
+    except ProviderUnavailableError as exc:
+        assert exc.code == "PROVIDER_UNAVAILABLE"
+    else:
+        raise AssertionError("analyze_petition deveria falhar sem provedor")
+    diag = analyzer.extraction_diagnostic("Algum texto", reason="no provider")
+    assert diag["kind"] == "extraction_diagnostic"
+    assert "defense_theses" not in diag
 
 
 def test_embeddings_configured_per_provider(monkeypatch):

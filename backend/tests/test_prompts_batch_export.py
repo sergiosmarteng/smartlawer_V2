@@ -63,11 +63,56 @@ def test_build_prompt_text_injects_profile_guidance():
     assert "TEXTO DA PETICAO:\nTEXTO" in out
 
 
-def test_analyze_petition_accepts_strategy_prompt_kwarg():
+def test_analyze_petition_accepts_strategy_prompt_kwarg(monkeypatch):
+    import json as _json
+
+    from app.core import ai_engine as _engine
+
     analyzer = LegalAnalyzer()
+    # Configura provedor fake para exercitar o caminho real de análise.
+    analyzer.api_key = "test-key"
+    analyzer.model = "test-model"
+
+    captured = {}
+
+    class _FakeMessage:
+        content = _json.dumps(
+            {
+                "summary": "resumo guiado",
+                "requests": ["pedido 1"],
+                "laws": ["CPC art. 1"],
+                "evidence": "prova X",
+                "defense_theses": ["tese real 1"],
+            }
+        )
+
+    class _FakeChoice:
+        message = _FakeMessage()
+
+    class _FakeCompletions:
+        def create(self, **kwargs):
+            captured["prompt"] = kwargs["messages"][1]["content"]
+            return type("Resp", (), {"choices": [_FakeChoice()]})()
+
+    class _FakeChat:
+        completions = _FakeCompletions()
+
+    analyzer.client = type("Client", (), {"chat": _FakeChat()})()
     result = analyzer.analyze_petition("Algum texto", strategy_prompt="guia")
     assert isinstance(result, dict)
-    assert result["summary"]
+    assert result["kind"] == "analysis"
+    assert result["summary"] == "resumo guiado"
+    assert "guia" in captured["prompt"]
+
+    # Sem provedor: falha explicada (V2 T01), nunca fallback genérico.
+    monkeypatch.setattr(_engine, "resolve_chat_config", lambda: None)
+    bare = LegalAnalyzer()
+    try:
+        bare.analyze_petition("Algum texto", strategy_prompt="guia")
+    except _engine.ProviderUnavailableError as exc:
+        assert exc.code == "PROVIDER_UNAVAILABLE"
+    else:
+        raise AssertionError("deveria falhar sem provedor configurado")
 
 
 def test_default_strategy_prompt_lookup(db_session, make_user):

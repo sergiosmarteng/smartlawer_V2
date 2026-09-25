@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime, timezone
 
-from app.core.ai_engine import LegalAnalyzer
+from app.core.ai_engine import AnalysisError, LegalAnalyzer
 from app.core.audit import audit_document_completion
 from app.core.config import settings
 from app.core.database import SessionLocal
@@ -182,6 +182,13 @@ def process_pdf_task(self, document_id: str, file_path: str):
                 analysis_text, strategy_prompt=strategy_prompt
             )
 
+            if ai_data.get("kind") == "extraction_diagnostic":
+                raise AnalysisError(
+                    "Analise indisponivel: somente diagnostico de extracao.",
+                    code="PROVIDER_UNAVAILABLE",
+                    retryable=True,
+                )
+
             doc = get_document(db, id=document_id)
             if doc and not doc.analysis:
                 db.add(
@@ -194,18 +201,32 @@ def process_pdf_task(self, document_id: str, file_path: str):
                         defense_theses=ai_data.get("defense_theses", []),
                     )
                 )
-        except Exception as ai_exc:
-            logger.error("OpenAI falhou: %s. Processando fallback provisorio.", ai_exc)
-            doc = get_document(db, id=document_id)
-            if doc and not doc.analysis:
-                db.add(Analysis(document_id=document_id, summary=raw_text[:1000]))
+        except AnalysisError as ai_exc:
+            # V2 T01: falha de IA nunca vira COMPLETED nem tese genérica.
+            code = getattr(ai_exc, "code", "ANALYSIS_FAILED") or "ANALYSIS_FAILED"
+            logger.error("Analise falhou para %s [%s]: %s", document_id, code, ai_exc)
+            db.rollback()
             update_document_state(
                 db,
                 id=document_id,
-                status=Document.STATUS_PROCESSING,
-                status_detail="AI provider unavailable; using fallback summary",
-                error_message=None,
+                status=Document.STATUS_ERROR,
+                status_detail="AI provider unavailable; analysis not completed",
+                error_message=f"{code}: Provedor de IA indisponivel. Verifique a configuracao e reenvie.",
             )
+            audit_document_completion(db, document=get_document(db, id=document_id))
+            return
+        except Exception as ai_exc:
+            logger.error("OpenAI falhou: %s.", ai_exc)
+            db.rollback()
+            update_document_state(
+                db,
+                id=document_id,
+                status=Document.STATUS_ERROR,
+                status_detail="AI provider unavailable; analysis not completed",
+                error_message=f"PROVIDER_UNAVAILABLE: Provedor de IA indisponivel. Verifique a configuracao e reenvie.",
+            )
+            audit_document_completion(db, document=get_document(db, id=document_id))
+            return
 
         db.commit()
         update_document_state(
