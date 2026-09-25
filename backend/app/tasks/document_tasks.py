@@ -11,6 +11,7 @@ from app.core.docling_extractor import (
     _extract_figures_fitz,
     extract_figures as docling_extract_figures,
 )
+from app.core.coverage_planner import build_prompt_window
 from app.core.extraction import (
     FIGURES_TRUNCATED,
     extract_inventory,
@@ -182,6 +183,26 @@ def process_pdf_task(self, document_id: str, file_path: str):
         except Exception as exc:
             logger.warning(
                 "Inventário de extração falhou para %s (%s); seguindo.",
+                document_id,
+                exc,
+            )
+
+        # V2 T05: janela head+tail com cobertura registrada (fim do corte
+        # fixo). Textos curtos passam intactos; longos preservam a cauda
+        # (rol de pedidos) e registram o omitido na revisão.
+        try:
+            windowed_text, prompt_coverage = build_prompt_window(analysis_text)
+            analysis_text = windowed_text
+            if revision_id is not None and prompt_coverage.get("truncated"):
+                revision_row = db.get(DocumentRevision, revision_id)
+                if revision_row is not None:
+                    extra = dict(revision_row.extra or {})
+                    extra["prompt_coverage"] = prompt_coverage
+                    revision_row.extra = extra
+                    db.commit()
+        except Exception as exc:
+            logger.warning(
+                "Janela de cobertura falhou para %s (%s); usando texto integral.",
                 document_id,
                 exc,
             )

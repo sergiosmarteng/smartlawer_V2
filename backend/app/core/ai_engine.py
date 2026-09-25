@@ -225,10 +225,12 @@ class LegalAnalyzer:
             if extra
             else self.BASE_INSTRUCTIONS
         )
+        # V2 T05: sem corte fixo — o CoveragePlanner monta a janela a
+        # montante com cobertura registrada; aqui o texto passa integral.
         return (
             f"{instructions}\n\n"
             f"{FORMAT_INSTRUCTIONS}\n\n"
-            f"TEXTO DA PETICAO:\n{text[:20000]}"
+            f"TEXTO DA PETICAO:\n{text}"
         )
 
     def analyze_petition(self, text: str, strategy_prompt: str | None = None) -> dict:

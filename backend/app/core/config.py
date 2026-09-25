@@ -22,6 +22,11 @@ class Settings(BaseSettings):
     RETRIEVAL_CANDIDATE_K: int = 30
     RETRIEVAL_TOP_K: int = 6
     RRF_K: int = 60
+    # V2 T05: orçamento de contexto do planejamento de cobertura (§6.1/§17).
+    PROMPT_BUDGET_TOKENS: int = 30000
+    COVERAGE_MAX_BATCH_TOKENS: int = 8000
+    COVERAGE_OVERLAP_BLOCKS: int = 2
+    COVERAGE_MAX_BATCHES: int = 20
     RERANK_ENABLED: bool = False
     COHERE_API_KEY: str = ""
     COHERE_RERANK_MODEL: str = "rerank-3"

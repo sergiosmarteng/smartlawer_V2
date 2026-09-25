@@ -50,10 +50,10 @@ def test_build_prompt_text_keeps_legacy_default():
     assert "Orientacao adicional" not in legacy
     assert "TEXTO DA PETICAO:\nTEXTO" in legacy
 
+    # V2 T05: sem corte fixo — texto integral, cauda sempre presente.
     long_text = "x" * 25000
-    truncated = analyzer.build_prompt_text(long_text)
-    assert "x" * 20000 in truncated
-    assert "x" * 20001 not in truncated
+    full = analyzer.build_prompt_text(long_text)
+    assert "x" * 25000 in full
 
 
 def test_build_prompt_text_injects_profile_guidance():
