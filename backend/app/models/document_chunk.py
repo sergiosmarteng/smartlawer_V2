@@ -47,13 +47,17 @@ class DocumentChunk(Base):
     page_start = Column(Integer, nullable=True)
     page_end = Column(Integer, nullable=True)
     token_count = Column(Integer, nullable=True)
-    embedding = Column(Vector(settings.EMBEDDING_DIMENSIONS), nullable=False)
+    # V2 T04: vetor opcional — blocos textuais persistem mesmo sem
+    # embeddings (busca FTS degradada); NULL nunca entra no ANN.
+    embedding = Column(Vector(settings.EMBEDDING_DIMENSIONS), nullable=True)
     embedding_model = Column(
         String(100), nullable=False, default=settings.EMBEDDING_MODEL
     )
     embedding_model_version = Column(
         String(50), nullable=False, default=settings.EMBEDDING_MODEL_VERSION
     )
+    embedding_provider = Column(String(50), nullable=True)
+    embedding_dimensions = Column(Integer, nullable=True)
     created_at = Column(DateTime(timezone=True), default=datetime.now(timezone.utc))
 
     document = relationship("Document", back_populates="chunks")

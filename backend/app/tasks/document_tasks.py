@@ -82,23 +82,34 @@ def prepare_analysis_input(document_id: str, file_path: str, raw_text: str) -> s
 
 
 def index_document_chunks(document_id: str, analysis_text: str) -> int:
-    """Chunk + embed *analysis_text* into ``document_chunks``.
+    """Chunk + embed *analysis_text* into ``document_chunks`` (V2 T04).
 
-    Idempotent: existing chunks for the document are replaced. Returns
-    the number of chunks stored (0 when embeddings are unavailable).
+    Idempotent: existing chunks for the document are replaced. Texto
+    persiste SEMPRE (busca FTS degradada); vetores só quando íntegros
+    (cardinalidade + dimensão + finitos). Retorna chunks armazenados.
     Raises on unexpected errors — the caller must guard the task.
     """
+    from app.core.embeddings import embedding_space, validate_vectors
+
     chunks = chunk_legal_text(analysis_text)
     if not chunks:
         return 0
 
-    vectors = embed_texts([c.content for c in chunks])
-    if not vectors:
-        logger.warning(
-            "Documento %s: embeddings indisponiveis; chunks nao indexados.",
-            document_id,
-        )
-        return 0
+    contents = [c.content for c in chunks]
+    vectors = embed_texts(contents)
+    space = embedding_space()
+    if not validate_vectors(contents, vectors):
+        if vectors is not None:
+            logger.warning(
+                "Documento %s: vetores inválidos; persistindo só texto (FTS).",
+                document_id,
+            )
+        else:
+            logger.warning(
+                "Documento %s: embeddings indisponiveis; persistindo só texto (FTS).",
+                document_id,
+            )
+        vectors = [None] * len(chunks)
 
     db = SessionLocal()
     try:
@@ -117,8 +128,10 @@ def index_document_chunks(document_id: str, analysis_text: str) -> int:
                     content=chunk.content,
                     token_count=chunk.token_count,
                     embedding=vector,
-                    embedding_model=settings.EMBEDDING_MODEL,
-                    embedding_model_version=settings.EMBEDDING_MODEL_VERSION,
+                    embedding_model=space["model"],
+                    embedding_model_version=space["version"],
+                    embedding_provider=space["provider"],
+                    embedding_dimensions=space["dimensions"],
                 )
             )
         db.commit()

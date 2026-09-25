@@ -112,6 +112,13 @@ def test_candidate_queries_always_filter_tenant():
     # Keyless seed rows must never enter the vector branch.
     assert ":noop_model" in retrieval.VECTOR_CANDIDATES_SQL
     assert retrieval.NOOP_EMBEDDING_MODEL == "seed-noop"
+    # V2 T04: document scope aplicado ANTES do ranking + NULL fora do ANN.
+    for template in (
+        retrieval.VECTOR_CANDIDATES_SQL,
+        retrieval.FTS_CANDIDATES_SQL,
+    ):
+        assert ":document_id" in template
+    assert "embedding IS NOT NULL" in retrieval.VECTOR_CANDIDATES_SQL
 
 
 # --- Rerank fallback ------------------------------------------------------------
@@ -158,7 +165,7 @@ def test_hybrid_search_fuses_and_enforces_tenant(
         db_session,
         user_id=user.id,
         query_text="cobranca indevida",
-        query_embedding=[0.1, 0.2, 0.3],
+        query_embedding=[0.1] * retrieval.settings.EMBEDDING_DIMENSIONS,
         top_k=6,
     )
     assert [str(r.id) for r in rows] == [str(chunk_a.id)]
@@ -195,7 +202,7 @@ def test_hybrid_search_empty_returns_empty(monkeypatch, db_session, make_user):
             db_session,
             user_id=user.id,
             query_text="nada",
-            query_embedding=[0.1],
+            query_embedding=[0.1] * retrieval.settings.EMBEDDING_DIMENSIONS,
         )
         == []
     )
@@ -220,7 +227,9 @@ def test_index_document_chunks_persists_and_is_idempotent(
     db_session.refresh(document)
 
     monkeypatch.setattr(
-        tasks, "embed_texts", lambda texts: [[0.1, 0.2, 0.3] for _ in texts]
+        tasks,
+        "embed_texts",
+        lambda texts: [[0.1] * retrieval.settings.EMBEDDING_DIMENSIONS for _ in texts],
     )
 
     first = tasks.index_document_chunks(str(document.id), PETITION)
@@ -234,6 +243,7 @@ def test_index_document_chunks_persists_and_is_idempotent(
     assert len(rows) == first
     assert all(str(r.user_id) == str(user.id) for r in rows)
     assert rows[0].embedding_model == "text-embedding-3-small"
+    assert all(r.embedding is not None for r in rows)
 
     second = tasks.index_document_chunks(str(document.id), PETITION)
     assert second == first
@@ -245,9 +255,10 @@ def test_index_document_chunks_persists_and_is_idempotent(
     )
 
 
-def test_index_document_chunks_skips_without_embeddings(
+def test_index_document_chunks_persists_text_without_embeddings(
     monkeypatch, db_session, make_user
 ):
+    """V2 T04: sem embeddings, o texto persiste (FTS degradada)."""
     user = make_user()
     document = Document(
         user_id=user.id,
@@ -260,10 +271,13 @@ def test_index_document_chunks_skips_without_embeddings(
     db_session.commit()
 
     monkeypatch.setattr(tasks, "embed_texts", lambda texts: None)
-    assert tasks.index_document_chunks(str(document.id), PETITION) == 0
-    assert (
+    stored = tasks.index_document_chunks(str(document.id), PETITION)
+    assert stored >= 1
+    rows = (
         db_session.query(DocumentChunk)
         .filter_by(document_id=document.id)
-        .count()
-        == 0
+        .all()
     )
+    assert len(rows) == stored
+    assert all(r.embedding is None for r in rows)
+    assert all(r.content for r in rows)

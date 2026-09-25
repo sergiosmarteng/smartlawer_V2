@@ -84,6 +84,62 @@ def _validate_dimensions(vectors: list[list[float]]) -> bool:
     return True
 
 
+def embedding_space() -> dict:
+    """Identidade do espaço vetorial ativo (V2 §15).
+
+    Modelos distintos com a mesma dimensão NÃO são intercambiáveis:
+    provedor + modelo + versão + dimensão identificam a geração.
+    """
+    return {
+        "provider": settings.AI_PROVIDER.lower(),
+        "model": resolve_embedding_model(),
+        "version": settings.EMBEDDING_MODEL_VERSION,
+        "dimensions": int(settings.EMBEDDING_DIMENSIONS),
+    }
+
+
+def validate_vectors(texts: list[str], vectors: list | None) -> bool:
+    """Cardinalidade, dimensão e valores finitos (V2 §15).
+
+    Nunca usar zip silencioso com comprimentos diferentes.
+    """
+    import math
+
+    if not vectors:
+        return False
+    if len(vectors) != len(texts):
+        logger.error(
+            "Embedding cardinalidade divergente: %s textos, %s vetores. "
+            "Recusando indexação vetorial.",
+            len(texts),
+            len(vectors),
+        )
+        return False
+    expected = int(settings.EMBEDDING_DIMENSIONS)
+    for vector in vectors:
+        if len(vector) != expected or not all(
+            isinstance(x, (int, float)) and math.isfinite(x) for x in vector
+        ):
+            logger.error(
+                "Embedding inválido (dimensão ou NaN/Inf); recusando vetor."
+            )
+            return False
+    return True
+
+
+def validate_query_embedding(query_embedding: list | None) -> bool:
+    """Vetor de consulta íntegro para o ANN; inválido degrada para FTS."""
+    import math
+
+    if not query_embedding:
+        return False
+    expected = int(settings.EMBEDDING_DIMENSIONS)
+    return len(query_embedding) == expected and all(
+        isinstance(x, (int, float)) and math.isfinite(x)
+        for x in query_embedding
+    )
+
+
 def embed_texts(texts: list[str]) -> list[list[float]] | None:
     """Embed a batch of texts. Returns ``None`` when unavailable.
 
