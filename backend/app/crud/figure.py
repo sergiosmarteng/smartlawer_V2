@@ -11,6 +11,7 @@ def replace_document_figures(
     document_id: UUID | str,
     user_id: UUID | str,
     figures: list[dict],
+    revision_id: UUID | str | None = None,
 ) -> list[DocumentFigure]:
     """Idempotent: substitui todas as figuras do documento."""
     db.query(DocumentFigure).filter(
@@ -22,6 +23,7 @@ def replace_document_figures(
             DocumentFigure(
                 document_id=document_id,
                 user_id=user_id,
+                revision_id=revision_id or item.get("revision_id"),
                 page_number=item.get("page_number"),
                 bbox=item.get("bbox"),
                 caption=item.get("caption"),

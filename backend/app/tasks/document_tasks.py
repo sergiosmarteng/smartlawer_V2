@@ -7,19 +7,31 @@ from app.core.config import settings
 from app.core.database import SessionLocal
 from app.core.docling_extractor import extract_markdown as docling_extract_markdown
 from app.core.docling_extractor import (
+    MAX_FIGURES,
     _extract_figures_fitz,
     extract_figures as docling_extract_figures,
+)
+from app.core.extraction import (
+    FIGURES_TRUNCATED,
+    extract_inventory,
+    figures_with_state,
 )
 from app.core.storage import figure_directory
 from app.core.embeddings import embed_texts
 from app.core.legal_chunker import chunk_legal_text
 from app.core.pdf_processor import PDFExtractor
 from app.crud.document import get_document, update_document_state
+from app.crud.extraction import (
+    get_or_create_revision,
+    replace_source_blocks,
+)
 from app.crud.figure import replace_document_figures
 from app.crud.prompt import get_default_strategy_prompt
 from app.models.analysis import Analysis
 from app.models.document import Document
 from app.models.document_chunk import DocumentChunk
+from app.models.document_revision import DocumentRevision
+from app.models.source_block import SourceBlock
 from app.worker import celery_app
 
 logger = logging.getLogger(__name__)
@@ -132,6 +144,35 @@ def process_pdf_task(self, document_id: str, file_path: str):
 
         analysis_text = prepare_analysis_input(document_id, file_path, raw_text)
 
+        # V2 T03: inventário página/bloco por revisão (best-effort, nunca
+        # derruba a task). Figuras ligadas à revisão, sem novo catálogo.
+        revision_id: str | None = None
+        try:
+            doc = get_document(db, id=document_id)
+            if doc is not None:
+                with open(file_path, "rb") as handle:
+                    file_sha = DocumentRevision.hash_bytes(handle.read())
+                revision, _ = get_or_create_revision(
+                    db,
+                    document_id=doc.id,
+                    user_id=doc.user_id,
+                    file_sha256=file_sha,
+                    origin=file_path,
+                )
+                revision_id = str(revision.id)
+                pages, coverage = extract_inventory(file_path, revision_id)
+                if pages:
+                    replace_source_blocks(db, revision=revision, pages=pages)
+                revision.pages_total = coverage.get("pages_total")
+                revision.extra = {"coverage": coverage}
+                db.commit()
+        except Exception as exc:
+            logger.warning(
+                "Inventário de extração falhou para %s (%s); seguindo.",
+                document_id,
+                exc,
+            )
+
         try:
             doc = get_document(db, id=document_id)
             if doc is not None:
@@ -143,11 +184,43 @@ def process_pdf_task(self, document_id: str, file_path: str):
                     figures = _extract_figures_fitz(
                         file_path, figure_directory(str(document_id))
                     )
+                truncated = len(figures) >= MAX_FIGURES
+                figures, figures_state = figures_with_state(
+                    figures, truncated=truncated
+                )
+                if revision_id is not None and figures_state == "ok_empty":
+                    # Checagem independente: inventário viu imagens mas
+                    # nenhuma figura foi extraída → lacuna, não "sem figuras".
+                    try:
+                        imaged = [
+                            b
+                            for b in db.query(SourceBlock)
+                            .filter(SourceBlock.revision_id == revision_id)
+                            .all()
+                            if b.block_type == "image"
+                        ]
+                        if imaged:
+                            figures_state = "figures_unresolved"
+                    except Exception:
+                        pass
+                if revision_id is not None:
+                    try:
+                        owner = get_document(db, id=document_id)
+                        if owner is not None:
+                            revision_row = db.get(DocumentRevision, revision_id)
+                            if revision_row is not None:
+                                extra = dict(revision_row.extra or {})
+                                extra["figures_state"] = figures_state
+                                revision_row.extra = extra
+                                db.commit()
+                    except Exception:
+                        pass
                 replace_document_figures(
                     db,
                     document_id=doc.id,
                     user_id=doc.user_id,
                     figures=figures,
+                    revision_id=revision_id,
                 )
                 logger.info(
                     "Documento %s: %d figura(s) extraída(s) (docling=%s).",

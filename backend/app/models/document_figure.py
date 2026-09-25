@@ -30,6 +30,11 @@ class DocumentFigure(Base):
     user_id = Column(
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
     )
+    revision_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("document_revisions.id", ondelete="SET NULL"),
+        nullable=True,
+    )
     page_number = Column(Integer, nullable=True)
     bbox = Column(JSONB, nullable=True)
     caption = Column(Text, nullable=True)
