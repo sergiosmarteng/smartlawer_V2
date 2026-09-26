@@ -10,8 +10,22 @@ from app.models.prompt_profile import PromptProfile
 PDF_BYTES = b"%PDF-1.4 test content"
 
 
+def _real_pdf_bytes() -> bytes:
+    import io
+
+    import fitz
+
+    doc = fitz.open()
+    page = doc.new_page()
+    page.insert_text((72, 72), "Peticao de teste.")
+    buf = io.BytesIO()
+    doc.save(buf)
+    doc.close()
+    return buf.getvalue()
+
+
 def _pdf_file(name="doc.pdf"):
-    return (name, PDF_BYTES, "application/pdf")
+    return (name, _real_pdf_bytes(), "application/pdf")
 
 
 def _make_analysis(db_session, make_user, *, email="c3-owner@example.com",

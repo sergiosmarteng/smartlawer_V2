@@ -30,6 +30,7 @@ class AuditEvent(Base):
     DOCUMENT_UPLOAD = "document.upload"
     DOCUMENT_COMPLETED = "document.completed"
     DOCUMENT_FAILED = "document.failed"
+    DOCUMENT_DELETED = "document.deleted"
     DOCX_GENERATED = "docx.generated"
     TEMPLATE_UPLOAD = "template.upload"
     PROMPT_CREATED = "prompt.created"

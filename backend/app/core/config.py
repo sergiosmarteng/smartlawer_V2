@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     RETRIEVAL_CANDIDATE_K: int = 30
     RETRIEVAL_TOP_K: int = 6
     RRF_K: int = 60
+    # V2 T13: limites operacionais configuráveis (§17).
+    MAX_UPLOAD_MB: int = 50
+    MAX_PDF_PAGES: int = 500
     # V2 T05: orçamento de contexto do planejamento de cobertura (§6.1/§17).
     PROMPT_BUDGET_TOKENS: int = 30000
     COVERAGE_MAX_BATCH_TOKENS: int = 8000

@@ -9,8 +9,11 @@ from sqlalchemy.orm import Session
 
 from app.api import deps
 from app.core.audit import record_audit
+from app.core.config import settings
+from app.core.storage import figure_directory
 from app.crud.document import (
     create_document,
+    delete_document_cascade,
     get_document_for_user,
     get_documents_by_user,
     update_document_state,
@@ -95,6 +98,35 @@ async def batch_upload_documents(
     return BatchUploadResponse(items=items, errors=errors)
 
 
+def _validate_upload_constraints(file_path: str, filename: str) -> None:
+    """Tamanho, páginas e integridade do PDF (V2 T13, §17)."""
+    max_bytes = int(settings.MAX_UPLOAD_MB) * 1024 * 1024
+    size = os.path.getsize(file_path)
+    if size > max_bytes:
+        os.remove(file_path)
+        raise HTTPException(
+            status_code=413,
+            detail=f"PDF excede o limite de {settings.MAX_UPLOAD_MB} MB.",
+        )
+    try:
+        import fitz
+
+        doc = fitz.open(file_path)
+        try:
+            pages = len(doc)
+        finally:
+            doc.close()
+    except Exception:
+        os.remove(file_path)
+        raise HTTPException(status_code=422, detail="PDF inválido ou corrompido.")
+    if pages > int(settings.MAX_PDF_PAGES):
+        os.remove(file_path)
+        raise HTTPException(
+            status_code=413,
+            detail=f"PDF excede o limite de {settings.MAX_PDF_PAGES} páginas.",
+        )
+
+
 def _store_and_queue(
     db: Session,
     current_user: User,
@@ -109,6 +141,8 @@ def _store_and_queue(
 
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
+
+    _validate_upload_constraints(file_path, file.filename or "upload.pdf")
 
     document = create_document(
         db,
@@ -167,6 +201,45 @@ def get_user_documents(
     current_user: User = Depends(deps.get_current_active_user),
 ):
     return get_documents_by_user(db, user_id=current_user.id, skip=skip, limit=limit)
+
+
+@router.delete("/{document_id}", status_code=204)
+def delete_document(
+    document_id: str,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_active_user),
+):
+    """Exclusão rastreável: revoga acesso e remove texto, vetores,
+    figuras, revisões, runs e arquivos (V2 T13, §16)."""
+    import shutil
+
+    document = get_document_for_user(
+        db, id=document_id, user_id=current_user.id
+    )
+    if document is None:
+        raise HTTPException(status_code=404, detail="Documento não encontrado")
+    file_path = document.file_path
+    figures_dir = os.path.join(
+        os.path.dirname(figure_directory(str(document.id))), str(document.id)
+    )
+    counts = delete_document_cascade(db, document=document)
+    for path in (file_path, figures_dir):
+        try:
+            if path and os.path.isfile(path):
+                os.remove(path)
+            elif path and os.path.isdir(path):
+                shutil.rmtree(path, ignore_errors=True)
+        except OSError:
+            pass
+    record_audit(
+        db,
+        event_type=AuditEvent.DOCUMENT_DELETED,
+        user_id=current_user.id,
+        entity_type="document",
+        entity_id=document.id,
+        meta=counts,
+    )
+    return None
 
 
 @router.get("/{document_id}/figures/{figure_id}")

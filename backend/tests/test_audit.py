@@ -5,6 +5,20 @@ from app.models.audit_event import AuditEvent
 from app.models.document import Document
 
 
+def _real_pdf_bytes() -> bytes:
+    import io
+
+    import fitz
+
+    doc = fitz.open()
+    page = doc.new_page()
+    page.insert_text((72, 72), "Peticao de teste.")
+    buf = io.BytesIO()
+    doc.save(buf)
+    doc.close()
+    return buf.getvalue()
+
+
 def _make_admin(db_session, make_user):
     admin = make_user(email="admin@example.com", username="admin")
     admin.role = "admin"
@@ -46,7 +60,7 @@ def test_upload_is_audited(client, make_user, auth_headers_for, monkeypatch, tem
     upload = client.post(
         "/api/v1/documents/upload",
         headers=auth_headers_for(user),
-        files={"file": ("a.pdf", b"%PDF-1.4 x", "application/pdf")},
+        files={"file": ("a.pdf", _real_pdf_bytes(), "application/pdf")},
     )
     assert upload.status_code == 200
 

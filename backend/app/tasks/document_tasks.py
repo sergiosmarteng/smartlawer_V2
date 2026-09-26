@@ -152,6 +152,9 @@ def index_document_chunks(document_id: str, analysis_text: str) -> int:
 
 @celery_app.task(bind=True, max_retries=3)
 def process_pdf_task(self, document_id: str, file_path: str):
+    import time
+
+    task_started = time.monotonic()
     logger.info("Iniciando processamento para documento %s", document_id)
     db = SessionLocal()
     try:
@@ -404,8 +407,12 @@ def process_pdf_task(self, document_id: str, file_path: str):
         # V2 T11: publica o artefato com o status do verificador (T10).
         if run is not None and v2_artifact_content is not None:
             try:
+                import time
+
+                from app.core.legal_chunker import estimate_tokens
+
                 report = verify(coerce_legacy_analysis(ai_data if isinstance(ai_data, dict) else {}))
-                publish_artifact(
+                artifact = publish_artifact(
                     db, run=run, content=v2_artifact_content,
                     status=decide_status(report),
                     quality_notes={
@@ -413,6 +420,19 @@ def process_pdf_task(self, document_id: str, file_path: str):
                         "pending_actions": report.pending_actions,
                     },
                 )
+                # V2 T13: telemetria por execução (preço ausente = indisponível).
+                run.usage = {
+                    "pages_total": (revision.extra or {}).get("coverage", {}).get("pages_total")
+                    if revision_id else None,
+                    "chars": len(analysis_text or ""),
+                    "prompt_tokens_est": estimate_tokens(analysis_text or ""),
+                    "model": getattr(analyzer, "model", None),
+                    "provider": getattr(analyzer, "provider", None),
+                    "duration_s": round(time.monotonic() - task_started, 2),
+                    "cost": "unavailable",
+                    "artifact_id": str(artifact.id),
+                }
+                db.commit()
             except VersionConflictError:
                 logger.info("Run %s já publicado; mantendo artefato atual.", run.id)
             except Exception as exc:

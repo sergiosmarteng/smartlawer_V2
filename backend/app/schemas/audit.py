@@ -20,3 +20,4 @@ class OpsSummaryResponse(BaseModel):
     documents_by_status: dict[str, int] = Field(default_factory=dict)
     events_24h: dict[str, int] = Field(default_factory=dict)
     recent_failures: list[AuditEventResponse] = Field(default_factory=list)
+    limits: dict[str, int] = Field(default_factory=dict)
