@@ -74,8 +74,14 @@ def _require_decimal(value, label: str) -> Decimal:
     if isinstance(value, str):
         parsed = parse_br_money(value)
         if parsed.value is None:
-            raise ValueError(f"{label}: valor ambíguo {value!r}")
-        return parsed.value
+            # Forma canônica de encadeamento ("6179.06").
+            try:
+                return _quantize(Decimal(value.strip()))
+            except (InvalidOperation, ValueError, AttributeError):
+                pass
+        else:
+            return parsed.value
+        raise ValueError(f"{label}: valor ambíguo {value!r}")
     raise TypeError(f"{label}: tipo inválido {type(value).__name__}")
 
 
