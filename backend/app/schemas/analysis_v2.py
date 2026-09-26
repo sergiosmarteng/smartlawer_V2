@@ -95,3 +95,13 @@ class ReviewEventResponse(WorkflowV2Base):
     reason: str | None = None
     source_version: str | None = None
     created_at: datetime | None = None
+
+
+class ExportRequest(WorkflowV2Base):
+    mode: str = "complete"
+
+
+class ExportResponse(WorkflowV2Base):
+    job_id: str
+    download_url: str
+    mode: str

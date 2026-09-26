@@ -74,6 +74,44 @@ FALLBACK_NO_BASIS = (
     "Reformule a pergunta ou envie um documento que trate do ponto."
 )
 
+_GLOBAL_INTENT_RE = None
+
+
+def _global_intent_pattern():
+    global _GLOBAL_INTENT_RE
+    if _GLOBAL_INTENT_RE is None:
+        import re
+
+        _GLOBAL_INTENT_RE = re.compile(
+            r"(todos?\s+(os\s+)?pedidos|quais\s+(s[aã]o\s+)?(os\s+)?pedidos|"
+            r"sem\s+prova|falta(m)?\s+(prova|documento)|lista(r)?\s+(de\s+)?pedidos|"
+            r"quantos\s+pedidos|vis[aã]o\s+geral|resumo\s+do\s+caso|"
+            r"o\s+que\s+(foi\s+)?pedido)",
+            re.IGNORECASE,
+        )
+    return _GLOBAL_INTENT_RE
+
+
+def is_global_inventory_query(query: str) -> bool:
+    """Pergunta de leitura global: exige inventário integral, não top-K (V2 §13)."""
+    return bool(_global_intent_pattern().search(query or ""))
+
+
+def build_inventory_answer(document_name: str, analysis) -> str:
+    """Resposta determinística do inventário integral (sem LLM)."""
+    requests = [str(r).strip() for r in (analysis.requests or []) if str(r).strip()]
+    lines = [
+        f"Inventário integral de {document_name} (síntese [A] — conferir nas fontes):",
+        f"Total de pedidos registrados: {len(requests)}.",
+    ]
+    for index, request in enumerate(requests, start=1):
+        lines.append(f"{index}. {request}")
+    lines.append(
+        "Provas por pedido exigem leitura dos trechos originais; "
+        "esta lista não substitui a conferência pedido a pedido."
+    )
+    return "\n".join(lines)
+
 COUNSEL_SYSTEM_PROMPT = """Você é um advogado sócio sênior brasileiro com mais de 40 anos de prática contenciosa em todas as áreas do Direito (civil, trabalhista, penal, tributário, administrativo, consumidor, família e sucessões, empresarial). Atua agora como consultor interno do escritório que detém estes documentos.
 
 Ao receber o CASO, identifique a área jurídica dominante e adote o vocabulário, a técnica processual e a tática dessa área — você é o especialista na matéria daquele documento.
@@ -109,6 +147,8 @@ def build_case_brief(document_name: str, analysis) -> str:
     summary = (analysis.summary or "").strip()
     return (
         f"DOCUMENTO: {document_name}\n"
+        "ORIGEM: síntese gerada por IA a partir da extração — NÃO é prova "
+        "primária; confira cada afirmação nas fontes originais [N].\n"
         f"RESUMO DOS FATOS (análise registrada — cite como [A]):\n{summary[:1200]}\n\n"
         f"PEDIDOS:\n{_bullet_list(analysis.requests, 8)}\n\n"
         f"NORMAS CITADAS NA ANÁLISE:\n{_bullet_list(analysis.laws, 12)}\n\n"
@@ -117,9 +157,12 @@ def build_case_brief(document_name: str, analysis) -> str:
 
 
 def analysis_citation(document_id, document_name: str, analysis) -> dict:
-    """Synthetic [A] citation pointing at the stored analysis page."""
+    """Citação [A] tipada como DERIVADA: síntese gerada, não prova (V2 T12)."""
     return {
         "ref": "[A]",
+        "kind": "derived",
+        "derived_from": f"analysis:{analysis.id}",
+        "note": "Síntese gerada por IA; abrir as fontes originais [N] antes de concluir.",
         "chunk_id": str(analysis.id),
         "document_id": str(document_id),
         "document_name": f"{document_name} — análise registrada",
@@ -306,6 +349,17 @@ def answer_query(
         if document is not None and document.analysis is not None:
             analysis = document.analysis
             case_brief = build_case_brief(document.filename, analysis)
+    # V2 T12: leitura global usa o inventário integral, nunca só o top-K.
+    if analysis is not None and document is not None and is_global_inventory_query(query):
+        return {
+            "answer": build_inventory_answer(document.filename, analysis),
+            "citations": [analysis_citation(document.id, document.filename, analysis)],
+            "suggested_questions": [],
+            "model": settings.CHAT_MODEL,
+            "ai_draft": True,
+            "requires_human_review": True,
+            "inventory_based": True,
+        }
     embedding = embed_query(query)
     chunks = hybrid_search(
         db,

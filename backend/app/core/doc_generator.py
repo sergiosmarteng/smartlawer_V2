@@ -8,6 +8,8 @@ from typing import Any
 
 from docxtpl import DocxTemplate
 
+from app.core.action_plan import build_action_plan
+
 
 class DocxGenerator:
     DEFAULT_TEXT = "Nao informado."
@@ -144,9 +146,13 @@ class DocxGenerator:
             "laws": normalized_laws,
             "evidence": normalized_evidence,
             "defense_theses": normalized_defense_theses,
-            "generatedDefenseStrategy": "\n".join(
-                f"{index + 1}. {item}"
-                for index, item in enumerate(normalized_defense_theses)
+            # V2 T12/D06: plano de atuação, não cópia das teses.
+            "generatedDefenseStrategy": build_action_plan(
+                {
+                    "defense_theses": normalized_defense_theses,
+                    "requests": normalized_requests,
+                    "laws": normalized_laws,
+                }
             ),
             "analysis_json": json.dumps(analysis_dict, ensure_ascii=True, default=str),
         }

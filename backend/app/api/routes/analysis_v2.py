@@ -26,6 +26,8 @@ from app.schemas.analysis_v2 import (
     CreateRunRequest,
     CreateRunResponse,
     ErrorEnvelope,
+    ExportRequest,
+    ExportResponse,
     ReviewEventRequest,
     ReviewEventResponse,
     RunStatusResponse,
@@ -388,3 +390,74 @@ def list_review_events(
         )
         for e in events
     ]
+
+
+def _export_job_id(artifact: AnalysisArtifact, mode: str) -> str:
+    seed = f"{artifact.id}:{mode}:{artifact.content_hash or ''}"
+    return hashlib.sha256(seed.encode("utf-8")).hexdigest()[:16]
+
+
+@router.post("/analyses/{artifact_id}/exports", response_model=ExportResponse, status_code=202)
+def request_export(
+    artifact_id: uuid.UUID,
+    payload: ExportRequest,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_active_user),
+):
+    """Relatório vinculado à revisão; mesmo artefato, sem nova IA."""
+    from app.core.v2_export import MODE_COMPLETE, MODE_EXECUTIVE
+
+    mode = payload.mode if payload.mode in (MODE_EXECUTIVE, MODE_COMPLETE) else MODE_COMPLETE
+    artifact = _owned_artifact(db, artifact_id, current_user)
+    job_id = _export_job_id(artifact, mode)
+    return ExportResponse(
+        job_id=job_id,
+        download_url=f"/api/v2/exports/{job_id}?artifact_id={artifact.id}&mode={mode}",
+        mode=mode,
+    )
+
+
+@router.get("/exports/{job_id}")
+def download_export(
+    job_id: str,
+    artifact_id: uuid.UUID,
+    mode: str = "complete",
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_active_user),
+):
+    """Regenera deterministicamente o relatório do artefato (job sem estado)."""
+    from app.core.v2_export import MODE_COMPLETE, MODE_EXECUTIVE, build_report
+    from app.models.review_event import ReviewEvent
+    from fastapi.responses import PlainTextResponse
+
+    artifact = _owned_artifact(db, artifact_id, current_user)
+    mode = mode if mode in (MODE_EXECUTIVE, MODE_COMPLETE) else MODE_COMPLETE
+    if _export_job_id(artifact, mode) != job_id:
+        raise _error(404, "NOT_FOUND", "Exportação não encontrada.")
+    refs = (
+        db.query(SourceReference)
+        .filter(SourceReference.run_id == artifact.run_id,
+                SourceReference.user_id == current_user.id)
+        .all()
+    )
+    events = (
+        db.query(ReviewEvent)
+        .filter(ReviewEvent.artifact_id == artifact.id)
+        .order_by(ReviewEvent.created_at)
+        .all()
+    )
+    body = build_report(
+        artifact.content or {},
+        mode=mode,
+        sources=[{"id": str(r.id), "page_number": r.page_number,
+                  "quote": r.quote, "verification_status": r.verification_status}
+                 for r in refs],
+        review_events=[{"target": e.target, "reason": e.reason} for e in events],
+        artifact_status=artifact.status,
+        review_status=artifact.review_status,
+    )
+    return PlainTextResponse(
+        body,
+        media_type="text/markdown",
+        headers={"Content-Disposition": f'attachment; filename="dossie-{job_id}.md"'},
+    )

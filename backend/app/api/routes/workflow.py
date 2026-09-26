@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.api import deps
 from app.api.routes.templates import _get_owned_analysis, generate_docx_document
+from app.core.action_plan import build_action_plan
 from app.crud.document import get_document_for_user, get_documents_by_user
 from app.crud.figure import list_document_figures
 from app.models.analysis import Analysis
@@ -87,8 +88,14 @@ def _analysis_payload(
     analysis: Analysis, db: Session | None = None
 ) -> AnalysisDetailResponse:
     defense_items = analysis.defense_theses or []
-    generated_defense = "\n\n".join(
-        f"{index + 1}. {item}" for index, item in enumerate(defense_items)
+    # V2 T12/D06: estratégia NÃO é a enumeração das teses — é plano de
+    # atuação (ordem de trabalho). Campo mantido por compatibilidade V1.
+    generated_defense = build_action_plan(
+        {
+            "defense_theses": defense_items,
+            "requests": analysis.requests or [],
+            "laws": analysis.laws or [],
+        }
     )
     document = analysis.document
 
@@ -272,7 +279,8 @@ def _summary_markdown(analysis: Analysis) -> str:
         f"## Pedidos\n{requests}\n\n"
         f"## Fundamentacao legal\n{laws}\n\n"
         f"## Provas\n{_stringify_evidence(analysis.evidence)}\n\n"
-        f"## Teses defensivas\n{strategy or 'Nao informado.'}\n"
+        f"## Teses defensivas\n{strategy or 'Nao informado.'}\n\n"
+        f"## Plano de atuacao\n{build_action_plan({'defense_theses': theses, 'requests': analysis.requests or [], 'laws': analysis.laws or []})}\n"
     )
 
 

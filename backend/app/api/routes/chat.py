@@ -141,6 +141,25 @@ def chat_stream(
                 scoped_document.id, scoped_document.filename, scoped_document.analysis
             )
         )
+        # V2 T12: leitura global usa o inventário integral, nunca só o top-K.
+        if rag_answer.is_global_inventory_query(payload.query):
+            inventory_answer = rag_answer.build_inventory_answer(
+                scoped_document.filename, scoped_document.analysis
+            )
+
+            def inventory_stream():
+                yield _sse({"token": inventory_answer})
+                yield _sse(
+                    {
+                        "done": True,
+                        "citations": citations,
+                        "suggested_questions": [],
+                        "ai_draft": True,
+                        "requires_human_review": True,
+                    }
+                )
+
+            return StreamingResponse(inventory_stream(), media_type="text/event-stream")
 
     def event_stream():
         if not chunks and not case_brief:
