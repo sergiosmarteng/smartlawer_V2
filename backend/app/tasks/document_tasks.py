@@ -2,6 +2,7 @@ import logging
 from datetime import datetime, timezone
 
 from app.core.ai_engine import AnalysisError, LegalAnalyzer
+from app.core.analysis_verifier import decide_status, verify
 from app.core.audit import audit_document_completion
 from app.core.config import settings
 from app.core.database import SessionLocal
@@ -17,6 +18,7 @@ from app.core.extraction import (
     extract_inventory,
     figures_with_state,
 )
+from app.core.schemas_v2 import coerce_legacy_analysis
 from app.core.storage import figure_directory
 from app.core.embeddings import embed_texts
 from app.core.legal_chunker import chunk_legal_text
@@ -28,7 +30,14 @@ from app.crud.extraction import (
 )
 from app.crud.figure import replace_document_figures
 from app.crud.prompt import get_default_strategy_prompt
+from app.crud.run import (
+    VersionConflictError,
+    create_run,
+    publish_artifact,
+    transition_run,
+)
 from app.models.analysis import Analysis
+from app.models.analysis_run import AnalysisRun
 from app.models.document import Document
 from app.models.document_chunk import DocumentChunk
 from app.models.document_revision import DocumentRevision
@@ -158,6 +167,27 @@ def process_pdf_task(self, document_id: str, file_path: str):
 
         analysis_text = prepare_analysis_input(document_id, file_path, raw_text)
 
+        # V2 T11: execução versionada do pipeline (best-effort; o legado
+        # Document/Analysis continua sendo a projeção compatível).
+        run = None
+        try:
+            doc0 = get_document(db, id=document_id)
+            if doc0 is not None:
+                run = create_run(
+                    db,
+                    user_id=doc0.user_id,
+                    document_id=doc0.id,
+                    idempotency_key=f"pipeline:{document_id}",
+                    snapshot={"file_path": file_path},
+                )
+                transition_run(
+                    db, run=run, status=AnalysisRun.RUNNING,
+                    stage=AnalysisRun.STAGE_EXTRACTION,
+                )
+        except Exception as exc:
+            logger.warning("Run V2 não criado para %s (%s); seguindo.", document_id, exc)
+            run = None
+
         # V2 T03: inventário página/bloco por revisão (best-effort, nunca
         # derruba a task). Figuras ligadas à revisão, sem novo catálogo.
         revision_id: str | None = None
@@ -278,6 +308,7 @@ def process_pdf_task(self, document_id: str, file_path: str):
         )
 
         analyzer = LegalAnalyzer()
+        v2_artifact_content: dict | None = None
         try:
             doc = get_document(db, id=document_id)
             strategy_prompt = (
@@ -308,11 +339,26 @@ def process_pdf_task(self, document_id: str, file_path: str):
                         defense_theses=ai_data.get("defense_theses", []),
                     )
                 )
+            # V2 T11: artefato honesto (ponte legada) para o dossiê.
+            try:
+                legacy_artifact = coerce_legacy_analysis(ai_data)
+                v2_artifact_content = legacy_artifact.model_dump()
+            except Exception as exc:
+                logger.warning("Coerção legada V2 falhou (%s); sem artefato.", exc)
         except AnalysisError as ai_exc:
             # V2 T01: falha de IA nunca vira COMPLETED nem tese genérica.
             code = getattr(ai_exc, "code", "ANALYSIS_FAILED") or "ANALYSIS_FAILED"
             logger.error("Analise falhou para %s [%s]: %s", document_id, code, ai_exc)
             db.rollback()
+            if run is not None:
+                try:
+                    transition_run(
+                        db, run=run, status=AnalysisRun.FAILED,
+                        stage=AnalysisRun.STAGE_COMPOSITION,
+                        error_code=code, error_message=str(ai_exc),
+                    )
+                except Exception:
+                    pass
             update_document_state(
                 db,
                 id=document_id,
@@ -325,6 +371,15 @@ def process_pdf_task(self, document_id: str, file_path: str):
         except Exception as ai_exc:
             logger.error("OpenAI falhou: %s.", ai_exc)
             db.rollback()
+            if run is not None:
+                try:
+                    transition_run(
+                        db, run=run, status=AnalysisRun.FAILED,
+                        stage=AnalysisRun.STAGE_COMPOSITION,
+                        error_code="PROVIDER_UNAVAILABLE", error_message=str(ai_exc),
+                    )
+                except Exception:
+                    pass
             update_document_state(
                 db,
                 id=document_id,
@@ -345,6 +400,23 @@ def process_pdf_task(self, document_id: str, file_path: str):
             completed_at=datetime.now(timezone.utc),
         )
         audit_document_completion(db, document=get_document(db, id=document_id))
+
+        # V2 T11: publica o artefato com o status do verificador (T10).
+        if run is not None and v2_artifact_content is not None:
+            try:
+                report = verify(coerce_legacy_analysis(ai_data if isinstance(ai_data, dict) else {}))
+                publish_artifact(
+                    db, run=run, content=v2_artifact_content,
+                    status=decide_status(report),
+                    quality_notes={
+                        "errors": report.errors, "warnings": report.warnings,
+                        "pending_actions": report.pending_actions,
+                    },
+                )
+            except VersionConflictError:
+                logger.info("Run %s já publicado; mantendo artefato atual.", run.id)
+            except Exception as exc:
+                logger.warning("Publicação V2 falhou para %s (%s).", document_id, exc)
 
         try:
             index_document_chunks(document_id, analysis_text)
