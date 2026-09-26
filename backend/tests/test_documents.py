@@ -5,6 +5,20 @@ from app.models.document import Document
 from app.models.user import User
 
 
+def _real_pdf_bytes() -> bytes:
+    import fitz
+
+    doc = fitz.open()
+    page = doc.new_page()
+    page.insert_text((72, 72), "Peticao de teste.")
+    import io
+
+    buf = io.BytesIO()
+    doc.save(buf)
+    doc.close()
+    return buf.getvalue()
+
+
 def test_upload_document_returns_created_document_and_queues_task(
     client,
     make_user,
@@ -29,7 +43,7 @@ def test_upload_document_returns_created_document_and_queues_task(
     response = client.post(
         "/api/v1/documents/upload",
         headers=headers,
-        files={"file": ("petition.pdf", b"%PDF-1.4 test content", "application/pdf")},
+        files={"file": ("petition.pdf", _real_pdf_bytes(), "application/pdf")},
     )
 
     assert response.status_code == 200

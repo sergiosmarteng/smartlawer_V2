@@ -6,6 +6,102 @@ from sqlalchemy.orm import Session, selectinload
 from app.models.document import Document
 from app.schemas.document import DocumentCreate
 
+
+def delete_document_cascade(db: Session, *, document: Document) -> dict:
+    """Exclusão rastreável total (V2 T13, §16).
+
+    Remove texto, vetores, figuras, revisões/blocos, runs/artefatos/
+    fontes/eventos, gerações e análise. Retorna contagens p/ auditoria.
+    Arquivos em disco são removidos pelo chamador (rota).
+    """
+    from app.models.analysis import Analysis
+    from app.models.analysis_artifact import AnalysisArtifact
+    from app.models.analysis_run import AnalysisRun
+    from app.models.document_chunk import DocumentChunk
+    from app.models.document_figure import DocumentFigure
+    from app.models.document_revision import DocumentRevision
+    from app.models.generated_document import GeneratedDocument
+    from app.models.review_event import ReviewEvent
+    from app.models.source_block import SourceBlock
+    from app.models.source_reference import SourceReference
+
+    counts: dict[str, int] = {}
+
+    def _drop(query, label: str) -> None:
+        counts[label] = query.delete(synchronize_session=False)
+
+    analysis_ids = [
+        row.id for row in db.query(Analysis.id).filter(
+            Analysis.document_id == document.id
+        ).all()
+    ]
+    if analysis_ids:
+        _drop(
+            db.query(GeneratedDocument).filter(
+                GeneratedDocument.analysis_id.in_(analysis_ids)
+            ),
+            "generated_documents",
+        )
+    _drop(
+        db.query(DocumentChunk).filter(DocumentChunk.document_id == document.id),
+        "chunks",
+    )
+    _drop(
+        db.query(DocumentFigure).filter(DocumentFigure.document_id == document.id),
+        "figures",
+    )
+    revision_ids = [
+        row.id for row in db.query(DocumentRevision.id).filter(
+            DocumentRevision.document_id == document.id
+        ).all()
+    ]
+    if revision_ids:
+        _drop(
+            db.query(SourceBlock).filter(SourceBlock.revision_id.in_(revision_ids)),
+            "source_blocks",
+        )
+        _drop(
+            db.query(DocumentRevision).filter(DocumentRevision.id.in_(revision_ids)),
+            "revisions",
+        )
+    run_ids = [
+        row.id for row in db.query(AnalysisRun.id).filter(
+            AnalysisRun.document_id == document.id
+        ).all()
+    ]
+    if run_ids:
+        artifact_ids = [
+            row.id for row in db.query(AnalysisArtifact.id).filter(
+                AnalysisArtifact.run_id.in_(run_ids)
+            ).all()
+        ]
+        if artifact_ids:
+            _drop(
+                db.query(ReviewEvent).filter(ReviewEvent.artifact_id.in_(artifact_ids)),
+                "review_events",
+            )
+        _drop(
+            db.query(SourceReference).filter(SourceReference.run_id.in_(run_ids)),
+            "source_references",
+        )
+        _drop(
+            db.query(AnalysisArtifact).filter(AnalysisArtifact.run_id.in_(run_ids)),
+            "artifacts",
+        )
+        _drop(
+            db.query(AnalysisRun).filter(AnalysisRun.id.in_(run_ids)),
+            "runs",
+        )
+    if analysis_ids:
+        _drop(
+            db.query(Analysis).filter(Analysis.id.in_(analysis_ids)),
+            "analyses",
+        )
+    db.delete(document)
+    db.commit()
+    counts["documents"] = 1
+    return counts
+
 UNSET = object()
 
 

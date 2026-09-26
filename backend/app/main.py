@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import auth, audit, chat, documents, precedents, prompts, templates, users, versions, workflow
+from app.api.routes import auth, audit, chat, documents, precedents, prompts, templates, users, versions, workflow, analysis_v2
 from app.core.config import settings
 from app.core.database import SessionLocal
 from app.core.migrations import run_migrations
@@ -45,6 +45,7 @@ app.include_router(prompts.router, prefix="/api/v1/prompts", tags=["prompts"])
 app.include_router(templates.router, prefix="/api/v1/templates", tags=["templates"])
 app.include_router(versions.router, prefix="/api/v1", tags=["versions"])
 app.include_router(workflow.router, prefix="/api/v1", tags=["workflow"])
+app.include_router(analysis_v2.router, prefix="/api/v2", tags=["analysis-v2"])
 
 
 @app.get("/health")

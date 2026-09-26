@@ -26,7 +26,9 @@ VECTOR_CANDIDATES_SQL = """
 SELECT id, 1 - (embedding <=> CAST(:query_embedding AS vector)) AS score
 FROM document_chunks
 WHERE {tenant}
+  AND embedding IS NOT NULL
   AND NOT (user_id = :system_user_id AND embedding_model = :noop_model)
+  AND (:document_id IS NULL OR document_id = :document_id)
 ORDER BY embedding <=> CAST(:query_embedding AS vector)
 LIMIT :candidate_k
 """
@@ -38,6 +40,7 @@ SELECT id,
 FROM document_chunks
 WHERE {tenant}
   AND to_tsvector('portuguese', content) @@ plainto_tsquery('portuguese', :query_text)
+  AND (:document_id IS NULL OR document_id = :document_id)
 ORDER BY score DESC
 LIMIT :candidate_k
 """
@@ -71,6 +74,7 @@ def fetch_vector_candidates(
     candidate_k: int,
     system_user_id: UUID | str = SYSTEM_USER_ID,
     include_shared: bool = True,
+    document_id: UUID | str | None = None,
 ) -> list[str]:
     sql = VECTOR_CANDIDATES_SQL.format(
         tenant=_TENANT_FILTER_SHARED if include_shared else _TENANT_FILTER_PRIVATE
@@ -83,6 +87,7 @@ def fetch_vector_candidates(
             "noop_model": NOOP_EMBEDDING_MODEL,
             "query_embedding": str(list(query_embedding)),
             "candidate_k": candidate_k,
+            "document_id": str(document_id) if document_id is not None else None,
         },
     ).all()
     return [str(row[0]) for row in rows]
@@ -96,6 +101,7 @@ def fetch_fts_candidates(
     candidate_k: int,
     system_user_id: UUID | str = SYSTEM_USER_ID,
     include_shared: bool = True,
+    document_id: UUID | str | None = None,
 ) -> list[str]:
     sql = FTS_CANDIDATES_SQL.format(
         tenant=_TENANT_FILTER_SHARED if include_shared else _TENANT_FILTER_PRIVATE
@@ -107,6 +113,7 @@ def fetch_fts_candidates(
             "system_user_id": str(system_user_id),
             "query_text": query_text,
             "candidate_k": candidate_k,
+            "document_id": str(document_id) if document_id is not None else None,
         },
     ).all()
     return [str(row[0]) for row in rows]
@@ -158,6 +165,7 @@ def hybrid_search(
     shared jurisprudence corpus (system user) is always included except
     when the query is scoped to one private document.
     """
+    from app.core.embeddings import validate_query_embedding
     from app.models.document_chunk import DocumentChunk
 
     top_k = top_k or settings.RETRIEVAL_TOP_K
@@ -165,7 +173,7 @@ def hybrid_search(
 
     rankings: list[list] = []
     include_shared = document_id is None
-    if query_embedding:
+    if validate_query_embedding(query_embedding):
         rankings.append(
             fetch_vector_candidates(
                 db,
@@ -173,10 +181,11 @@ def hybrid_search(
                 query_embedding=query_embedding,
                 candidate_k=candidate_k,
                 include_shared=include_shared,
+                document_id=document_id,
             )
         )
     else:
-        logger.warning("No query embedding; hybrid degrades to FTS-only.")
+        logger.warning("No valid query embedding; hybrid degrades to FTS-only.")
     rankings.append(
         fetch_fts_candidates(
             db,
@@ -184,6 +193,7 @@ def hybrid_search(
             query_text=query_text,
             candidate_k=candidate_k,
             include_shared=include_shared,
+            document_id=document_id,
         )
     )
 

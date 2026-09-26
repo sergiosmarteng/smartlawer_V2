@@ -1,25 +1,47 @@
 import logging
 from datetime import datetime, timezone
 
-from app.core.ai_engine import LegalAnalyzer
+from app.core.ai_engine import AnalysisError, LegalAnalyzer
+from app.core.analysis_verifier import decide_status, verify
 from app.core.audit import audit_document_completion
 from app.core.config import settings
 from app.core.database import SessionLocal
 from app.core.docling_extractor import extract_markdown as docling_extract_markdown
 from app.core.docling_extractor import (
+    MAX_FIGURES,
     _extract_figures_fitz,
     extract_figures as docling_extract_figures,
 )
+from app.core.coverage_planner import build_prompt_window
+from app.core.extraction import (
+    FIGURES_TRUNCATED,
+    extract_inventory,
+    figures_with_state,
+)
+from app.core.schemas_v2 import coerce_legacy_analysis
 from app.core.storage import figure_directory
 from app.core.embeddings import embed_texts
 from app.core.legal_chunker import chunk_legal_text
 from app.core.pdf_processor import PDFExtractor
 from app.crud.document import get_document, update_document_state
+from app.crud.extraction import (
+    get_or_create_revision,
+    replace_source_blocks,
+)
 from app.crud.figure import replace_document_figures
 from app.crud.prompt import get_default_strategy_prompt
+from app.crud.run import (
+    VersionConflictError,
+    create_run,
+    publish_artifact,
+    transition_run,
+)
 from app.models.analysis import Analysis
+from app.models.analysis_run import AnalysisRun
 from app.models.document import Document
 from app.models.document_chunk import DocumentChunk
+from app.models.document_revision import DocumentRevision
+from app.models.source_block import SourceBlock
 from app.worker import celery_app
 
 logger = logging.getLogger(__name__)
@@ -70,23 +92,34 @@ def prepare_analysis_input(document_id: str, file_path: str, raw_text: str) -> s
 
 
 def index_document_chunks(document_id: str, analysis_text: str) -> int:
-    """Chunk + embed *analysis_text* into ``document_chunks``.
+    """Chunk + embed *analysis_text* into ``document_chunks`` (V2 T04).
 
-    Idempotent: existing chunks for the document are replaced. Returns
-    the number of chunks stored (0 when embeddings are unavailable).
+    Idempotent: existing chunks for the document are replaced. Texto
+    persiste SEMPRE (busca FTS degradada); vetores só quando íntegros
+    (cardinalidade + dimensão + finitos). Retorna chunks armazenados.
     Raises on unexpected errors — the caller must guard the task.
     """
+    from app.core.embeddings import embedding_space, validate_vectors
+
     chunks = chunk_legal_text(analysis_text)
     if not chunks:
         return 0
 
-    vectors = embed_texts([c.content for c in chunks])
-    if not vectors:
-        logger.warning(
-            "Documento %s: embeddings indisponiveis; chunks nao indexados.",
-            document_id,
-        )
-        return 0
+    contents = [c.content for c in chunks]
+    vectors = embed_texts(contents)
+    space = embedding_space()
+    if not validate_vectors(contents, vectors):
+        if vectors is not None:
+            logger.warning(
+                "Documento %s: vetores inválidos; persistindo só texto (FTS).",
+                document_id,
+            )
+        else:
+            logger.warning(
+                "Documento %s: embeddings indisponiveis; persistindo só texto (FTS).",
+                document_id,
+            )
+        vectors = [None] * len(chunks)
 
     db = SessionLocal()
     try:
@@ -105,8 +138,10 @@ def index_document_chunks(document_id: str, analysis_text: str) -> int:
                     content=chunk.content,
                     token_count=chunk.token_count,
                     embedding=vector,
-                    embedding_model=settings.EMBEDDING_MODEL,
-                    embedding_model_version=settings.EMBEDDING_MODEL_VERSION,
+                    embedding_model=space["model"],
+                    embedding_model_version=space["version"],
+                    embedding_provider=space["provider"],
+                    embedding_dimensions=space["dimensions"],
                 )
             )
         db.commit()
@@ -117,6 +152,9 @@ def index_document_chunks(document_id: str, analysis_text: str) -> int:
 
 @celery_app.task(bind=True, max_retries=3)
 def process_pdf_task(self, document_id: str, file_path: str):
+    import time
+
+    task_started = time.monotonic()
     logger.info("Iniciando processamento para documento %s", document_id)
     db = SessionLocal()
     try:
@@ -132,6 +170,76 @@ def process_pdf_task(self, document_id: str, file_path: str):
 
         analysis_text = prepare_analysis_input(document_id, file_path, raw_text)
 
+        # V2 T11: execução versionada do pipeline (best-effort; o legado
+        # Document/Analysis continua sendo a projeção compatível).
+        run = None
+        try:
+            doc0 = get_document(db, id=document_id)
+            if doc0 is not None:
+                run = create_run(
+                    db,
+                    user_id=doc0.user_id,
+                    document_id=doc0.id,
+                    idempotency_key=f"pipeline:{document_id}",
+                    snapshot={"file_path": file_path},
+                )
+                transition_run(
+                    db, run=run, status=AnalysisRun.RUNNING,
+                    stage=AnalysisRun.STAGE_EXTRACTION,
+                )
+        except Exception as exc:
+            logger.warning("Run V2 não criado para %s (%s); seguindo.", document_id, exc)
+            run = None
+
+        # V2 T03: inventário página/bloco por revisão (best-effort, nunca
+        # derruba a task). Figuras ligadas à revisão, sem novo catálogo.
+        revision_id: str | None = None
+        try:
+            doc = get_document(db, id=document_id)
+            if doc is not None:
+                with open(file_path, "rb") as handle:
+                    file_sha = DocumentRevision.hash_bytes(handle.read())
+                revision, _ = get_or_create_revision(
+                    db,
+                    document_id=doc.id,
+                    user_id=doc.user_id,
+                    file_sha256=file_sha,
+                    origin=file_path,
+                )
+                revision_id = str(revision.id)
+                pages, coverage = extract_inventory(file_path, revision_id)
+                if pages:
+                    replace_source_blocks(db, revision=revision, pages=pages)
+                revision.pages_total = coverage.get("pages_total")
+                revision.extra = {"coverage": coverage}
+                db.commit()
+        except Exception as exc:
+            logger.warning(
+                "Inventário de extração falhou para %s (%s); seguindo.",
+                document_id,
+                exc,
+            )
+
+        # V2 T05: janela head+tail com cobertura registrada (fim do corte
+        # fixo). Textos curtos passam intactos; longos preservam a cauda
+        # (rol de pedidos) e registram o omitido na revisão.
+        try:
+            windowed_text, prompt_coverage = build_prompt_window(analysis_text)
+            analysis_text = windowed_text
+            if revision_id is not None and prompt_coverage.get("truncated"):
+                revision_row = db.get(DocumentRevision, revision_id)
+                if revision_row is not None:
+                    extra = dict(revision_row.extra or {})
+                    extra["prompt_coverage"] = prompt_coverage
+                    revision_row.extra = extra
+                    db.commit()
+        except Exception as exc:
+            logger.warning(
+                "Janela de cobertura falhou para %s (%s); usando texto integral.",
+                document_id,
+                exc,
+            )
+
         try:
             doc = get_document(db, id=document_id)
             if doc is not None:
@@ -143,11 +251,43 @@ def process_pdf_task(self, document_id: str, file_path: str):
                     figures = _extract_figures_fitz(
                         file_path, figure_directory(str(document_id))
                     )
+                truncated = len(figures) >= MAX_FIGURES
+                figures, figures_state = figures_with_state(
+                    figures, truncated=truncated
+                )
+                if revision_id is not None and figures_state == "ok_empty":
+                    # Checagem independente: inventário viu imagens mas
+                    # nenhuma figura foi extraída → lacuna, não "sem figuras".
+                    try:
+                        imaged = [
+                            b
+                            for b in db.query(SourceBlock)
+                            .filter(SourceBlock.revision_id == revision_id)
+                            .all()
+                            if b.block_type == "image"
+                        ]
+                        if imaged:
+                            figures_state = "figures_unresolved"
+                    except Exception:
+                        pass
+                if revision_id is not None:
+                    try:
+                        owner = get_document(db, id=document_id)
+                        if owner is not None:
+                            revision_row = db.get(DocumentRevision, revision_id)
+                            if revision_row is not None:
+                                extra = dict(revision_row.extra or {})
+                                extra["figures_state"] = figures_state
+                                revision_row.extra = extra
+                                db.commit()
+                    except Exception:
+                        pass
                 replace_document_figures(
                     db,
                     document_id=doc.id,
                     user_id=doc.user_id,
                     figures=figures,
+                    revision_id=revision_id,
                 )
                 logger.info(
                     "Documento %s: %d figura(s) extraída(s) (docling=%s).",
@@ -171,6 +311,7 @@ def process_pdf_task(self, document_id: str, file_path: str):
         )
 
         analyzer = LegalAnalyzer()
+        v2_artifact_content: dict | None = None
         try:
             doc = get_document(db, id=document_id)
             strategy_prompt = (
@@ -181,6 +322,13 @@ def process_pdf_task(self, document_id: str, file_path: str):
             ai_data = analyzer.analyze_petition(
                 analysis_text, strategy_prompt=strategy_prompt
             )
+
+            if ai_data.get("kind") == "extraction_diagnostic":
+                raise AnalysisError(
+                    "Analise indisponivel: somente diagnostico de extracao.",
+                    code="PROVIDER_UNAVAILABLE",
+                    retryable=True,
+                )
 
             doc = get_document(db, id=document_id)
             if doc and not doc.analysis:
@@ -194,18 +342,56 @@ def process_pdf_task(self, document_id: str, file_path: str):
                         defense_theses=ai_data.get("defense_theses", []),
                     )
                 )
-        except Exception as ai_exc:
-            logger.error("OpenAI falhou: %s. Processando fallback provisorio.", ai_exc)
-            doc = get_document(db, id=document_id)
-            if doc and not doc.analysis:
-                db.add(Analysis(document_id=document_id, summary=raw_text[:1000]))
+            # V2 T11: artefato honesto (ponte legada) para o dossiê.
+            try:
+                legacy_artifact = coerce_legacy_analysis(ai_data)
+                v2_artifact_content = legacy_artifact.model_dump()
+            except Exception as exc:
+                logger.warning("Coerção legada V2 falhou (%s); sem artefato.", exc)
+        except AnalysisError as ai_exc:
+            # V2 T01: falha de IA nunca vira COMPLETED nem tese genérica.
+            code = getattr(ai_exc, "code", "ANALYSIS_FAILED") or "ANALYSIS_FAILED"
+            logger.error("Analise falhou para %s [%s]: %s", document_id, code, ai_exc)
+            db.rollback()
+            if run is not None:
+                try:
+                    transition_run(
+                        db, run=run, status=AnalysisRun.FAILED,
+                        stage=AnalysisRun.STAGE_COMPOSITION,
+                        error_code=code, error_message=str(ai_exc),
+                    )
+                except Exception:
+                    pass
             update_document_state(
                 db,
                 id=document_id,
-                status=Document.STATUS_PROCESSING,
-                status_detail="AI provider unavailable; using fallback summary",
-                error_message=None,
+                status=Document.STATUS_ERROR,
+                status_detail="AI provider unavailable; analysis not completed",
+                error_message=f"{code}: Provedor de IA indisponivel. Verifique a configuracao e reenvie.",
             )
+            audit_document_completion(db, document=get_document(db, id=document_id))
+            return
+        except Exception as ai_exc:
+            logger.error("OpenAI falhou: %s.", ai_exc)
+            db.rollback()
+            if run is not None:
+                try:
+                    transition_run(
+                        db, run=run, status=AnalysisRun.FAILED,
+                        stage=AnalysisRun.STAGE_COMPOSITION,
+                        error_code="PROVIDER_UNAVAILABLE", error_message=str(ai_exc),
+                    )
+                except Exception:
+                    pass
+            update_document_state(
+                db,
+                id=document_id,
+                status=Document.STATUS_ERROR,
+                status_detail="AI provider unavailable; analysis not completed",
+                error_message=f"PROVIDER_UNAVAILABLE: Provedor de IA indisponivel. Verifique a configuracao e reenvie.",
+            )
+            audit_document_completion(db, document=get_document(db, id=document_id))
+            return
 
         db.commit()
         update_document_state(
@@ -217,6 +403,40 @@ def process_pdf_task(self, document_id: str, file_path: str):
             completed_at=datetime.now(timezone.utc),
         )
         audit_document_completion(db, document=get_document(db, id=document_id))
+
+        # V2 T11: publica o artefato com o status do verificador (T10).
+        if run is not None and v2_artifact_content is not None:
+            try:
+                import time
+
+                from app.core.legal_chunker import estimate_tokens
+
+                report = verify(coerce_legacy_analysis(ai_data if isinstance(ai_data, dict) else {}))
+                artifact = publish_artifact(
+                    db, run=run, content=v2_artifact_content,
+                    status=decide_status(report),
+                    quality_notes={
+                        "errors": report.errors, "warnings": report.warnings,
+                        "pending_actions": report.pending_actions,
+                    },
+                )
+                # V2 T13: telemetria por execução (preço ausente = indisponível).
+                run.usage = {
+                    "pages_total": (revision.extra or {}).get("coverage", {}).get("pages_total")
+                    if revision_id else None,
+                    "chars": len(analysis_text or ""),
+                    "prompt_tokens_est": estimate_tokens(analysis_text or ""),
+                    "model": getattr(analyzer, "model", None),
+                    "provider": getattr(analyzer, "provider", None),
+                    "duration_s": round(time.monotonic() - task_started, 2),
+                    "cost": "unavailable",
+                    "artifact_id": str(artifact.id),
+                }
+                db.commit()
+            except VersionConflictError:
+                logger.info("Run %s já publicado; mantendo artefato atual.", run.id)
+            except Exception as exc:
+                logger.warning("Publicação V2 falhou para %s (%s).", document_id, exc)
 
         try:
             index_document_chunks(document_id, analysis_text)

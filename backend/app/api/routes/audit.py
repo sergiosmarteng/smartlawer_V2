@@ -5,6 +5,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.api import deps
+from app.core.config import settings
 from app.models.audit_event import AuditEvent
 from app.models.document import Document
 from app.models.user import User
@@ -72,4 +73,12 @@ def ops_summary(
         documents_by_status={str(status or "unknown"): count for status, count in status_rows},
         events_24h={str(event): count for event, count in event_rows},
         recent_failures=failures,
+        limits={
+            "max_upload_mb": int(settings.MAX_UPLOAD_MB),
+            "max_pdf_pages": int(settings.MAX_PDF_PAGES),
+            "max_batch_files": 10,
+            "prompt_budget_tokens": int(settings.PROMPT_BUDGET_TOKENS),
+            "coverage_max_batches": int(settings.COVERAGE_MAX_BATCHES),
+            "retrieval_top_k": int(settings.RETRIEVAL_TOP_K),
+        },
     )

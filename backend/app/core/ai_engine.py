@@ -19,6 +19,38 @@ class AnalysisResult(BaseModel):
     defense_theses: List[str] = Field(description="Possiveis teses preliminares e de merito para a defesa.")
 
 
+#: Códigos de erro normalizados da análise (V2 §14 — sem segredos no user_message).
+PROVIDER_UNAVAILABLE = "PROVIDER_UNAVAILABLE"
+OUTPUT_INVALID = "OUTPUT_INVALID"
+CONFIG_ERROR = "CONFIG_ERROR"
+
+
+class AnalysisError(Exception):
+    """Falha explícita da análise — nunca vira relatório final (V2 T01)."""
+
+    code = "ANALYSIS_FAILED"
+
+    def __init__(self, message: str, *, code: str | None = None, retryable: bool = False):
+        super().__init__(message)
+        if code is not None:
+            self.code = code
+        self.retryable = retryable
+
+
+class ProviderUnavailableError(AnalysisError):
+    code = PROVIDER_UNAVAILABLE
+
+    def __init__(self, message: str = "Provedor de IA indisponivel ou nao configurado.", *, retryable: bool = True):
+        super().__init__(message, code=PROVIDER_UNAVAILABLE, retryable=retryable)
+
+
+class OutputInvalidError(AnalysisError):
+    code = OUTPUT_INVALID
+
+    def __init__(self, message: str = "Resposta da IA invalida ou truncada.", *, retryable: bool = False):
+        super().__init__(message, code=OUTPUT_INVALID, retryable=retryable)
+
+
 #: Static format instructions for the analysis JSON (replaces the former
 #: langchain output parser — same contract, no extra dependency).
 FORMAT_INSTRUCTIONS = (
@@ -122,57 +154,36 @@ class LegalAnalyzer:
             normalized.append(item)
         return normalized
 
-    def _fallback_analysis(self, text: str, *, reason: str) -> dict[str, Any]:
+    def extraction_diagnostic(self, text: str, *, reason: str, code: str = PROVIDER_UNAVAILABLE) -> dict[str, Any]:
+        """Diagnóstico técnico de extração — NÃO é análise jurídica final (V2 T01).
+
+        Rotulado como ``kind=extraction_diagnostic`` para que nenhum
+        consumidor o apresente como relatório. Não preenche summary,
+        requests ou theses jurídicas.
+        """
         trimmed_text = (text or "").strip()
-        if not trimmed_text:
-            logger.warning("Fallback analysis generated with empty petition text (%s).", reason)
-            return {
-                "summary": "Nao foi possivel extrair texto util do documento enviado.",
-                "requests": ["Validar a extracao do PDF e reenviar o arquivo, se necessario."],
-                "laws": [],
-                "evidence": "Nenhuma prova estruturada foi identificada no texto extraido.",
-                "defense_theses": self.FALLBACK_THESES,
-            }
-
-        paragraphs = re.split(r"\n\s*\n", trimmed_text)
-        summary_source = next((paragraph.strip() for paragraph in paragraphs if paragraph.strip()), trimmed_text)
-        summary = summary_source[:1500].strip()
-
-        request_candidates = [
-            line
-            for line in self._first_non_empty_lines(trimmed_text, limit=240, max_lines=80)
-            if any(marker in line.lower() for marker in ("requer", "pedido", "pleiteia", "postula"))
-        ]
-        if not request_candidates:
-            request_candidates = ["Pedidos nao estruturados automaticamente; revisar o texto integral da peticao."]
-
-        law_candidates = re.findall(
-            r"(art\.?\s*\d+[A-Za-z0-9.,/-]*|lei\s*n[.o]*\s*\d+[./-]?\d*|codigo\s+[A-Za-z ]+)",
-            trimmed_text,
-            flags=re.IGNORECASE,
-        )
-        normalized_laws = self._deduplicate([item.strip() for item in law_candidates if item.strip()])[:8]
-
-        evidence_candidates = [
-            line
-            for line in self._first_non_empty_lines(trimmed_text, limit=240, max_lines=120)
-            if any(marker in line.lower() for marker in ("prova", "document", "anex", "comprov", "contrato", "email", "laudo"))
-        ]
-        if evidence_candidates:
-            evidence = evidence_candidates[:5]
-        else:
-            evidence = "Nenhuma prova estruturada foi identificada automaticamente."
-
-        logger.warning("Using heuristic fallback analysis because %s", reason)
+        logger.warning("Diagnostico de extracao (%s): %s", code, reason)
         return {
-            "summary": summary or "Resumo indisponivel para o documento analisado.",
-            "requests": self._deduplicate(request_candidates)[:6],
-            "laws": normalized_laws,
-            "evidence": evidence,
-            "defense_theses": self.FALLBACK_THESES,
+            "kind": "extraction_diagnostic",
+            "code": code,
+            "reason": reason,
+            "chars_extracted": len(trimmed_text),
+            "message": "Extracao concluida sem analise juridica; verifique a configuracao do provedor de IA.",
         }
 
+    def _fallback_analysis(self, text: str, *, reason: str) -> dict[str, Any]:
+        """Compat: antigo fallback agora retorna só diagnóstico técnico.
+
+        Mantido para não quebrar importadores; NÃO usar como Analysis final.
+        """
+        return self.extraction_diagnostic(text, reason=reason)
+
     def _normalize_analysis_payload(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Normaliza resposta REAL da IA sem inventar conteúdo (V2 T01).
+
+        Seções ausentes permanecem vazias para o verificador bloquear a
+        completude — nunca preenchidas com teses/frases genéricas.
+        """
         summary = str(payload.get("summary") or "").strip()
         requests = payload.get("requests") or []
         laws = payload.get("laws") or []
@@ -186,20 +197,14 @@ class LegalAnalyzer:
         if not isinstance(defense_theses, list):
             defense_theses = [str(defense_theses)]
 
-        normalized = {
-            "summary": summary or "Resumo indisponivel para o documento analisado.",
+        return {
+            "kind": "analysis",
+            "summary": summary,
             "requests": [str(item).strip() for item in requests if str(item).strip()],
             "laws": [str(item).strip() for item in laws if str(item).strip()],
             "evidence": evidence if evidence not in (None, "", []) else "Nenhuma prova estruturada foi identificada.",
             "defense_theses": [str(item).strip() for item in defense_theses if str(item).strip()],
         }
-
-        if not normalized["requests"]:
-            normalized["requests"] = ["Pedidos nao estruturados automaticamente; revisar o texto integral da peticao."]
-        if not normalized["defense_theses"]:
-            normalized["defense_theses"] = self.FALLBACK_THESES
-
-        return normalized
 
     BASE_INSTRUCTIONS = (
         "Voce e um Especialista de Inteligencia Artificial Juridica.\n"
@@ -220,15 +225,20 @@ class LegalAnalyzer:
             if extra
             else self.BASE_INSTRUCTIONS
         )
+        # V2 T05: sem corte fixo — o CoveragePlanner monta a janela a
+        # montante com cobertura registrada; aqui o texto passa integral.
         return (
             f"{instructions}\n\n"
             f"{FORMAT_INSTRUCTIONS}\n\n"
-            f"TEXTO DA PETICAO:\n{text[:20000]}"
+            f"TEXTO DA PETICAO:\n{text}"
         )
 
     def analyze_petition(self, text: str, strategy_prompt: str | None = None) -> dict:
+        """Análise real via LLM. Falha explicada, nunca fallback genérico (V2 T01)."""
         if not self.api_key or self.client is None or not self.model:
-            return self._fallback_analysis(text, reason="AI provider is not configured")
+            raise ProviderUnavailableError(
+                "Provedor de IA nao configurado; verifique a chave do provedor ativo."
+            )
 
         try:
             response = self.client.chat.completions.create(
@@ -250,11 +260,18 @@ class LegalAnalyzer:
                 ],
             )
             content = (response.choices[0].message.content or "").strip()
+            if not content:
+                raise OutputInvalidError("Resposta vazia do provedor de IA.")
             try:
                 result = AnalysisResult.model_validate_json(content)
             except Exception:
-                result = AnalysisResult.model_validate(json.loads(content))
+                try:
+                    result = AnalysisResult.model_validate(json.loads(content))
+                except Exception as exc:
+                    raise OutputInvalidError(f"JSON invalido da IA: {exc}") from exc
             return self._normalize_analysis_payload(result.model_dump())
+        except (ProviderUnavailableError, OutputInvalidError):
+            raise
         except Exception as exc:
             logger.error("Erro no processamento da IA: %s", exc)
-            return self._fallback_analysis(text, reason=str(exc))
+            raise ProviderUnavailableError(f"Falha no provedor de IA: {exc}") from exc

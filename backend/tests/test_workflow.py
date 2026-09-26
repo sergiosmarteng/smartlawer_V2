@@ -187,8 +187,12 @@ def test_analysis_detail_returns_generated_strategy(
     assert response.status_code == 200
     payload = response.json()
     assert payload["documentName"] == "analysis.pdf"
-    assert payload["generatedDefenseStrategy"].startswith("1. Inépcia da inicial")
-    assert "2. Ausência de prova mínima" in payload["generatedDefenseStrategy"]
+    # V2 T12/D06: plano de atuação, não cópia das teses.
+    strategy = payload["generatedDefenseStrategy"]
+    assert strategy.startswith("Plano de atuação")
+    assert "Avaliar tese 1" in strategy and "Avaliar tese 2" in strategy
+    assert "Inépcia da inicial" not in strategy.splitlines()[0]
+    assert payload["defense_theses"] == ["Inépcia da inicial", "Ausência de prova mínima"]
     assert payload["docxDownloadUrl"] == f"/analysis/{analysis.id}/docx"
 
 

@@ -342,6 +342,12 @@ export default function AnalysisPage() {
                         >
                           {isDownloadingSummary ? 'Preparando...' : 'Resumo (.md)'}
                         </button>
+                        <Link
+                          href={`/analysis/v2/${analysis.documentId}?document_id=${analysis.documentId}`}
+                          className="inline-flex items-center justify-center rounded-[5px] border border-linha bg-white px-5 py-3 text-sm font-medium text-tinta-suave transition-colors hover:border-latiim hover:text-tinta"
+                        >
+                          Abrir dossiê V2
+                        </Link>
                       </div>
                     </div>
                   </div>

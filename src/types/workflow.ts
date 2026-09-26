@@ -187,3 +187,54 @@ export function isSuccessStatus(status?: string | null): boolean {
 export function isFailureStatus(status?: string | null): boolean {
   return FAILURE_STATUSES.has(normalizeWorkflowStatus(status));
 }
+
+/** Dossiê V2: artefato versionado (`GET /api/v2/analyses/{id}`). */
+export interface V2Artifact {
+  id: string;
+  run_id: string;
+  schema_version: string;
+  status: string;
+  review_status: string;
+  content: Record<string, unknown>;
+  content_hash?: string | null;
+  quality_notes?: {
+    errors?: string[];
+    warnings?: string[];
+    pending_actions?: string[];
+  } | null;
+}
+
+/** Execução V2 (`GET /api/v2/analysis-runs`). */
+export interface V2RunStatus {
+  run_id: string;
+  status: string;
+  stage?: string | null;
+  progress: number;
+  version?: number;
+  stages: Array<{ stage: string; done: boolean }>;
+  error_code?: string | null;
+  error_message?: string | null;
+  artifact_id?: string | null;
+}
+
+/** Fonte resolvida (`GET /api/v2/sources/{id}`). */
+export interface V2Source {
+  id: string;
+  kind: string;
+  revision_id?: string | null;
+  page_number?: number | null;
+  block_id?: string | null;
+  quote?: string | null;
+  url?: string | null;
+  verification_status: string;
+  document_id?: string | null;
+}
+
+/** Evento de revisão (`/api/v2/analyses/{id}/review-events`). */
+export interface V2ReviewEvent {
+  id: string;
+  target: string;
+  reason?: string | null;
+  source_version?: string | null;
+  created_at?: string;
+}

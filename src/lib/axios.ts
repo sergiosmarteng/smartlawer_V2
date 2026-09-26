@@ -109,4 +109,28 @@ export function normalizeApiPath(path: string) {
   return trimmedPath;
 }
 
+/** Cliente da API V2 do dossiê (`/api/v2/...`). Mesmo auth do `api`. */
+const baseURLv2 = baseURL.replace(/\/api\/v1\/?$/, '/api/v2');
+
+export const apiV2 = axios.create({
+  baseURL: baseURLv2,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+apiV2.interceptors.request.use(
+  (config) => {
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('access_token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    }
+
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 export default api;
