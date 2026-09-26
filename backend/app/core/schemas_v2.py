@@ -128,7 +128,7 @@ class Calculation(BaseModel):
     inputs: dict = Field(default_factory=dict)
     assumptions: list[str] = Field(default_factory=list)
     result: str | None = None
-    rounding: str = "half_even_centavos"
+    rounding: str = "half_up_centavos"
     scenario: str | None = None
 
 
