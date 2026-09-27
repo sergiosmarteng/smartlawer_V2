@@ -80,20 +80,35 @@ export default function DossieV2Page() {
     const load = async () => {
       setIsLoading(true);
       setError('');
+      // routeId pode ser um document_id (link da página legada): resolve
+      // a última execução publicada do documento antes de desistir.
+      const resolveByDocument = async () => {
+        if (!documentId) {
+          throw new Error('artifact-not-found');
+        }
+        const runs = await apiV2.get<V2RunStatus[]>(
+          `/analysis-runs?document_id=${documentId}`
+        );
+        const withArtifact = (runs.data || []).find((r) => r.artifact_id);
+        if (!withArtifact?.artifact_id) {
+          throw new Error('no-v2-run');
+        }
+        setRun(withArtifact);
+        return withArtifact.artifact_id;
+      };
       try {
         let artifactId = routeId;
-        if (!artifactId && documentId) {
-          const runs = await apiV2.get<V2RunStatus[]>(
-            `/analysis-runs?document_id=${documentId}`
-          );
-          const withArtifact = (runs.data || []).find((r) => r.artifact_id);
-          if (!withArtifact?.artifact_id) {
-            throw new Error('no-v2-run');
-          }
-          artifactId = withArtifact.artifact_id;
-          setRun(withArtifact);
+        if (!artifactId) {
+          artifactId = await resolveByDocument();
         }
-        const data = await fetchArtifact(artifactId as string);
+        let data: V2Artifact;
+        try {
+          data = await fetchArtifact(artifactId as string);
+        } catch (artifactError) {
+          // 404 com document_id na query = routeId era documento, não artefato.
+          artifactId = await resolveByDocument();
+          data = await fetchArtifact(artifactId);
+        }
         if (data.run_id) {
           try {
             const runResp = await apiV2.get<V2RunStatus>(
