@@ -17,6 +17,37 @@ import {
 
 const MAX_BATCH_FILES = 10;
 
+/**
+ * Copy PT-BR do andamento por etapa (sem jargão técnico).
+ * O backend envia `status_detail` em inglês; o card mostra a frase
+ * correspondente — qualquer texto desconhecido cai no fallback genérico,
+ * nunca vaza inglês para a UI.
+ */
+const STAGE_PHRASES: Array<{ match: RegExp; phrase: string }> = [
+  { match: /converting.*markdown|structured markdown/i, phrase: 'Lendo a petição…' },
+  { match: /extracting text/i, phrase: 'Separando o texto da petição…' },
+  { match: /figur|image|picture/i, phrase: 'Procurando imagens e tabelas…' },
+  { match: /generating legal analysis/i, phrase: 'A IA está lendo a petição…' },
+  { match: /chunk|embed|index/i, phrase: 'Organizando os trechos…' },
+  { match: /extract/i, phrase: 'Separando o texto da petição…' },
+  { match: /analysis|fallback/i, phrase: 'A IA está lendo a petição…' },
+  { match: /retry/i, phrase: 'Tentando de novo…' },
+  { match: /queue|upload|sending/i, phrase: 'Enviando para a IA analisar…' },
+  { match: /compos|report|docx|summary/i, phrase: 'Montando o resumo executivo…' },
+  { match: /audit|complet|ready|final/i, phrase: 'Quase lá, salvando os resultados…' },
+];
+
+const FALLBACK_STAGE_PHRASE = 'Processando documento…';
+
+export function describeProcessingStage(statusDetail: string | null | undefined): string {
+  const text = (statusDetail || '').trim();
+  if (!text) {
+    return FALLBACK_STAGE_PHRASE;
+  }
+  const hit = STAGE_PHRASES.find((entry) => entry.match.test(text));
+  return hit ? hit.phrase : FALLBACK_STAGE_PHRASE;
+}
+
 export default function UploadPage() {
   const router = useRouter();
   const { schedulePoll, cancelPoll } = useTaskPolling();
@@ -157,7 +188,7 @@ export default function UploadPage() {
           const normalizedStatus = normalizeWorkflowStatus(status);
 
           if (status_detail) {
-            setStatusMessage(status_detail);
+            setStatusMessage(describeProcessingStage(status_detail));
           }
 
           if (typeof nextProgress === 'number') {
@@ -319,7 +350,32 @@ export default function UploadPage() {
                     <h2 className="mt-2 font-display text-2xl font-normal tracking-tight text-tinta">
                       {isProcessing ? 'Processando documento' : 'Pronto para começar'}
                     </h2>
-                    <p className="mt-3 text-sm leading-7 text-tinta-suave">{statusMessage}</p>
+                    <p className="mt-3 flex items-center gap-2 text-sm leading-7 text-tinta-suave">
+                      {isProcessing && (
+                        <svg
+                          className="h-4 w-4 animate-spin text-latiim-texto"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          role="status"
+                          aria-label="Em andamento"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          />
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                          />
+                        </svg>
+                      )}
+                      <span aria-live="polite">{statusMessage}</span>
+                    </p>
                   </div>
 
                   <div className="rounded-[5px] border border-linha bg-white p-5">
