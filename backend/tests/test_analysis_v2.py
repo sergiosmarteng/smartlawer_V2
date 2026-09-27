@@ -137,3 +137,21 @@ def test_runs_list_by_document(client, db_session, make_user, auth_headers_for):
                 json={"document_ids": [str(document.id)], "idempotency_key": "b"})
     listing = client.get(f"/api/v2/analysis-runs?document_id={document.id}", headers=headers)
     assert len(listing.json()) == 2
+
+
+def test_document_id_as_artifact_id_is_404_but_runs_resolve(
+    client, db_session, make_user, auth_headers_for
+):
+    """Contrato do fallback do dossiê: routeId=documento 404a no artefato,
+    mas a lista de runs do documento resolve para o artefato publicado."""
+    user, document = _document(db_session, make_user)
+    headers = auth_headers_for(user)
+    run, artifact, _ = _seed_run_artifact(db_session, user, document)
+    missing = client.get(f"/api/v2/analyses/{document.id}", headers=headers)
+    assert missing.status_code == 404
+    assert missing.json()["detail"]["code"] == "NOT_FOUND"
+    listing = client.get(
+        f"/api/v2/analysis-runs?document_id={document.id}", headers=headers
+    )
+    resolved = [r for r in listing.json() if r["artifact_id"]]
+    assert resolved and resolved[0]["artifact_id"] == str(artifact.id)
