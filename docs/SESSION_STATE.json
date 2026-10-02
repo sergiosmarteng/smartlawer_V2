@@ -2,53 +2,67 @@
   "project": "SmartLawer_V2",
   "project_path": "C:/Users/sergi/OneDrive - SSA Soluções Tecnologicas/SSA Solucoes Tecnologicas/Projetos prototipos/SmartLawer_V2",
   "last_updated": "2026-10-02",
-  "status": "Release 0.2.0 em prod + specs do Dossiê Universal (Ondas 0-3) escritas e commitadas no submódulo (e066bf5, pushed em 2026-10-02). Tag v0.2.0 já estava no remoto (b59bd657). Bump na raiz empacotado em branch chore/bump-dossie-universal-v2-specs (commit 52a571c) aguardando push manual ou credencial. Sessão de 2026-10-02 produziu 3 docs operacionais (runbook PAT, plano piloto 50, smoke pos-deploy) para fechar o ciclo 0.2.0 sem codar feature nova.",
+  "status": "Onda 0 do Dossie Universal V3 implementada e verificada (Tasks 1-16): schema 3.0, casos/estagios, progresso honesto, inventario/OCR, classificacao multirrotulo, extracao/reconciliacao, evidencia visual, analise bilateral, pesquisa/calculos, verificador/composer, orquestrador V3, API universal, hooks, interface do dossie, revisao/comparacao/exportacao, telemetria/flags/gate/rollout. Todos os gates verdes. Proximo: smoke na VPS + piloto, depois Ondas 1-3.",
   "next_steps": [
-    "Operador roda PAT rotation conforme docs/runbooks/rotacao-pat-2026-10-02.md (VPS -> SSH deploy key read-only; estacao dev -> fine-grained PAT 90d)",
-    "Operador roda smoke pos-deploy em VPS conforme docs/operacao/smoke-pos-deploy-2026-10-02.md (12 blocos A-K; gating para o piloto)",
-    "Operador recruta 2 advogados + carta LGPD + separa holdout de 5 casos (docs/operacao/piloto-50-execucoes-2026-10-02.md)",
-    "Operador valida no navegador: botao 'Abrir dossie V2' + copy PT-BR do upload (spinner) - pre-requisito do piloto",
-    "Push da branch chore/bump-dossie-universal-v2-specs (commit 52a571c) - requer PAT fine-grained na raiz OU migrar remote raiz para SSH",
-    "Apos piloto concluido: go/no-go para liberar Onda 0 do Dossie Universal para advogados externos"
+    "Operador roda PAT rotation conforme docs/runbooks/rotacao-pat-2026-10-02.md (VPS -> SSH deploy key; dev -> fine-grained PAT)",
+    "Aplicar migrations na VPS (head 20261002_0013) com backup pg_dump antes",
+    "Operador roda smoke pos-deploy em VPS conforme docs/operacao/smoke-pos-deploy-2026-10-02.md (12 blocos A-K)",
+    "Shadow runs V3 com DOSSIER_V3_ENABLED=false + SHADOW_MODE=true (docs/operations/dossier-v3-rollout.md)",
+    "Piloto real 50 execucoes (docs/operacao/piloto-50-execucoes-2026-10-02.md) com DOSSIER_V3_ALLOWED_USER_IDS",
+    "Apos piloto Go: planejar Onda 1A (civel + familia) conforme planos posteriores do plano Onda 0"
   ],
   "blockers": [
     "PAT do GitHub exposto em 78c3e36 ainda sem rotacao - bloqueador de seguranca pre-piloto",
-    "VPS nao acessivel desta estacao (Windows) - smoke precisa ser rodado in loco",
-    "Push da raiz bloqueado: remote HTTPS sem suporte a senha; precisa PAT fine-grained OU migrar para SSH"
+    "VPS nao acessivel desta estacao (Windows) - smoke e migrations precisam ser rodados in loco",
+    "E2E playwright nao executado aqui (sem browsers/ambiente de teste) - spec existe e faz skip sem PLAYWRIGHT_BASE_URL"
   ],
   "active_constraints": [
     "Landing nao promete percentuais de produtividade nem cobertura integral de jurisprudencia",
-    "Rollback/ativacao somente via docker compose -f docker-compose.prod.yml com --no-deps (release note 2026-09-24)",
+    "Rollback/ativacao somente via docker compose -f docker-compose.prod.yml com --no-deps",
     "Auditoria 100% + HITL: ai_draft/requires_human_review; proibicao de protocolo automatico (CONSTITUTION)",
-    ".env nunca versionado; PAT do GitHub ainda pendente de rotacao (runbook em docs/runbooks/)",
+    ".env nunca versionado; PAT do GitHub ainda pendente de rotacao",
     "Testes do pipeline devem rodar com Celery real E stub (helpers .func/.run)",
-    "V2 em feature branch feat/analise-juridica-v2; main do submodulo segue deployavel; bump na raiz so no merge [CUMPRIDA 2026-09-26]",
-    "Sem chave de IA, analises falham alto (PROVIDER_UNAVAILABLE) - comportamento novo e correto; conferir OPENAI/GEMINI/OPENROUTER_API_KEY + DOCLING_ENABLED no .env da VPS",
-    "Nao anunciar 'analise completa': piloto (2 advogados + holdout + 50 execucoes) ainda pendente",
+    "Sem chave de IA, analises falham alto (PROVIDER_UNAVAILABLE) - comportamento correto",
+    "Nao anunciar 'analise completa': piloto ainda pendente",
     "CHAT_MODEL=gemini-3.8-flash em prod (gemini-2.5-flash aposentado)",
-    "Dossie Universal Onda 0: schema 3.0, SectionState obrigatorio, fontes resolveis, publicacao atomica, idempotencia, autorizacao, logs sem segredo",
-    "Onda 0 remove coerce_legacy_analysis do caminho de producao; schema 2.0 continua somente leitura com reprocessamento",
-    "Plano da Onda 0 (15 tasks) e pre-requisito tecnico para Ondas 1-3 (civel/familia/trabalhista/consumidor/previdenciario, empresarial/contratos/tributario/administrativo/imobiliario, penal/ambiental/eleitoral/constitucional/PI/protecao de dados)"
+    "Dossie Universal: schema 3.0, SectionState obrigatorio, fontes resolviveis, publicacao atomica, idempotencia, autorizacao, logs sem segredo",
+    "coerce_legacy_analysis fora do caminho V3 (somente leitor V1); FALLBACK_THESES removido",
+    "DOSSIER_V3_ENABLED=false por padrao; V3 atras de flag ate piloto Go",
+    "Frontend nao deriva tese/estrategia/risco de pedidos; composer sem IA"
   ],
   "deliverables_this_session": [
-    "docs/runbooks/rotacao-pat-2026-10-02.md - runbook PAT -> SSH deploy key (VPS) + fine-grained PAT (dev)",
-    "docs/operacao/piloto-50-execucoes-2026-10-02.md - desenho amostral 20+5+25, rubrica YAML, gate go/no-go",
-    "docs/operacao/smoke-pos-deploy-2026-10-02.md - 12 blocos (A infra -> K SSL) alinhado ao formato das Ondas 1-3 e ao plano Onda 0",
-    "Submodulo smartlawer_V2: pushed (3 commits docs do Dossie Universal V2) + tag v0.2.0 ja estava pushed",
-    "Branch chore/bump-dossie-universal-v2-specs (commit 52a571c): bump de 2 docs + ponteiro do submodulo, pronta para push manual"
+    "Onda 0 Task 1 (c6cc17f): schema V3 + remove FALLBACK_THESES",
+    "Onda 0 Task 2 (7988776): Case/CaseDocument/AnalysisStageRun + migration 0011",
+    "Onda 0 Task 3 (372c3f7): PIPELINE_STAGES + calculate_progress + publish_artifact_v3",
+    "Onda 0 Task 4 (a9ee273): plan_revision_batches + page_needs_ocr por cobertura + extract_revision_inventory",
+    "Onda 0 Task 5 (82af929): classification multirrotulo + module_registry + universal@1.0",
+    "Onda 0 Task 6 (bb357f9): structured_extractor + reconcile_extractions",
+    "Onda 0 Task 7 (537b383): visual_evidence + migration 0012 (metadados visuais)",
+    "Onda 0 Task 8 (5487f7d): universal_legal_analyzer bilateral + prompts",
+    "Onda 0 Task 9 (189fc93): research_issues + execute_registered_calculation + migration 0013",
+    "Onda 0 Task 10 (1b74ced): verify_artifact_v3 + decide_publication_status + report_composer",
+    "Onda 0 Task 11 (f6c7e48): orchestrator run_universal_pipeline + gate V3 em document_tasks",
+    "Onda 0 Task 12 (8e3ee06): API casos/visuais/versoes/compare/resume + legacy flags",
+    "Onda 0 Task 13 (71d9ddd): vitest + dossier.ts + useDossier + useAnalysisRun",
+    "Onda 0 Task 14 (20157e2): componentes dossier/* + pagina fina + DossierPage 11 testes",
+    "Onda 0 Task 15 (484c2f9): artifact_diff + build_v3_report + approve_artifact + review-status",
+    "Onda 0 Task 16 (ce9577d): flags/config + audit sanitize + universal_gate + corpus + e2e + rollout/rollback"
   ],
-  "git_state": {
-    "raiz_local_branch": "main em eeae7b3",
-    "raiz_branch_pronta_para_push": "chore/bump-dossie-universal-v2-specs em 52a571c (bump dos 3 commits docs do Dossie Universal; aguardando push manual ou definicao de credencial)",
-    "raiz_origin_divergente": "origin/master 35 commits atras (historico paralelo abandonado; NAO usar master); origin/main 35 commits divergentes (redesign/br-fodao branch provavelmente)",
-    "submodulo_local": "e066bf5 (3 commits docs do Dossie Universal - ondas 1,2,3)",
-    "submodulo_origin": "e066bf5 - sincronizado em 2026-10-02 (push OK via SSH alias github-schina)",
-    "tag_v0.2.0": "existe local e remoto (b59bd657) - ja pushed em sessao anterior",
-    "raiz_remote_url": "https://github.com/schinasergio/smartlawer_V2.git (HTTPS; autenticacao por senha removida pelo GitHub em 2021-08 - push bloqueado, requer PAT fine-grained com escopo Contents:write, OU mudar remote para SSH)",
-    "submodulo_remote_url": "git@github-schina:schinasergio/smartlawer_V2.git (SSH; funcionando)",
-    "submodulo_untracked": ["Reference_files/", "docs/Dossie_specification.md", "docs/superpowers/specs/2026-09-27-dossie-juridico-universal-design.pdf"],
-    "raiz_modified": ["smartlawer_V2 (apontando para 8b3ab0e; submodulo local em e066bf5)"],
-    "raiz_untracked": [".opencode/MEMORY.md", ".opencode/sessions/*.md", "docs/SESSION_STATE.json", "docs/SmartLawer_Especificacao_Analise_Juridica_V2.md", "docs/_dossie_indice-2026-09-27.md", "output/", "tmp/", "docs/operacao/", "docs/runbooks/"]
+  "verification": {
+    "pytest": "298 passed",
+    "run_gate_default": "GATE PASSED",
+    "run_gate_universal": "UNIVERSAL GATE PASSED (5 cases)",
+    "vitest": "18 passed (3 files)",
+    "eslint": "clean",
+    "tsc": "clean",
+    "next_build": "OK",
+    "e2e": "nao executado (sem browsers/ambiente de teste); spec com skip sem PLAYWRIGHT_BASE_URL"
   },
-  "resume_prompt_file": ".opencode/sessions/2026-10-02-fechamento-020.md"
+  "git_state": {
+    "origin": "git@github-smarteng:sergiosmarteng/smartlawer_V2.git",
+    "head": "ce9577d",
+    "ahead_behind": "0 0",
+    "migrations_head": "20261002_0013"
+  },
+  "resume_prompt_file": ".opencode/sessions/2026-10-02-onda-0-completa.md"
 }
