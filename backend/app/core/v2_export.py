@@ -110,3 +110,62 @@ def build_report(
         ]
     )
     return "\n".join(lines) + "\n"
+
+
+def build_v3_report(
+    artifact_content: dict,
+    *,
+    mode: str = MODE_COMPLETE,
+    review_events: list[dict] | None = None,
+) -> str:
+    """Relatório universal V3 (Onda 0 Task 15): determinístico e reproduzível.
+
+    Referencia imagens por chave opaca (sem URL expirada nem caminho
+    interno); mesma entrada gera mesma saída.
+    """
+    content = artifact_content or {}
+    coverage = content.get("coverage", {})
+    claims = content.get("claims", [])
+    facts = content.get("facts", [])
+    limitations = content.get("limitations", [])
+    visuals = content.get("visuals", [])
+
+    lines = [
+        "# Dossiê Universal — relatório",
+        "",
+        f"Versão do esquema: {content.get('schema_version', '3.0')}",
+        f"Páginas: {coverage.get('pages_extracted', 0)}/{coverage.get('pages_total', 0)}",
+        "",
+        "## Pedidos",
+        *(_claims_lines(claims)),
+        "",
+        "## Limitações e alertas",
+        *(
+            [f"- [{lim.get('code')}] {lim.get('message')}" for lim in limitations]
+            or ["(sem limitações registradas)"]
+        ),
+    ]
+    visual_lines = [
+        f"- [{v.get('id')}] pág. {v.get('page_number')} "
+        f"(chave {v.get('storage_key')}, miniatura {v.get('thumbnail_key')})"
+        for v in visuals
+    ] or ["(sem imagens)"]
+    lines.extend(["", "## Imagens referenciadas", *visual_lines])
+    if mode == MODE_COMPLETE:
+        fact_lines = [
+            f"- {f.get('statement')} [{f.get('epistemic_status')}]" for f in facts
+        ] or ["(nenhum fato)"]
+        lines.extend(["", "## Fatos", *fact_lines])
+        if review_events:
+            lines.extend(
+                ["", "## Histórico de revisão"]
+                + [f"- {e.get('target')}: {e.get('reason')}" for e in review_events]
+            )
+    lines.extend(
+        [
+            "",
+            "_Relatório determinístico do artefato publicado; reprocessar "
+            "gera nova versão sem alterar esta._",
+        ]
+    )
+    return "\n".join(lines) + "\n"

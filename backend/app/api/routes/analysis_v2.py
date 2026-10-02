@@ -409,6 +409,28 @@ def create_review_event(
     )
 
 
+@router.post("/analyses/{artifact_id}/review-status", response_model=ArtifactResponse)
+def set_review_status(
+    artifact_id: uuid.UUID,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_active_user),
+):
+    """Aprova o artefato: dono + ausência de bloqueios materiais (Onda 0 Task 15)."""
+    from app.crud.run import ReviewApprovalError
+
+    artifact = _owned_artifact(db, artifact_id, current_user)
+    try:
+        approved = run_crud.approve_artifact(
+            db, artifact=artifact, reviewer_id=current_user.id
+        )
+    except ReviewApprovalError as exc:
+        status_code = 403 if "dono" in str(exc) else 422
+        raise _error(
+            status_code, "REVIEW_APPROVAL_DENIED", str(exc), retryable=False
+        )
+    return _artifact_payload(approved)
+
+
 @router.get("/analyses/{artifact_id}/review-events", response_model=list[ReviewEventResponse])
 def list_review_events(
     artifact_id: uuid.UUID,

@@ -6,7 +6,7 @@ export interface ReviewEventLike {
   reason?: string | null;
 }
 
-/** Revisão humana versionada (Task 15 estende com aprovação/comparação). */
+/** Revisão humana versionada com aprovação e comparação (Onda 0 Task 15). */
 export function ReviewSection({
   reviewStatus,
   reviewEvents,
@@ -16,6 +16,8 @@ export function ReviewSection({
   reviewNotice,
   reanalyze,
   reanalyzeNotice,
+  onApprove,
+  approvalNotice,
 }: {
   reviewStatus: unknown;
   reviewEvents: ReviewEventLike[];
@@ -25,6 +27,8 @@ export function ReviewSection({
   reviewNotice: string;
   reanalyze: () => void;
   reanalyzeNotice: string;
+  onApprove?: () => void;
+  approvalNotice?: string;
 }) {
   return (
     <div className="space-y-3">
@@ -64,9 +68,19 @@ export function ReviewSection({
         >
           Reanalisar (nova execução)
         </button>
+        {onApprove && (
+          <button
+            type="button"
+            onClick={onApprove}
+            className="rounded border px-3 py-1"
+          >
+            Aprovar revisão
+          </button>
+        )}
       </div>
       {reviewNotice && <p role="status">{reviewNotice}</p>}
       {reanalyzeNotice && <p role="status">{reanalyzeNotice}</p>}
+      {approvalNotice && <p role="status">{approvalNotice}</p>}
     </div>
   );
 }

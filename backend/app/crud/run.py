@@ -170,7 +170,7 @@ def publish_artifact(
     artifact = AnalysisArtifact(
         run_id=run.id,
         user_id=run.user_id,
-        schema_version="2.0",
+        schema_version=content.get("schema_version") or "2.0",
         status=status,
         review_status=AnalysisArtifact.REVIEW_PENDING,
         content=content,
@@ -264,6 +264,33 @@ def publish_artifact_v3(
     db.refresh(db_artifact)
     db.refresh(run)
     return db_artifact
+
+
+class ReviewApprovalError(Exception):
+    """Aprovação negada: revisor não autorizado ou bloqueios materiais."""
+
+    code = "REVIEW_APPROVAL_DENIED"
+
+
+def approve_artifact(
+    db: Session, *, artifact: AnalysisArtifact, reviewer_id: UUID | str
+) -> AnalysisArtifact:
+    """Aprova artefato: dono + ausência de seções ``blocked`` (Onda 0 Task 15)."""
+    if str(artifact.user_id) != str(reviewer_id):
+        raise ReviewApprovalError("apenas o dono do artefato pode aprovar")
+    states = (artifact.content or {}).get("section_states") or {}
+    blocked = [
+        section for section, state in states.items()
+        if isinstance(state, dict) and state.get("status") == "blocked"
+    ]
+    if blocked:
+        raise ReviewApprovalError(
+            f"seções bloqueadas impedem aprovação: {', '.join(sorted(blocked))}"
+        )
+    artifact.review_status = AnalysisArtifact.REVIEW_APPROVED
+    db.commit()
+    db.refresh(artifact)
+    return artifact
 
 
 def get_published_artifact(
