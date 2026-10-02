@@ -40,6 +40,13 @@ class DocumentFigure(Base):
     caption = Column(Text, nullable=True)
     file_path = Column(String(1024), nullable=True)
     content_type = Column(String(100), nullable=False, default="image/png")
+    # Onda 0 Task 7: metadados visuais V3 (chaves opacas, sem path no payload).
+    kind = Column(String(30), nullable=False, default="other")
+    status = Column(String(30), nullable=False, default="unresolved")
+    sensitivity = Column(JSONB, nullable=True)
+    storage_key = Column(String(512), nullable=True)
+    thumbnail_key = Column(String(512), nullable=True)
+    requires_page_context = Column(Integer, nullable=False, default=0)
     created_at = Column(DateTime(timezone=True), default=datetime.now(timezone.utc))
 
     document = relationship("Document", back_populates="figures")
