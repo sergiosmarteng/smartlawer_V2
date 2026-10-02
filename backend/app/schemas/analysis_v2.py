@@ -21,9 +21,11 @@ class ErrorEnvelope(WorkflowV2Base):
 
 class CreateRunRequest(WorkflowV2Base):
     document_ids: list[UUID] = Field(min_length=1)
+    case_id: UUID | None = None
     represented_side: str = "neutral"
     objective: str | None = None
     reference_date: str | None = None
+    area_overrides: list[str] = Field(default_factory=list)
     module_id: str = "general"
     idempotency_key: str | None = None
 
@@ -59,6 +61,51 @@ class ArtifactResponse(WorkflowV2Base):
     content_hash: str | None = None
     quality_notes: Any = None
     published_at: datetime | None = None
+    legacy: bool = False
+    reanalyze_available: bool = False
+
+
+class CaseCreateRequest(WorkflowV2Base):
+    name: str | None = None
+    area: str | None = None
+    description: str | None = None
+
+
+class CaseResponse(WorkflowV2Base):
+    id: UUID
+    name: str | None = None
+    area: str | None = None
+    documents: list[dict] = Field(default_factory=list)
+    created_at: datetime | None = None
+
+
+class AttachDocumentRequest(WorkflowV2Base):
+    document_id: UUID
+    role: str = "documento"
+
+
+class VisualResponse(WorkflowV2Base):
+    id: str
+    page_number: int | None = None
+    kind: str | None = None
+    storage_key: str | None = None
+    thumbnail_key: str | None = None
+
+
+class VersionResponse(WorkflowV2Base):
+    id: UUID
+    run_id: UUID
+    schema_version: str
+    status: str
+    created_at: datetime | None = None
+
+
+class CompareResponse(WorkflowV2Base):
+    before_id: UUID
+    after_id: UUID
+    added: list[str] = Field(default_factory=list)
+    removed: list[str] = Field(default_factory=list)
+    changed: list[str] = Field(default_factory=list)
 
 
 class SectionResponse(WorkflowV2Base):

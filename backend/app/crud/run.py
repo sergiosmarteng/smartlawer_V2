@@ -110,6 +110,23 @@ def transition_run(
     return run
 
 
+def resume_run(db: Session, *, run: AnalysisRun) -> AnalysisRun:
+    """Retoma execução ``failed`` sem artefato (Onda 0 Task 12, §11.2).
+
+    Reabertura explícita pelo usuário: só ``FAILED`` sem publicação é
+    retomável. Qualquer outro estado levanta ``VersionConflictError``.
+    """
+    if run.status != AnalysisRun.FAILED or run.published_artifact_id is not None:
+        raise VersionConflictError(f"run {run.id} não está em estado retomável")
+    run.status = AnalysisRun.QUEUED
+    run.error_code = None
+    run.error_message = None
+    run.completed_at = None
+    db.commit()
+    db.refresh(run)
+    return run
+
+
 def cancel_run(db: Session, *, run: AnalysisRun) -> AnalysisRun:
     """Cancelamento idempotente; não publica resultado tardio (§7)."""
     if run.status in AnalysisRun.TERMINAL_STATUSES:

@@ -24,6 +24,10 @@ from app.models.source_reference import SourceReference
 from app.models.user import User
 from app.schemas.analysis_v2 import (
     ArtifactResponse,
+    AttachDocumentRequest,
+    CaseCreateRequest,
+    CaseResponse,
+    CompareResponse,
     CreateRunRequest,
     CreateRunResponse,
     ErrorEnvelope,
@@ -34,6 +38,8 @@ from app.schemas.analysis_v2 import (
     RunStatusResponse,
     SectionResponse,
     SourceResponse,
+    VersionResponse,
+    VisualResponse,
 )
 
 router = APIRouter()
@@ -130,6 +136,7 @@ def _owned_artifact(db: Session, artifact_id: uuid.UUID, user: User) -> Analysis
 
 
 def _artifact_payload(artifact: AnalysisArtifact) -> ArtifactResponse:
+    is_legacy = (artifact.schema_version or "") != "3.0"
     return ArtifactResponse(
         id=artifact.id,
         run_id=artifact.run_id,
@@ -140,6 +147,8 @@ def _artifact_payload(artifact: AnalysisArtifact) -> ArtifactResponse:
         content_hash=artifact.content_hash,
         quality_notes=artifact.quality_notes,
         published_at=artifact.published_at,
+        legacy=is_legacy,
+        reanalyze_available=is_legacy,
     )
 
 
@@ -166,12 +175,18 @@ def create_analysis_run(
         idempotency_key=key,
         snapshot={
             "document_ids": [str(d.id) for d in documents],
+            "case_id": str(payload.case_id) if payload.case_id else None,
             "represented_side": payload.represented_side,
             "objective": payload.objective,
             "reference_date": payload.reference_date,
+            "area_overrides": list(payload.area_overrides or []),
             "module_id": payload.module_id,
         },
     )
+    if payload.case_id is not None:
+        run.case_id = payload.case_id
+        db.commit()
+        db.refresh(run)
     return CreateRunResponse(
         run_id=run.id, status_url=f"/api/v2/analysis-runs/{run.id}", status=run.status
     )
@@ -180,13 +195,16 @@ def create_analysis_run(
 @router.get("/analysis-runs", response_model=list[RunStatusResponse])
 def list_analysis_runs(
     document_id: uuid.UUID | None = None,
+    case_id: uuid.UUID | None = None,
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_active_user),
 ):
-    """Lista execuções (filtro opcional por documento) — reanálises coexistem."""
+    """Lista execuções (filtros por documento e/ou caso) — reanálises coexistem."""
     query = db.query(AnalysisRun).filter(AnalysisRun.user_id == current_user.id)
     if document_id is not None:
         query = query.filter(AnalysisRun.document_id == document_id)
+    if case_id is not None:
+        query = query.filter(AnalysisRun.case_id == case_id)
     runs = query.order_by(AnalysisRun.created_at.desc()).limit(50).all()
     return [_run_status(run) for run in runs]
 
@@ -485,3 +503,187 @@ def download_export(
         media_type="text/markdown",
         headers={"Content-Disposition": f'attachment; filename="dossie-{job_id}.md"'},
     )
+
+
+def _owned_case(db: Session, case_id: uuid.UUID, user: User):
+    from app.models.case import Case
+
+    case = (
+        db.query(Case)
+        .filter(Case.id == case_id, Case.user_id == user.id)
+        .first()
+    )
+    if case is None:
+        raise _error(404, "NOT_FOUND", "Caso não encontrado.")
+    return case
+
+
+def _case_payload(db: Session, case) -> CaseResponse:
+    from app.models.case import CaseDocument
+
+    links = (
+        db.query(CaseDocument)
+        .filter(CaseDocument.case_id == case.id)
+        .order_by(CaseDocument.added_at)
+        .all()
+    )
+    return CaseResponse(
+        id=case.id,
+        name=case.name,
+        area=case.area,
+        documents=[
+            {"document_id": link.document_id, "role": link.role} for link in links
+        ],
+        created_at=case.created_at,
+    )
+
+
+@router.post("/cases", response_model=CaseResponse, status_code=201)
+def create_case(
+    payload: CaseCreateRequest,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_active_user),
+):
+    """Cria um caso para agrupar documentos do mesmo assunto."""
+    from app.crud.case import create_case as _create_case
+
+    case = _create_case(
+        db, user_id=current_user.id, name=payload.name,
+        area=payload.area, description=payload.description,
+    )
+    return _case_payload(db, case)
+
+
+@router.get("/cases/{case_id}", response_model=CaseResponse)
+def get_case(
+    case_id: uuid.UUID,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_active_user),
+):
+    return _case_payload(db, _owned_case(db, case_id, current_user))
+
+
+@router.post("/cases/{case_id}/documents", status_code=201)
+def attach_case_document(
+    case_id: uuid.UUID,
+    payload: AttachDocumentRequest,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_active_user),
+):
+    """Anexa documento próprio ao caso; documento alheio → 404 opaco."""
+    from app.crud.case import CaseAccessError, attach_document
+
+    case = _owned_case(db, case_id, current_user)
+    document = get_document_for_user(
+        db, id=payload.document_id, user_id=current_user.id
+    )
+    if document is None:
+        raise _error(404, "NOT_FOUND", "Documento não encontrado ou sem acesso.")
+    try:
+        link = attach_document(db, case=case, document=document, role=payload.role)
+    except CaseAccessError:
+        raise _error(404, "NOT_FOUND", "Documento não encontrado ou sem acesso.")
+    return {"case_id": str(case.id), "document_id": str(link.document_id)}
+
+
+@router.get("/analyses/{artifact_id}/visuals", response_model=list[VisualResponse])
+def list_artifact_visuals(
+    artifact_id: uuid.UUID,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_active_user),
+):
+    """Galeria visual: chaves opacas, nunca caminho interno."""
+    artifact = _owned_artifact(db, artifact_id, current_user)
+    visuals = (artifact.content or {}).get("visuals", []) or []
+    return [
+        VisualResponse(
+            id=str(v.get("id")),
+            page_number=v.get("page_number"),
+            kind=v.get("kind"),
+            storage_key=v.get("storage_key"),
+            thumbnail_key=v.get("thumbnail_key"),
+        )
+        for v in visuals
+    ]
+
+
+def _versions_for_artifact(db: Session, artifact: AnalysisArtifact) -> list[AnalysisArtifact]:
+    run = db.query(AnalysisRun).filter(AnalysisRun.id == artifact.run_id).first()
+    if run is None:
+        return [artifact]
+    query = db.query(AnalysisArtifact).filter(AnalysisArtifact.user_id == artifact.user_id)
+    if run.document_id is not None:
+        peer_run_ids = [
+            r.id for r in db.query(AnalysisRun).filter(
+                AnalysisRun.user_id == artifact.user_id,
+                AnalysisRun.document_id == run.document_id,
+            ).all()
+        ]
+        if peer_run_ids:
+            query = query.filter(AnalysisArtifact.run_id.in_(peer_run_ids))
+    return query.order_by(AnalysisArtifact.created_at).all()
+
+
+@router.get("/analyses/{artifact_id}/versions", response_model=list[VersionResponse])
+def list_artifact_versions(
+    artifact_id: uuid.UUID,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_active_user),
+):
+    artifact = _owned_artifact(db, artifact_id, current_user)
+    return [
+        VersionResponse(
+            id=v.id, run_id=v.run_id, schema_version=v.schema_version,
+            status=v.status, created_at=v.created_at,
+        )
+        for v in _versions_for_artifact(db, artifact)
+    ]
+
+
+@router.get("/analyses/{artifact_id}/compare", response_model=CompareResponse)
+def compare_artifacts(
+    artifact_id: uuid.UUID,
+    against: uuid.UUID,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_active_user),
+):
+    """Compara artefatos por IDs estáveis de pedidos."""
+    after = _owned_artifact(db, artifact_id, current_user)
+    before = _owned_artifact(db, against, current_user)
+
+    def _claim_ids(artifact: AnalysisArtifact) -> dict[str, dict]:
+        return {
+            str(c.get("id")): c
+            for c in ((artifact.content or {}).get("claims", []) or [])
+            if c.get("id")
+        }
+
+    before_claims, after_claims = _claim_ids(before), _claim_ids(after)
+    added = sorted(set(after_claims) - set(before_claims))
+    removed = sorted(set(before_claims) - set(after_claims))
+    changed = sorted(
+        cid for cid in set(before_claims) & set(after_claims)
+        if before_claims[cid] != after_claims[cid]
+    )
+    return CompareResponse(
+        before_id=before.id, after_id=after.id,
+        added=added, removed=removed, changed=changed,
+    )
+
+
+@router.post("/analysis-runs/{run_id}/resume", response_model=RunStatusResponse, status_code=202)
+def resume_analysis_run(
+    run_id: uuid.UUID,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_active_user),
+):
+    """Retoma execução interrompida; só ``failed`` sem artefato é retomável."""
+    run = _owned_run(db, run_id, current_user)
+    try:
+        resumed = run_crud.resume_run(db, run=run)
+    except run_crud.VersionConflictError:
+        raise _error(
+            409, "NOT_RESUMABLE", "Execução não está em estado retomável.",
+            retryable=False,
+        )
+    return _run_status(resumed)
