@@ -20,6 +20,7 @@ class AnalysisRun(Base):
     __table_args__ = (
         Index("ix_analysis_runs_user", "user_id"),
         Index("ix_analysis_runs_document", "document_id"),
+        Index("ix_analysis_runs_case", "case_id"),
         Index("ix_analysis_runs_status", "status"),
     )
 
@@ -53,6 +54,12 @@ class AnalysisRun(Base):
         ForeignKey("documents.id", ondelete="CASCADE"),
         nullable=True,
     )
+    # Onda 0 Task 2: caso do dossiê (nullable, não remove document_id).
+    case_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("cases.id", ondelete="SET NULL"),
+        nullable=True,
+    )
     status = Column(String(30), nullable=False, default=QUEUED)
     stage = Column(String(40), nullable=True)
     # Snapshot: revisões de documentos, config, modelo/provedor por etapa,
@@ -80,6 +87,7 @@ class AnalysisRun(Base):
 
     user = relationship("User")
     document = relationship("Document")
+    case = relationship("Case", back_populates="runs")
     artifact = relationship(
         "AnalysisArtifact",
         back_populates="run",

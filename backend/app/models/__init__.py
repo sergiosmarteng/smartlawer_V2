@@ -9,6 +9,8 @@ from app.models.document_revision import DocumentRevision
 from app.models.analysis import Analysis
 from app.models.analysis_artifact import AnalysisArtifact
 from app.models.analysis_run import AnalysisRun
+from app.models.case import Case, CaseDocument
+from app.models.analysis_stage_run import AnalysisStageRun
 from app.models.template import Template
 from app.models.generated_document import GeneratedDocument
 from app.models.prompt_profile import PromptProfile

@@ -19,6 +19,7 @@ class AnalysisArtifact(Base):
     __tablename__ = "analysis_artifacts"
     __table_args__ = (
         Index("ix_analysis_artifacts_run", "run_id"),
+        Index("ix_analysis_artifacts_case", "case_id"),
     )
 
     # Estado de revisão humana (§7) — independente do status da execução.
@@ -37,6 +38,12 @@ class AnalysisArtifact(Base):
     user_id = Column(
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
     )
+    # Onda 0 Task 2: snapshot do caso (nullable; preserva compatibilidade V2).
+    case_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("cases.id", ondelete="SET NULL"),
+        nullable=True,
+    )
     schema_version = Column(String(20), nullable=False, default="2.0")
     status = Column(String(30), nullable=False, default="partial")
     review_status = Column(String(30), nullable=False, default=REVIEW_PENDING)
@@ -49,4 +56,5 @@ class AnalysisArtifact(Base):
     run = relationship(
         "AnalysisRun", back_populates="artifact", foreign_keys=[run_id]
     )
+    case = relationship("Case")
     user = relationship("User")
