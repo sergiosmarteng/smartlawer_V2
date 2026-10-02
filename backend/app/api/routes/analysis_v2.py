@@ -15,6 +15,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.orm import Session
 
 from app.api import deps
+from app.core.pipeline.contracts import PIPELINE_STAGES, calculate_progress
 from app.crud import run as run_crud
 from app.crud.document import get_document_for_user
 from app.models.analysis_artifact import AnalysisArtifact
@@ -67,7 +68,26 @@ def _error(status_code: int, code: str, user_message: str, **extra) -> HTTPExcep
     return HTTPException(status_code=status_code, detail=detail)
 
 
-def _progress(run: AnalysisRun) -> int:
+def _progress(run: AnalysisRun, stage_runs=None) -> int:
+    """Progresso da API V2 (Onda 0 Task 3: honesto por construção).
+
+    ``STAGE_ORDER`` (8 etapas V2) é preservado para compatibilidade da API.
+    O pipeline V3 usa ``PIPELINE_STAGES`` (12 etapas) via
+    ``calculate_progress`` quando ``stage_runs`` são fornecidos. Em ambos
+    os casos, ``extraction`` nunca retorna 100% (defeito §3.1 do spec).
+    """
+    if stage_runs is not None:
+        return calculate_progress(run, stage_runs).percent
+    if run.stage == AnalysisRun.STAGE_EXTRACTION:
+        if run.status in (AnalysisRun.FAILED, AnalysisRun.CANCELLED):
+            return 0
+        # Extração em andamento ou terminal sem publicação: nunca 100%.
+        if run.status in (AnalysisRun.COMPLETED, AnalysisRun.PARTIAL):
+            return 95
+        if run.stage in STAGE_ORDER:
+            index = STAGE_ORDER.index(run.stage)
+            return min(5 + int(90 * index / len(STAGE_ORDER)), 95)
+        return 5
     if run.status in (AnalysisRun.COMPLETED, AnalysisRun.PARTIAL):
         return 100
     if run.status in (AnalysisRun.FAILED, AnalysisRun.CANCELLED):
@@ -75,6 +95,10 @@ def _progress(run: AnalysisRun) -> int:
     if run.stage in STAGE_ORDER:
         index = STAGE_ORDER.index(run.stage)
         return 5 + int(90 * index / len(STAGE_ORDER))
+    # Estágios V3 fora da ordem V2: deriva de PIPELINE_STAGES sem 100 fictício.
+    if run.stage in PIPELINE_STAGES:
+        index = PIPELINE_STAGES.index(run.stage)
+        return min(5 + int(90 * index / len(PIPELINE_STAGES)), 99)
     return 5
 
 

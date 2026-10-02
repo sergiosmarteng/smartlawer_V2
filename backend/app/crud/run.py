@@ -175,6 +175,80 @@ def publish_artifact(
     return artifact
 
 
+def publish_artifact_v3(
+    db: Session,
+    *,
+    run: AnalysisRun,
+    artifact,
+    report,
+    expected_version: int | None = None,
+) -> AnalysisArtifact:
+    """Publica artefato V3 com gate honesto (Onda 0 Task 3, §9 + AC-01).
+
+    Valida na mesma transação: cancelamento, versão otimista, segunda
+    publicação, ``stage == "publication"`` para ``completed`` e relatório
+    do verificador aprovado. Persiste ``schema_version == "3.0"``.
+    """
+    if expected_version is not None and run.version != expected_version:
+        raise VersionConflictError(
+            f"run {run.id} na versão {run.version}, esperado {expected_version}"
+        )
+    if run.status == AnalysisRun.CANCELLED:
+        raise VersionConflictError(f"run {run.id} cancelado; sem publicação tardia")
+    if run.published_artifact_id is not None:
+        raise VersionConflictError(f"run {run.id} já publicou artefato")
+
+    content = artifact.model_dump() if hasattr(artifact, "model_dump") else dict(artifact or {})
+    if content.get("schema_version") != "3.0":
+        raise ValueError(
+            f"artefato V3 exige schema_version '3.0', obtido {content.get('schema_version')!r}"
+        )
+    status = content.get("status", "partial")
+    if status == "completed":
+        if run.stage != AnalysisRun.STAGE_PUBLICATION:
+            raise VersionConflictError(
+                f"run {run.id} em stage {run.stage!r}; 'completed' exige stage 'publication'"
+            )
+        if not getattr(report, "passed", False):
+            raise VersionConflictError(
+                f"run {run.id}: relatório do verificador reprovado; 'completed' bloqueado"
+            )
+
+    quality_notes = {
+        "errors": list(getattr(report, "errors", []) or []),
+        "warnings": list(getattr(report, "warnings", []) or []),
+        "pending_actions": list(getattr(report, "pending_actions", []) or []),
+    }
+    db_artifact = AnalysisArtifact(
+        run_id=run.id,
+        user_id=run.user_id,
+        case_id=getattr(run, "case_id", None),
+        schema_version="3.0",
+        status=status,
+        review_status=AnalysisArtifact.REVIEW_PENDING,
+        content=content,
+        content_hash=_content_hash(content),
+        quality_notes=quality_notes,
+        published_at=datetime.now(timezone.utc),
+    )
+    db.add(db_artifact)
+    db.flush()
+    run.published_artifact_id = db_artifact.id
+    if status == "completed":
+        run.status = AnalysisRun.COMPLETED
+    elif status == "partial":
+        run.status = AnalysisRun.PARTIAL
+    else:
+        run.status = AnalysisRun.FAILED
+    run.stage = AnalysisRun.STAGE_PUBLICATION
+    run.completed_at = datetime.now(timezone.utc)
+    run.version = run.version + 1
+    db.commit()
+    db.refresh(db_artifact)
+    db.refresh(run)
+    return db_artifact
+
+
 def get_published_artifact(
     db: Session, *, run: AnalysisRun
 ) -> AnalysisArtifact | None:

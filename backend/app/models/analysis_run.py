@@ -35,15 +35,22 @@ class AnalysisRun(Base):
 
     TERMINAL_STATUSES = frozenset({COMPLETED, PARTIAL, FAILED, CANCELLED})
 
-    # Etapas do pipeline (§7).
+    # Etapas do pipeline (§7 + Onda 0 Task 3: PIPELINE_STAGES de 12).
+    # Constantes V2 preservadas para compatibilidade; novas alinham com
+    # ``app.core.pipeline.contracts.PIPELINE_STAGES``.
+    STAGE_INGESTION = "ingestion"
     STAGE_EXTRACTION = "extraction"
     STAGE_CLASSIFICATION = "classification"
+    STAGE_COVERAGE_PLANNING = "coverage_planning"
     STAGE_STRUCTURED_EXTRACTION = "structured_extraction"
     STAGE_RECONCILIATION = "reconciliation"
+    STAGE_LEGAL_ANALYSIS = "legal_analysis"
     STAGE_RESEARCH = "research"
+    STAGE_LEGAL_RESEARCH = "legal_research"
     STAGE_CALCULATIONS = "calculations"
     STAGE_VERIFICATION = "verification"
     STAGE_COMPOSITION = "composition"
+    STAGE_PUBLICATION = "publication"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(
