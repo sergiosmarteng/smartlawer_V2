@@ -1,0 +1,819 @@
+{
+  "schema_version": "3.0",
+  "run_id": "run-fixture-family-001",
+  "case_id": "case-fixture-001",
+  "status": "partial",
+  "review_status": "pending",
+  "scope": {
+    "document_ids": ["doc-fixture-001"],
+    "represented_side": "claimant",
+    "objective": "Revisão do caso de família para piloto",
+    "area_overrides": []
+  },
+  "module_activations": [
+    {
+      "module_id": "universal",
+      "module_version": "1.0.0",
+      "status": "active",
+      "reason": "Núcleo universal obrigatório"
+    }
+  ],
+  "coverage": {
+    "pages_total": 12,
+    "pages_extracted": 12,
+    "unprocessed_block_ids": [],
+    "explicit_claims_expected": 4,
+    "explicit_claims_found": 4
+  },
+  "section_states": {
+    "executive_summary": {
+      "status": "complete",
+      "reason": "Resumo executivo composto a partir de partes, pedidos e fatos reconciliados",
+      "coverage": {
+        "items_expected": 1,
+        "items_found": 1,
+        "items_verified": 1
+      },
+      "pending_actions": []
+    },
+    "parties": {
+      "status": "complete",
+      "reason": "Partes extraídas com papéis materiais",
+      "coverage": {
+        "items_expected": 3,
+        "items_found": 3,
+        "items_verified": 2
+      },
+      "pending_actions": ["Conferir qualificação completa do terceiro"]
+    },
+    "events": {
+      "status": "complete",
+      "reason": "Cronologia extraída de 5 eventos",
+      "coverage": {
+        "items_expected": 5,
+        "items_found": 5,
+        "items_verified": 4
+      },
+      "pending_actions": []
+    },
+    "claims": {
+      "status": "complete",
+      "reason": "Pedidos extraídos com fontes",
+      "coverage": {
+        "items_expected": 4,
+        "items_found": 4,
+        "items_verified": 4
+      },
+      "pending_actions": []
+    },
+    "facts": {
+      "status": "complete",
+      "reason": "Fatos reconciliados com estados epistêmicos",
+      "coverage": {
+        "items_expected": 8,
+        "items_found": 8,
+        "items_verified": 6
+      },
+      "pending_actions": ["Validar factual_status de f7 com a parte"]
+    },
+    "controversies": {
+      "status": "partial",
+      "reason": "Apenas controvérsias com fonte sustentada",
+      "coverage": {
+        "items_expected": 3,
+        "items_found": 2,
+        "items_verified": 1
+      },
+      "pending_actions": []
+    },
+    "evidence": {
+      "status": "complete",
+      "reason": "Provas examinadas vs mencionadas",
+      "coverage": {
+        "items_expected": 5,
+        "items_found": 5,
+        "items_verified": 4
+      },
+      "pending_actions": []
+    },
+    "visuals": {
+      "status": "complete",
+      "reason": "Imagem relevante extraída com página preservada",
+      "coverage": {
+        "items_expected": 1,
+        "items_found": 1,
+        "items_verified": 1
+      },
+      "pending_actions": []
+    },
+    "legal_references": {
+      "status": "complete",
+      "reason": "Citações separadas em autos vs pesquisa",
+      "coverage": {
+        "items_expected": 4,
+        "items_found": 4,
+        "items_verified": 3
+      },
+      "pending_actions": ["Verificar vigência de norma local"]
+    },
+    "procedural_issues": {
+      "status": "complete",
+      "reason": "Questões processuais com fonte",
+      "coverage": {
+        "items_expected": 3,
+        "items_found": 3,
+        "items_verified": 2
+      },
+      "pending_actions": []
+    },
+    "theses": {
+      "status": "complete",
+      "reason": "Teses bilaterais sem fallback genérico",
+      "coverage": {
+        "items_expected": 4,
+        "items_found": 4,
+        "items_verified": 3
+      },
+      "pending_actions": []
+    },
+    "calculations": {
+      "status": "not_applicable",
+      "reason": "Caso não envolve cálculo monetário",
+      "coverage": {
+        "items_expected": 0,
+        "items_found": 0,
+        "items_verified": 0
+      },
+      "pending_actions": []
+    },
+    "risks": {
+      "status": "complete",
+      "reason": "Riscos priorizados por impacto",
+      "coverage": {
+        "items_expected": 3,
+        "items_found": 3,
+        "items_verified": 2
+      },
+      "pending_actions": []
+    },
+    "action_plan": {
+      "status": "complete",
+      "reason": "Plano priorizado de providências",
+      "coverage": {
+        "items_expected": 3,
+        "items_found": 3,
+        "items_verified": 3
+      },
+      "pending_actions": []
+    },
+    "client_questions": {
+      "status": "complete",
+      "reason": "Perguntas ao cliente",
+      "coverage": {
+        "items_expected": 2,
+        "items_found": 2,
+        "items_verified": 2
+      },
+      "pending_actions": []
+    },
+    "sources": {
+      "status": "complete",
+      "reason": "Todas as fontes resolvíveis",
+      "coverage": {
+        "items_expected": 10,
+        "items_found": 10,
+        "items_verified": 10
+      },
+      "pending_actions": []
+    },
+    "limitations": {
+      "status": "complete",
+      "reason": "Limitações declaradas explicitamente",
+      "coverage": {
+        "items_expected": 2,
+        "items_found": 2,
+        "items_verified": 2
+      },
+      "pending_actions": []
+    },
+    "review": {
+      "status": "partial",
+      "reason": "Aguardando revisão do advogado",
+      "coverage": {
+        "items_expected": 1,
+        "items_found": 0,
+        "items_verified": 0
+      },
+      "pending_actions": ["Iniciar revisão humana"]
+    }
+  },
+  "executive_summary": {
+    "narrative": "Caso de família envolvendo guarda compartilhada, alimentos e partilha de bens.",
+    "central_question": "Qual o melhor regime de guarda e o valor de alimentos compatível com a capacidade das partes?",
+    "main_claims": ["claim-1", "claim-2", "claim-3", "claim-4"],
+    "economic_exposure": "estimado em 0.00",
+    "key_facts": ["f1", "f3", "f5"],
+    "key_evidence": ["ev1", "ev2"],
+    "key_theses": ["t1", "t3"],
+    "priority_risks": ["r1", "r2"],
+    "priority_actions": ["a1", "a2"],
+    "limitations": ["lim1"]
+  },
+  "parties": [
+    {
+      "id": "party-1",
+      "name": "Parte A",
+      "kind": "person",
+      "role_material": "genitor",
+      "role_procedural": "autor",
+      "represented_side": "claimant",
+      "identifiers": {},
+      "representatives": [],
+      "source_refs": ["src-1"]
+    },
+    {
+      "id": "party-2",
+      "name": "Parte B",
+      "kind": "person",
+      "role_material": "genitor",
+      "role_procedural": "reu",
+      "represented_side": "respondent",
+      "identifiers": {},
+      "representatives": [],
+      "source_refs": ["src-2"]
+    },
+    {
+      "id": "party-3",
+      "name": "Filho C",
+      "kind": "person",
+      "role_material": "filho menor",
+      "role_procedural": "terceiro",
+      "represented_side": "neutral",
+      "identifiers": {},
+      "representatives": [],
+      "source_refs": ["src-3"]
+    }
+  ],
+  "events": [
+    {
+      "id": "ev-timeline-1",
+      "date": "2024-01-15",
+      "date_kind": "fact",
+      "description": "Inicio da convivência",
+      "parties": ["party-1", "party-2"],
+      "source_refs": ["src-1"]
+    },
+    {
+      "id": "ev-timeline-2",
+      "date": "2024-06-20",
+      "date_kind": "fact",
+      "description": "Separação de fato",
+      "parties": ["party-1", "party-2"],
+      "source_refs": ["src-1"]
+    },
+    {
+      "id": "ev-timeline-3",
+      "date": "2025-03-10",
+      "date_kind": "protocol",
+      "description": "Distribuição da petição inicial",
+      "parties": ["party-1"],
+      "source_refs": ["src-2"]
+    },
+    {
+      "id": "ev-timeline-4",
+      "date": "2025-04-05",
+      "date_kind": "publication",
+      "description": "Citação da parte B",
+      "parties": ["party-2"],
+      "source_refs": ["src-2"]
+    },
+    {
+      "id": "ev-timeline-5",
+      "date": "2025-08-22",
+      "date_kind": "fact",
+      "description": "Audiência de instrução",
+      "parties": ["party-1", "party-2"],
+      "source_refs": ["src-3"]
+    }
+  ],
+  "claims": [
+    {
+      "id": "claim-1",
+      "original_number": "1",
+      "title": "Guarda compartilhada",
+      "category": "guard",
+      "requested_relief": "Guarda compartilhada com divisão equilibrada de tempo",
+      "factual_basis_refs": ["f1", "f2"],
+      "legal_basis_refs": ["lr1"],
+      "evidence_refs": ["ev1"],
+      "amount": null,
+      "recurrence": null,
+      "period": null,
+      "dependencies": [],
+      "related_claims": [],
+      "source_refs": ["src-1"],
+      "epistemic_status": "documented",
+      "occurrences": 1,
+      "issues": []
+    },
+    {
+      "id": "claim-2",
+      "original_number": "2",
+      "title": "Alimentos para filho menor",
+      "category": "alimentos",
+      "requested_relief": "Alimentos fixados em 30% da renda do alimentante",
+      "factual_basis_refs": ["f3", "f4"],
+      "legal_basis_refs": ["lr2"],
+      "evidence_refs": ["ev2"],
+      "amount": {
+        "literal": "R$ 3.000,00",
+        "value": "3000.00",
+        "currency": "BRL"
+      },
+      "recurrence": "mensal",
+      "period": null,
+      "dependencies": [],
+      "related_claims": [],
+      "source_refs": ["src-2"],
+      "epistemic_status": "documented",
+      "occurrences": 1,
+      "issues": []
+    },
+    {
+      "id": "claim-3",
+      "original_number": "3",
+      "title": "Partilha de imóvel",
+      "category": "patrimonio",
+      "requested_relief": "Partilha igualitária do imóvel residencial",
+      "factual_basis_refs": ["f5"],
+      "legal_basis_refs": ["lr3"],
+      "evidence_refs": ["ev3"],
+      "amount": null,
+      "recurrence": null,
+      "period": null,
+      "dependencies": [],
+      "related_claims": [],
+      "source_refs": ["src-4"],
+      "epistemic_status": "documented",
+      "occurrences": 1,
+      "issues": []
+    },
+    {
+      "id": "claim-4",
+      "original_number": "4",
+      "title": "Honorários sucumbenciais",
+      "category": "processual",
+      "requested_relief": "Condenação da parte adversa em honorários",
+      "factual_basis_refs": [],
+      "legal_basis_refs": ["lr4"],
+      "evidence_refs": [],
+      "amount": null,
+      "recurrence": null,
+      "period": null,
+      "dependencies": [],
+      "related_claims": [],
+      "source_refs": ["src-5"],
+      "epistemic_status": "inferred",
+      "occurrences": 1,
+      "issues": []
+    }
+  ],
+  "facts": [
+    {
+      "id": "f1",
+      "statement": "As partes conviveram maritalmente entre 2018 e 2024",
+      "asserted_by": "party-1",
+      "epistemic_status": "documented",
+      "source_refs": ["src-1"],
+      "conflicts_with": []
+    },
+    {
+      "id": "f2",
+      "statement": "Há um filho menor fruto da relação",
+      "asserted_by": "party-1",
+      "epistemic_status": "admitted",
+      "source_refs": ["src-1"],
+      "conflicts_with": []
+    },
+    {
+      "id": "f3",
+      "statement": "A parte B aufere renda mensal de R$ 10.000,00",
+      "asserted_by": "party-1",
+      "epistemic_status": "documented",
+      "source_refs": ["src-2"],
+      "conflicts_with": []
+    },
+    {
+      "id": "f4",
+      "statement": "A parte A aufere renda mensal de R$ 4.000,00",
+      "asserted_by": "party-1",
+      "epistemic_status": "documented",
+      "source_refs": ["src-2"],
+      "conflicts_with": []
+    },
+    {
+      "id": "f5",
+      "statement": "Existe um imóvel residencial em nome de ambos",
+      "asserted_by": "party-1",
+      "epistemic_status": "documented",
+      "source_refs": ["src-4"],
+      "conflicts_with": []
+    },
+    {
+      "id": "f6",
+      "statement": "A parte B nega renda superior a R$ 6.000,00",
+      "asserted_by": "party-2",
+      "epistemic_status": "disputed",
+      "source_refs": ["src-6"],
+      "conflicts_with": ["f3"]
+    },
+    {
+      "id": "f7",
+      "statement": "A criança frequenta escola particular",
+      "asserted_by": "party-1",
+      "epistemic_status": "documented",
+      "source_refs": ["src-3"],
+      "conflicts_with": []
+    },
+    {
+      "id": "f8",
+      "statement": "A parte B não compareceu à audiência de instrução",
+      "asserted_by": "court",
+      "epistemic_status": "documented",
+      "source_refs": ["src-7"],
+      "conflicts_with": []
+    }
+  ],
+  "controversies": [
+    {
+      "id": "c1",
+      "description": "Renda real da parte B",
+      "fact_ids": ["f3", "f6"],
+      "status": "open"
+    },
+    {
+      "id": "c2",
+      "description": "Data de início da separação de fato",
+      "fact_ids": ["ev-timeline-2"],
+      "status": "open"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "ev1",
+      "kind": "documental",
+      "presence_status": "examined",
+      "location_refs": ["src-1"],
+      "propositions_supported": ["f1", "f2"],
+      "limitations": null,
+      "authenticity_status": "matched",
+      "requested_action": null
+    },
+    {
+      "id": "ev2",
+      "kind": "documental",
+      "presence_status": "examined",
+      "location_refs": ["src-2"],
+      "propositions_supported": ["f3", "f4"],
+      "limitations": "Renda declarada não confere com extratos anexos",
+      "authenticity_status": "matched",
+      "requested_action": null
+    },
+    {
+      "id": "ev3",
+      "kind": "documental",
+      "presence_status": "examined",
+      "location_refs": ["src-4"],
+      "propositions_supported": ["f5"],
+      "limitations": null,
+      "authenticity_status": "matched",
+      "requested_action": null
+    },
+    {
+      "id": "ev4",
+      "kind": "documental",
+      "presence_status": "mentioned_not_located",
+      "location_refs": [],
+      "propositions_supported": [],
+      "limitations": "Comprovante de renda da parte B não juntado",
+      "authenticity_status": null,
+      "requested_action": "Solicitar extratos bancários"
+    },
+    {
+      "id": "ev5",
+      "kind": "documental",
+      "presence_status": "examined",
+      "location_refs": ["src-3"],
+      "propositions_supported": ["f7"],
+      "limitations": null,
+      "authenticity_status": "matched",
+      "requested_action": null
+    }
+  ],
+  "visuals": [
+    {
+      "id": "vis-1",
+      "document_id": "doc-fixture-001",
+      "revision_id": "rev-001",
+      "page_number": 3,
+      "region": null,
+      "kind": "photo",
+      "status": "examined",
+      "storage_key": "opaque-fig-1",
+      "thumbnail_key": "opaque-thumb-1",
+      "caption_original": null,
+      "description": "Fotografia escolar sem dados pessoais identificáveis",
+      "relevance": "Sustenta fato f7",
+      "sensitivity": [],
+      "quality": { "resolution": "adequate", "rotation": 0, "cropped": false },
+      "related_fact_ids": ["f7"],
+      "related_claim_ids": [],
+      "related_evidence_ids": ["ev5"],
+      "related_thesis_ids": [],
+      "source_ref": "src-3"
+    }
+  ],
+  "legal_references": [
+    {
+      "id": "lr1",
+      "instrument": "Codigo Civil",
+      "article": "Art. 1.584",
+      "literal_citation": "Art. 1.584, CC",
+      "normalized_citation": "CC art. 1.584",
+      "verification_status": "matched",
+      "source_ref": "src-1",
+      "external_source": null
+    },
+    {
+      "id": "lr2",
+      "instrument": "Codigo Civil",
+      "article": "Art. 1.694",
+      "literal_citation": "Art. 1.694, CC",
+      "normalized_citation": "CC art. 1.694",
+      "verification_status": "matched",
+      "source_ref": "src-2",
+      "external_source": null
+    },
+    {
+      "id": "lr3",
+      "instrument": "Codigo Civil",
+      "article": "Art. 1.725",
+      "literal_citation": "Art. 1.725, CC",
+      "normalized_citation": "CC art. 1.725",
+      "verification_status": "matched",
+      "source_ref": "src-4",
+      "external_source": null
+    },
+    {
+      "id": "lr4",
+      "instrument": "CPC",
+      "article": "Art. 85",
+      "literal_citation": "Art. 85, CPC",
+      "normalized_citation": "CPC art. 85",
+      "verification_status": "matched",
+      "source_ref": "src-5",
+      "external_source": null
+    }
+  ],
+  "procedural_issues": [
+    {
+      "id": "pi1",
+      "issue": "Competencia territorial",
+      "status": "partial",
+      "conclusion": "Foro do domicílio do autor competente",
+      "source_refs": ["src-2"],
+      "missing_inputs": []
+    },
+    {
+      "id": "pi2",
+      "issue": "Legitimidade",
+      "status": "complete",
+      "conclusion": "Partes legitimadas",
+      "source_refs": ["src-1"],
+      "missing_inputs": []
+    },
+    {
+      "id": "pi3",
+      "issue": "Prescricao",
+      "status": "blocked",
+      "conclusion": "Nao aplicavel",
+      "source_refs": [],
+      "missing_inputs": ["Data exata do fato gerador"]
+    }
+  ],
+  "theses": [
+    {
+      "id": "t1",
+      "represented_side": "claimant",
+      "issue": "Guarda compartilhada é a melhor solução",
+      "conclusion": "Sim, conforme CC art. 1.584",
+      "factual_premises": ["f1", "f2"],
+      "legal_premises": ["lr1"],
+      "supporting_refs": ["src-1"],
+      "adverse_refs": [],
+      "counterargument": "Evento adverso: distancia entre os genitores",
+      "prerequisites": [],
+      "requested_evidence": [],
+      "action": null,
+      "limitations": null
+    },
+    {
+      "id": "t2",
+      "represented_side": "respondent",
+      "issue": "Guarda unilateral com a parte B",
+      "conclusion": "Pleito subsidiário",
+      "factual_premises": ["f6"],
+      "legal_premises": ["lr1"],
+      "supporting_refs": [],
+      "adverse_refs": ["src-1"],
+      "counterargument": null,
+      "prerequisites": [],
+      "requested_evidence": ["Comprovante de moradia da parte B"],
+      "action": null,
+      "limitations": "Subsidiária"
+    },
+    {
+      "id": "t3",
+      "represented_side": "claimant",
+      "issue": "Alimentos em 30% da renda",
+      "conclusion": "Capacidade da parte B sustenta o pedido",
+      "factual_premises": ["f3", "f4", "f7"],
+      "legal_premises": ["lr2"],
+      "supporting_refs": ["src-2"],
+      "adverse_refs": ["src-6"],
+      "counterargument": "Parte B nega renda",
+      "prerequisites": [],
+      "requested_evidence": ["Extratos bancarios"],
+      "action": null,
+      "limitations": null
+    },
+    {
+      "id": "t4",
+      "represented_side": "claimant",
+      "issue": "Partilha igualitária do imóvel",
+      "conclusion": "Regime de comunhão parcial",
+      "factual_premises": ["f5"],
+      "legal_premises": ["lr3"],
+      "supporting_refs": ["src-4"],
+      "adverse_refs": [],
+      "counterargument": null,
+      "prerequisites": [],
+      "requested_evidence": ["Matrícula atualizada"],
+      "action": null,
+      "limitations": null
+    }
+  ],
+  "calculations": [],
+  "risks": [
+    {
+      "id": "r1",
+      "issue": "Renda subestimada da parte B",
+      "impact": "Alimentos podem ser fixados abaixo do ideal",
+      "uncertainty": "Alta até diretiva de inferência de capacidade",
+      "supporting_refs": ["src-6"],
+      "mitigation": "Solicitar extratos bancarios",
+      "review_owner": "advogado-revisor"
+    },
+    {
+      "id": "r2",
+      "issue": "Distancia entre genitores",
+      "impact": "Dificuldade de implementação da guarda compartilhada",
+      "uncertainty": "Média",
+      "supporting_refs": ["src-1"],
+      "mitigation": "Propor regime flexível com base de convivencia",
+      "review_owner": "advogado-revisor"
+    },
+    {
+      "id": "r3",
+      "issue": "Ausencia de comprovante de renda da parte B",
+      "impact": "Bloqueio parcial de calculos",
+      "uncertainty": "Alta",
+      "supporting_refs": [],
+      "mitigation": "Requerer documental em fase instrutoria",
+      "review_owner": "advogado-revisor"
+    }
+  ],
+  "action_plan": [
+    {
+      "id": "a1",
+      "description": "Solicitar extratos bancarios da parte B",
+      "priority": "high",
+      "responsible": "advogado-revisor",
+      "deadline_hint": "15 dias",
+      "dependencies": [],
+      "related_fact_ids": ["f3", "f6"],
+      "source_refs": []
+    },
+    {
+      "id": "a2",
+      "description": "Requerer matrícula atualizada do imóvel",
+      "priority": "medium",
+      "responsible": "advogado-revisor",
+      "deadline_hint": "30 dias",
+      "dependencies": [],
+      "related_fact_ids": ["f5"],
+      "source_refs": []
+    },
+    {
+      "id": "a3",
+      "description": "Preparar minuta de acordo sobre regime de convivência",
+      "priority": "low",
+      "responsible": "advogado-revisor",
+      "deadline_hint": "45 dias",
+      "dependencies": ["a1"],
+      "related_fact_ids": [],
+      "source_refs": []
+    }
+  ],
+  "client_questions": [
+    {
+      "id": "cq1",
+      "question": "Existe possibilidade de acordo sobre guarda neste momento?",
+      "context": "Cliente pode preferir evitar litigio",
+      "source_refs": []
+    },
+    {
+      "id": "cq2",
+      "question": "Qual a expectativa de renda real da parte B para os proximos 12 meses?",
+      "context": "Necessario para calibrar pedido",
+      "source_refs": []
+    }
+  ],
+  "sources": [
+    {
+      "id": "src-1",
+      "kind": "documental",
+      "revision_id": "rev-001",
+      "page_number": 1,
+      "block_id": "blk-1",
+      "quote": "Documento da acao",
+      "verification_status": "matched"
+    },
+    {
+      "id": "src-2",
+      "kind": "documental",
+      "revision_id": "rev-001",
+      "page_number": 2,
+      "block_id": "blk-2",
+      "quote": "Declaracao de renda",
+      "verification_status": "matched"
+    },
+    {
+      "id": "src-3",
+      "kind": "documental",
+      "revision_id": "rev-001",
+      "page_number": 3,
+      "block_id": "blk-3",
+      "quote": null,
+      "verification_status": "matched"
+    },
+    {
+      "id": "src-4",
+      "kind": "documental",
+      "revision_id": "rev-001",
+      "page_number": 5,
+      "block_id": "blk-5",
+      "quote": "Matricula do imovel",
+      "verification_status": "matched"
+    },
+    {
+      "id": "src-5",
+      "kind": "documental",
+      "revision_id": "rev-001",
+      "page_number": 7,
+      "block_id": "blk-7",
+      "quote": "Sentenca",
+      "verification_status": "matched"
+    },
+    {
+      "id": "src-6",
+      "kind": "documental",
+      "revision_id": "rev-001",
+      "page_number": 8,
+      "block_id": "blk-8",
+      "quote": "Contestacao",
+      "verification_status": "matched"
+    },
+    {
+      "id": "src-7",
+      "kind": "documental",
+      "revision_id": "rev-001",
+      "page_number": 10,
+      "block_id": "blk-10",
+      "quote": "Ata de audiencia",
+      "verification_status": "matched"
+    }
+  ],
+  "limitations": [
+    {
+      "code": "RENDERED_FIGURE_UNAVAILABLE",
+      "affected_claim_ids": [],
+      "message": "Pagina original suplementar acessivel via link temporario"
+    },
+    {
+      "code": "PROVIDER_LOW_CONFIDENCE",
+      "affected_claim_ids": ["claim-4"],
+      "message": "Honorarios sucumbenciais dependem de procedencia - aguardar desfecho"
+    }
+  ]
+}

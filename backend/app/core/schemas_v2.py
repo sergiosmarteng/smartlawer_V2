@@ -2,6 +2,12 @@
 
 Formalizado em Pydantic (gera o JSON Schema do frontend em T11).
 IDs simbólicos; nulos nunca viram conteúdo inventado (§8.3).
+
+ATENÇÃO — Onda 0 (2026-10-02): ``coerce_legacy_analysis`` permanece neste
+módulo apenas como **leitor V1** para análise de artefatos antigos. O pipeline
+V3 (``backend.app.core.schemas_v3``) **não pode** chamar esta função — o plano
+Onda 0 Task 11 remove `coerce_legacy_analysis` do caminho de produção. Use
+``backend.app.core.schemas_v3.ArtifactContentV3`` para qualquer nova execução.
 """
 
 import re

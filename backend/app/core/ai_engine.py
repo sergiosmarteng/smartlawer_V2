@@ -98,11 +98,10 @@ def resolve_chat_config() -> dict | None:
 
 
 class LegalAnalyzer:
-    FALLBACK_THESES = [
-        "Exigir comprovacao documental integral dos fatos constitutivos alegados pelo autor.",
-        "Questionar o nexo entre os fatos narrados e o pedido final com base nas lacunas do material extraido.",
-        "Avaliar preliminares processuais e inconsistencias formais antes do enfrentamento do merito.",
-    ]
+    # Onda 0 Task 1 (2026-10-02): FALLBACK_THESES removido (defeito D01 da
+    # spec universal). O pipeline V3 nunca injeta teses genéricas; análise
+    # sem tese válida resulta em ``defense_theses=[]`` e
+    # ``AnalysisError(Code="PROVIDER_UNAVAILABLE"|"OUTPUT_INVALID")``.
 
     def __init__(self):
         self.provider = settings.AI_PROVIDER.lower()

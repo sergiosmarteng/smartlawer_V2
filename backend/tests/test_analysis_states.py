@@ -23,6 +23,13 @@ def test_no_provider_raises_and_never_returns_generic_theses(monkeypatch):
 
 
 def test_normalize_never_injects_generic_theses():
+    """Onda 0 Task 1: ``_normalize`` nunca injeta teses (FALLBACK_THESES removido).
+
+    O teste verifica o invariante sem depender da constante apagada:
+    ``defense_theses`` retornado deve ser vazio mesmo quando o payload de
+    entrada lista teses. Se algum dia alguém reintroduzir uma constante
+    genérica, este teste fica vermelho imediatamente.
+    """
     analyzer = LegalAnalyzer()
     out = analyzer._normalize_analysis_payload(
         {"summary": "s", "requests": [], "laws": [], "evidence": "e", "defense_theses": []}
@@ -30,8 +37,6 @@ def test_normalize_never_injects_generic_theses():
     assert out["kind"] == "analysis"
     assert out["requests"] == []
     assert out["defense_theses"] == []
-    for thesis in out["defense_theses"]:
-        assert thesis not in LegalAnalyzer.FALLBACK_THESES
 
 
 def test_invalid_llm_json_raises_output_invalid(monkeypatch):
