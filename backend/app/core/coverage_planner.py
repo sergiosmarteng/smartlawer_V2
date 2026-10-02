@@ -80,6 +80,43 @@ def plan_batches(
     }
 
 
+def plan_revision_batches(
+    blocks: list[dict],
+    *,
+    max_batch_tokens: int | None = None,
+    overlap_blocks: int | None = None,
+    max_batches: int | None = None,
+) -> dict:
+    """Planejamento por revisão (Onda 0 Task 4, §8.4).
+
+    Todo bloco entra em um lote ou em ``unprocessed_block_ids``; blocos de
+    revisões distintas nunca se misturam; teto excedido vira parcial
+    acionável (``partial=True`` + pendentes listados), nunca corte mudo.
+    """
+    revisions = {b.get("revision_id") for b in blocks if b.get("revision_id")}
+    if len(revisions) > 1:
+        raise ValueError(
+            f"blocos de revisões distintas no mesmo plano: {sorted(revisions)}"
+        )
+    plan = plan_batches(
+        blocks, max_batch_tokens=max_batch_tokens, overlap_blocks=overlap_blocks
+    )
+    plan["partial"] = False
+    plan["budget_exceeded"] = False
+    if max_batches is not None and len(plan["batches"]) > max_batches:
+        kept = plan["batches"][:max_batches]
+        kept_ids = {bid for batch in kept for bid in batch["block_ids"]}
+        unprocessed = [
+            bid for bid in plan.get("assigned_block_ids", []) if bid not in kept_ids
+        ]
+        plan["batches"] = kept
+        plan["batches_total"] = len(kept)
+        plan["unprocessed_block_ids"] = unprocessed
+        plan["partial"] = True
+        plan["budget_exceeded"] = True
+    return plan
+
+
 def check_budget(
     plan: dict,
     *,

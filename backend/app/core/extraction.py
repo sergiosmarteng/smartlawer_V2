@@ -203,8 +203,40 @@ def assess_page_quality(page: dict) -> dict:
     return page
 
 
-def page_needs_ocr(page_or_text, image_area_ratio: float = 0.0) -> bool:
-    """Decide OCR por cobertura: corpo digitalizado sob cabeçalho (D07)."""
+def page_needs_ocr(
+    page_or_text=None,
+    image_area_ratio: float = 0.0,
+    *,
+    text_blocks: list[dict] | None = None,
+    image_blocks: list[dict] | None = None,
+    page_area: float = 0.0,
+) -> bool:
+    """Decide OCR por cobertura: corpo digitalizado sob cabeçalho (D07).
+
+    Onda 0 Task 4: aceita ``text_blocks``/``image_blocks``/``page_area``
+    explícitos para decisão por cobertura espacial (não só nº de chars).
+    """
+    if text_blocks is not None or image_blocks is not None:
+        texts = []
+        for block in text_blocks or []:
+            if isinstance(block, dict):
+                texts.append(str(block.get("text") or block.get("normalized_text") or ""))
+            else:
+                texts.append(str(block or ""))
+        text_chars = len("".join(texts).strip())
+        image_area = 0.0
+        for block in image_blocks or []:
+            if isinstance(block, dict):
+                image_area += float(block.get("area", 0.0) or 0.0)
+            else:
+                try:
+                    image_area += float(block)
+                except (TypeError, ValueError):
+                    continue
+        ratio = (image_area / page_area) if page_area else image_area_ratio
+        if text_chars < OCR_MIN_TEXT_CHARS:
+            return True
+        return ratio >= HYBRID_IMAGE_AREA_RATIO and text_chars < HYBRID_MIN_TEXT_CHARS
     if isinstance(page_or_text, dict):
         assess_page_quality(page_or_text)
         flags = page_or_text.get("quality_flags", [])
@@ -213,6 +245,26 @@ def page_needs_ocr(page_or_text, image_area_ratio: float = 0.0) -> bool:
     if text_chars < OCR_MIN_TEXT_CHARS:
         return True
     return image_area_ratio >= HYBRID_IMAGE_AREA_RATIO and text_chars < HYBRID_MIN_TEXT_CHARS
+
+
+def extract_revision_inventory(file_path: str, revision_id: str) -> dict:
+    """Inventário por revisão (Onda 0 Task 4, §8.2).
+
+    Retorna ``pages`` + ``blocks`` (achatados, com ``revision_id``) +
+    ``coverage``. Blocos carregam ``block_uid`` estável para
+    ``plan_revision_batches`` e ``SourceBlock``.
+    """
+    pages, coverage = extract_inventory(file_path, revision_id)
+    blocks: list[dict] = []
+    for page in pages:
+        for block in page.get("blocks", []):
+            blocks.append({**block, "revision_id": revision_id})
+    return {
+        "revision_id": revision_id,
+        "pages": pages,
+        "blocks": blocks,
+        "coverage": coverage,
+    }
 
 
 def build_coverage(pages: list[dict]) -> dict:
