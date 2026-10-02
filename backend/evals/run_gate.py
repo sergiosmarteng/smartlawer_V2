@@ -106,6 +106,22 @@ def evaluate_all(
 
 
 def main() -> int:
+    import sys as _sys
+
+    # Onda 0 Task 16: gate universal opcional (não altera o contrato padrão).
+    if "--universal" in (_sys.argv[1:]):
+        from evals.universal_gate import evaluate_cases
+
+        path = EVALS_DIR / "universal_dossier_cases.json"
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        cases = payload.get("cases", payload) if isinstance(payload, dict) else payload
+        result = evaluate_cases(cases)
+        print(f"universal cases={result['total']} passed={result['passed']}")
+        if not result["passed"]:
+            print(f"UNIVERSAL GATE FAILED: {result['failures']}")
+            return 1
+        print("UNIVERSAL GATE PASSED")
+        return 0
     golden = json.loads((EVALS_DIR / "golden_legal.json").read_text(encoding="utf-8"))[
         "items"
     ]

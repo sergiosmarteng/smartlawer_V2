@@ -1,0 +1,69 @@
+{
+  "description": "Corpus sintético do Dossiê Universal V3 (sem dados pessoais reais). Cobre família, cível, contrato, trabalhista e assunto sem módulo.",
+  "cases": [
+    {
+      "id": "familia-guarda",
+      "schema_version": "3.0",
+      "claims": [{ "id": "c1", "title": "Guarda", "source_refs": ["s1"] }],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Genitores separados",
+          "source_refs": ["s1"]
+        }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }]
+    },
+    {
+      "id": "civel-cobranca",
+      "schema_version": "3.0",
+      "claims": [{ "id": "c1", "title": "Cobrança", "source_refs": ["s1"] }],
+      "facts": [
+        { "id": "f1", "statement": "Contrato assinado", "source_refs": ["s1"] }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }]
+    },
+    {
+      "id": "contrato-reajuste",
+      "schema_version": "3.0",
+      "claims": [
+        { "id": "c1", "title": "Revisão de reajuste", "source_refs": ["s1"] }
+      ],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Cláusula de reajuste aplicada",
+          "source_refs": ["s1"]
+        }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }]
+    },
+    {
+      "id": "trabalhista-verbas",
+      "schema_version": "3.0",
+      "claims": [
+        { "id": "c1", "title": "Verbas rescisórias", "source_refs": ["s1"] }
+      ],
+      "facts": [
+        { "id": "f1", "statement": "Vínculo de emprego", "source_refs": ["s1"] }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }]
+    },
+    {
+      "id": "assunto-sem-modulo",
+      "schema_version": "3.0",
+      "claims": [
+        { "id": "c1", "title": "Pedido genérico", "source_refs": ["s1"] }
+      ],
+      "facts": [
+        { "id": "f1", "statement": "Fato documentado", "source_refs": ["s1"] }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }]
+    }
+  ]
+}

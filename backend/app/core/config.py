@@ -38,6 +38,11 @@ class Settings(BaseSettings):
     GEMINI_BASE_URL: str = "https://generativelanguage.googleapis.com/v1beta/openai/"
     GENERATED_KEEP_LATEST: int = 10
     PRECEDENTS_AUTO_SEED: bool = True
+    # Onda 0 Task 16: rollout do Dossiê Universal V3 (§22).
+    DOSSIER_V3_ENABLED: bool = False
+    DOSSIER_V3_SHADOW_MODE: bool = False
+    DOSSIER_V3_ALLOWED_USER_IDS: str = ""
+    DOSSIER_V3_MAX_CONCURRENT_RUNS: int = 2
 
     model_config = SettingsConfigDict(
         env_file=".env",

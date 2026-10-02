@@ -40,6 +40,67 @@ def record_audit(
             pass
 
 
+_SENSITIVE_KEYS = ("snippet", "prompt", "api_key", "token", "secret", "password")
+
+
+def sanitize_meta(meta: dict | None) -> dict:
+    """Remove conteúdo jurídico e segredos antes de logar/persistir."""
+    clean: dict = {}
+    for key, value in (meta or {}).items():
+        lowered = str(key).lower()
+        if any(marker in lowered for marker in _SENSITIVE_KEYS):
+            continue
+        if lowered in ("file_path", "path", "stack", "traceback"):
+            continue
+        clean[key] = value
+    return clean
+
+
+def record_dossier_event(
+    *,
+    logger_name: str,
+    event: str,
+    run_id: str | None = None,
+    stage: str | None = None,
+    metrics: dict | None = None,
+    **extra,
+) -> None:
+    """Log estruturado do dossiê sem trecho, prompt, chave, path ou stack."""
+    import logging as _logging
+
+    payload = {"event": event, "run_id": run_id, "stage": stage}
+    payload.update(sanitize_meta(metrics))
+    payload.update(sanitize_meta(extra))
+    _logging.getLogger(logger_name).info("dossier %s", payload)
+
+
+def dossier_metrics(artifact, *, duration_s: float | None = None) -> dict:
+    """Métricas por artefato: páginas, blocos, imagens, fontes e seções."""
+    if hasattr(artifact, "model_dump"):
+        content = artifact.model_dump(mode="json")
+    else:
+        content = getattr(artifact, "content", None) or artifact
+    if not isinstance(content, dict):
+        content = {}
+    coverage = content.get("coverage", {}) or {}
+    states = content.get("section_states", {}) or {}
+    return {
+        "pages_total": int(coverage.get("pages_total", 0) or 0),
+        "pages_extracted": int(coverage.get("pages_extracted", 0) or 0),
+        "unprocessed_blocks": len(coverage.get("unprocessed_block_ids", []) or []),
+        "claims_found": len(content.get("claims", []) or []),
+        "facts_found": len(content.get("facts", []) or []),
+        "sources_found": len(content.get("sources", []) or []),
+        "visuals_found": len(content.get("visuals", []) or []),
+        "duration_s": duration_s,
+        "status": getattr(artifact, "status", content.get("status")),
+        "section_statuses": {
+            section: (state.get("status") if isinstance(state, dict) else state)
+            for section, state in states.items()
+        },
+    }
+
+
 def audit_document_completion(db: Session, *, document) -> None:
     """Completion/failure audit with workflow timing (C4/BL-018).
 
