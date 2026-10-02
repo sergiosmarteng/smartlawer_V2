@@ -126,6 +126,75 @@ def decide_status(report: VerificationReport, *, has_useful_content: bool = True
     return STATUS_FAILED
 
 
+@dataclass
+class VerificationReportV3:
+    """Relatório do gate V3: erros materiais bloqueiam ``completed``."""
+
+    passed: bool
+    errors: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    pending_actions: list[str] = field(default_factory=list)
+
+
+def verify_artifact_v3(artifact, *, module_requirements: list | None = None) -> VerificationReportV3:
+    """Gate estrutural e material V3 (Onda 0 Task 10, §8.11).
+
+    Reaproveita ``validate_artifact_v3`` e acrescenta cobertura integral,
+    suporte de fontes, pedidos explícitos e integridade visual. Reparo
+    nunca inventa fato, fonte ou valor (ver ``repair_artifact_v3``).
+    """
+    from app.core.schemas_v3 import validate_artifact_v3
+
+    errors = list(validate_artifact_v3(artifact))
+    warnings: list[str] = []
+    coverage = artifact.coverage
+    if coverage.pages_extracted < coverage.pages_total:
+        errors.append(
+            f"cobertura: {coverage.pages_extracted}/{coverage.pages_total} páginas extraídas"
+        )
+    if coverage.unprocessed_block_ids:
+        errors.append(
+            f"cobertura: {len(coverage.unprocessed_block_ids)} bloco(s) sem processar"
+        )
+    for visual in artifact.visuals or []:
+        ref = visual.source_ref if hasattr(visual, "source_ref") else visual.get("source_ref")
+        vid = visual.id if hasattr(visual, "id") else visual.get("id")
+        if ref:
+            known = {s.id if hasattr(s, "id") else s.get("id") for s in artifact.sources or []}
+            if ref not in known:
+                errors.append(f"visual {vid}: fonte inexistente {ref!r}")
+    for required in module_requirements or []:
+        sections = required.get("required_sections", []) if isinstance(required, dict) else []
+        for section in sections:
+            state = (artifact.section_states or {}).get(section)
+            if state is None:
+                errors.append(f"módulo exige seção ausente: {section}")
+    pending = [f"Corrigir antes de aprovar: {error}" for error in errors]
+    return VerificationReportV3(
+        passed=not errors, errors=errors, warnings=warnings, pending_actions=pending
+    )
+
+
+def decide_publication_status(
+    report: VerificationReportV3, *, has_useful_content: bool = True
+) -> str:
+    """``completed`` só com gate aprovado; parcial com conteúdo útil."""
+    if report.passed:
+        return STATUS_COMPLETED
+    if has_useful_content:
+        return STATUS_PARTIAL
+    return STATUS_FAILED
+
+
+def repair_artifact_v3(artifact):
+    """Reparo estrutural V3: sincroniza contadores; nunca inventa dados."""
+    repairs: list[str] = []
+    if artifact.coverage.explicit_claims_found != len(artifact.claims or []):
+        artifact.coverage.explicit_claims_found = len(artifact.claims or [])
+        repairs.append("coverage.explicit_claims_found sincronizado")
+    return artifact, repairs
+
+
 def repair_once(artifact: ArtifactContent) -> tuple[ArtifactContent, list[str]]:
     """Uma reparação controlada por estágio: só estrutura derivável (§7.1)."""
     repairs: list[str] = []
