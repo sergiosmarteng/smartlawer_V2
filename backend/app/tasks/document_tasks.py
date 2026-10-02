@@ -47,6 +47,21 @@ from app.worker import celery_app
 logger = logging.getLogger(__name__)
 
 
+def _use_v3_pipeline(run) -> bool:
+    """Onda 0 Task 11: produção V3 atrás de flag (Task 16 a liga)."""
+    if run is None:
+        return False
+    try:
+        return bool(getattr(settings, "DOSSIER_V3_ENABLED", False))
+    except Exception:
+        return False
+
+
+def get_run(db, run_id):
+    """Recarrega a execução após publicação pelo orquestrador V3."""
+    return db.query(AnalysisRun).filter(AnalysisRun.id == run_id).one_or_none()
+
+
 def prepare_analysis_input(document_id: str, file_path: str, raw_text: str) -> str:
     """Return the text the AI should analyze, persisting extraction outputs.
 
@@ -343,11 +358,24 @@ def process_pdf_task(self, document_id: str, file_path: str):
                     )
                 )
             # V2 T11: artefato honesto (ponte legada) para o dossiê.
-            try:
-                legacy_artifact = coerce_legacy_analysis(ai_data)
-                v2_artifact_content = legacy_artifact.model_dump()
-            except Exception as exc:
-                logger.warning("Coerção legada V2 falhou (%s); sem artefato.", exc)
+            # Onda 0 Task 11: com DOSSIER_V3_ENABLED, a produção V3 delega ao
+            # orquestrador universal e NUNCA chama coerce_legacy_analysis.
+            # A projeção V1 (Analysis) acima é preservada para compatibilidade.
+            if _use_v3_pipeline(run):
+                from app.core.pipeline.orchestrator import run_universal_pipeline
+
+                v3_artifact = run_universal_pipeline(db, run_id=run.id)
+                if v3_artifact is not None:
+                    v2_artifact_content = None
+                    run = get_run(db, run.id)
+                else:
+                    logger.warning("Pipeline V3 sem artefato para %s.", document_id)
+            else:
+                try:
+                    legacy_artifact = coerce_legacy_analysis(ai_data)
+                    v2_artifact_content = legacy_artifact.model_dump()
+                except Exception as exc:
+                    logger.warning("Coerção legada V2 falhou (%s); sem artefato.", exc)
         except AnalysisError as ai_exc:
             # V2 T01: falha de IA nunca vira COMPLETED nem tese genérica.
             code = getattr(ai_exc, "code", "ANALYSIS_FAILED") or "ANALYSIS_FAILED"
