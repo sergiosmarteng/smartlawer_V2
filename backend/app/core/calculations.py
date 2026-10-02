@@ -85,6 +85,76 @@ def _require_decimal(value, label: str) -> Decimal:
     raise TypeError(f"{label}: tipo inválido {type(value).__name__}")
 
 
+class CalculationBlockedError(Exception):
+    """Fórmula desconhecida ou entradas inválidas: cálculo bloqueado."""
+
+    code = "CALCULATION_BLOCKED"
+
+
+class CalculationRegistry:
+    """Registro de fórmulas versionadas (a IA sugere; o serviço executa)."""
+
+    def __init__(self, formulas: dict | None = None):
+        self._formulas = dict(formulas or {})
+
+    def register(self, formula: str, version: str, func) -> None:
+        self._formulas[(formula, version)] = func
+
+    def get(self, formula: str, version: str):
+        return self._formulas.get((formula, version))
+
+
+def _default_registry() -> CalculationRegistry:
+    registry = CalculationRegistry()
+
+    def _sum(inputs: dict) -> Decimal:
+        total = Decimal("0.00")
+        for raw in inputs.get("parcels", []):
+            total += _require_decimal(raw, "parcela")
+        return _quantize(total)
+
+    registry.register("sum_parcels", "1.0", _sum)
+    return registry
+
+
+def execute_registered_calculation(request: dict, *, registry=None) -> dict:
+    """Executa fórmula cadastrada com Decimal (Onda 0 Task 9, §8.10).
+
+    Fórmula desconhecida é bloqueada; duas execuções com as mesmas
+    entradas geram mesmo conteúdo/hash (reproduzível).
+    """
+    import hashlib
+    import json
+
+    formula = request.get("formula")
+    version = request.get("formula_version", "1.0")
+    reg = registry if isinstance(registry, CalculationRegistry) else _default_registry()
+    # registry=None ou dict vazio → usa o padrão (sum_parcels 1.0).
+    if isinstance(registry, dict) and not registry:
+        reg = _default_registry()
+    func = reg.get(formula, version)
+    if func is None:
+        raise CalculationBlockedError(f"fórmula desconhecida: {formula}@{version}")
+    result = func(request.get("inputs") or {})
+    result_str = str(_quantize(result)) if isinstance(result, Decimal) else str(result)
+    canonical = json.dumps(
+        {"formula": formula, "formula_version": version,
+         "inputs": request.get("inputs") or {}, "result": result_str},
+        sort_keys=True, ensure_ascii=False,
+    )
+    return {
+        "formula": formula,
+        "formula_version": version,
+        "inputs": request.get("inputs") or {},
+        "assumptions": list(request.get("assumptions") or []),
+        "result": result_str,
+        "rounding": ROUNDING_NAME,
+        "scenario": request.get("scenario"),
+        "output_hash": hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
+        "reproducible": True,
+    }
+
+
 def sum_parcels(
     items: list[dict], *, scenario: str | None = None
 ) -> CalculationRecord:

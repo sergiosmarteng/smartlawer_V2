@@ -105,6 +105,70 @@ def extract_citations(text: str) -> list[FoundCitation]:
     return found
 
 
+def research_issues(
+    issues: list[dict],
+    *,
+    sources: list[dict],
+    reference_date=None,
+) -> dict:
+    """Pesquisa V3 por questão (Onda 0 Task 9, §8.9 + §14).
+
+    Separa citado nos autos de pesquisado pelo sistema; registra URL,
+    órgão, data de consulta e trecho. Queda vira ``partial`` + ação
+    pendente — nunca apaga a análise documental.
+    """
+    from datetime import date as _date
+
+    if isinstance(reference_date, _date):
+        consulted = reference_date.isoformat()
+    elif reference_date:
+        consulted = str(reference_date)
+    else:
+        from datetime import datetime, timezone
+
+        consulted = datetime.now(timezone.utc).date().isoformat()
+    results: list[dict] = []
+    pending: list[str] = []
+    partial = False
+    for issue in issues or []:
+        cited = issue.get("cited_in_document") or {}
+        chosen = next((s for s in (sources or []) if s.get("available")), None)
+        if chosen is None:
+            partial = True
+            pending.append(
+                f"Pesquisar '{issue.get('question', issue.get('id', '?'))}': "
+                "fonte indisponível; análise documental preservada."
+            )
+            results.append(
+                {
+                    "id": issue.get("id", ""),
+                    "question": issue.get("question", ""),
+                    "cited_literal": (cited or {}).get("literal"),
+                    "researched_url": None,
+                    "url": None,
+                    "organ": None,
+                    "consulted_at": consulted,
+                    "excerpt": None,
+                    "status": "blocked",
+                }
+            )
+            continue
+        results.append(
+            {
+                "id": issue.get("id", ""),
+                "question": issue.get("question", ""),
+                "cited_literal": (cited or {}).get("literal"),
+                "researched_url": chosen.get("url"),
+                "url": chosen.get("url"),
+                "organ": chosen.get("organ"),
+                "consulted_at": consulted,
+                "excerpt": chosen.get("excerpt"),
+                "status": "matched" if chosen.get("excerpt") else "partial",
+            }
+        )
+    return {"results": results, "partial": partial, "pending_actions": pending}
+
+
 def check_temporal(
     fetched: FetchedSource,
     *,
