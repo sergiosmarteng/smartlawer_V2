@@ -23,6 +23,83 @@ def _load_run(db: Session, run_id: UUID | str) -> AnalysisRun | None:
     return db.query(AnalysisRun).filter(AnalysisRun.id == run_id).one_or_none()
 
 
+_MODULE_FLAGS = {
+    "civil_procedure": "DOSSIER_MODULE_CIVIL_PROCEDURE",
+    "family": "DOSSIER_MODULE_FAMILY",
+    "labor": "DOSSIER_MODULE_LABOR",
+    "consumer": "DOSSIER_MODULE_CONSUMER",
+    "social_security": "DOSSIER_MODULE_SOCIAL_SECURITY",
+}
+
+
+def _module_registry():
+    """Registry com os 5 módulos da Onda 1 (import tardio, sem ciclo)."""
+    from app.core.module_registry import LegalModuleRegistry
+    from app.modules.civil_procedure import CivilProcedureModule
+    from app.modules.consumer import ConsumerModule
+    from app.modules.family import FamilyModule
+    from app.modules.labor.module import LaborModule
+    from app.modules.social_security import SocialSecurityModule
+
+    registry = LegalModuleRegistry.with_defaults()
+    for module in (
+        CivilProcedureModule(), FamilyModule(), LaborModule(),
+        ConsumerModule(), SocialSecurityModule(),
+    ):
+        registry.register(module)
+    return registry
+
+
+def _run_modules(snapshot: dict, reconciled: dict, fixture: dict):
+    """Resolve, filtra por flag e executa módulos (Onda 1, spec §2 + §10)."""
+    from app.core.classification import ClassificationResult
+    from app.core.config import settings
+    from app.core.module_runner import run_module_analyses
+
+    areas = list(snapshot.get("areas") or [])
+    if areas:
+        classification = ClassificationResult(
+            primary_area=areas[0], related_areas=areas[1:], source="model")
+    else:
+        classification = ClassificationResult(primary_area="general", source="fallback")
+    registry = _module_registry()
+    enabled = {"universal"} | {
+        module_id for module_id, flag in _MODULE_FLAGS.items()
+        if bool(getattr(settings, flag, False))
+    }
+    resolved = registry.resolve(classification, enabled=enabled)
+    case_data = {
+        "claims": reconciled.get("claims") or [],
+        "facts": reconciled.get("facts") or [],
+        "evidence": reconciled.get("evidence") or [],
+        "sources": list(fixture.get("sources") or []),
+        "visuals": list(fixture.get("visuals") or []),
+    }
+    results, limitations = run_module_analyses(modules=resolved, case_data=case_data)
+    activations = [{
+        "module_id": "universal",
+        "module_version": "1.0",
+        "status": "active",
+        "reason": "Núcleo universal obrigatório",
+    }]
+    for module in resolved:
+        if module.module_id == "universal":
+            continue
+        status = results.get(module.module_id, {}).get("status", "active")
+        activations.append({
+            "module_id": module.module_id,
+            "module_version": getattr(module, "version", "1.0.0"),
+            "status": "active" if status == "complete" else status,
+            "reason": "Matriz aplicável examinada",
+        })
+    seen = {a["module_id"] for a in activations}
+    for record in registry.activations(classification):
+        if record.module_id not in seen and record.status == "fallback":
+            activations.append(record.model_dump())
+            seen.add(record.module_id)
+    return results, limitations, activations
+
+
 def run_universal_pipeline(db: Session, *, run_id: UUID | str):
     """Executa o pipeline V3 até a publicação; retorna o artefato ou None."""
     from app.core.analysis_verifier import (
@@ -91,6 +168,10 @@ def run_universal_pipeline(db: Session, *, run_id: UUID | str):
         "evidence": list(fixture.get("evidence") or []),
         "legal_references": list(fixture.get("legal_references") or []),
     }
+    # Onda 1: módulos especializados atrás de flags individuais.
+    module_results, module_limitations, module_activations = _run_modules(
+        snapshot, reconciled, fixture
+    )
     composed = compose_artifact(
         CompositionInputs(
             run_id=str(run.id),
@@ -98,11 +179,14 @@ def run_universal_pipeline(db: Session, *, run_id: UUID | str):
             coverage=dict(fixture.get("coverage") or {"pages_total": 1, "pages_extracted": 1}),
             reconciled=reconciled,
             analysis={"procedural_issues": [], "theses": [], "risks": [],
-                      "actions": [], "questions": [], "limitations": []},
+                      "actions": [], "questions": [],
+                      "limitations": list(module_limitations)},
             research={"results": [], "partial": False},
             calculations=[],
             visuals=list(fixture.get("visuals") or []),
             sources=list(fixture.get("sources") or []),
+            module_activations=module_activations,
+            module_results=module_results,
         )
     )
     artifact = ArtifactContentV3.model_validate(composed.model_dump(mode="json"))

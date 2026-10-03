@@ -10,6 +10,7 @@ import {
   ActionsSection,
   ClaimsSection,
   FactsSection,
+  ModuleActivationsLine,
   OverviewSection,
   ThesesSection,
 } from "@/components/dossier/sections/sections";
@@ -198,6 +199,27 @@ describe("DossierPage", () => {
       />,
     );
     expect(screen.getByText("3")).toBeInTheDocument();
+  });
+
+  it("ativações de módulo exibem fallback declarado", () => {
+    render(
+      <ModuleActivationsLine
+        activations={[
+          {
+            module_id: "universal",
+            status: "active",
+            reason: "Núcleo universal obrigatório",
+          },
+          {
+            module_id: "contracts",
+            status: "fallback",
+            reason: "Sem módulo instalado",
+          },
+        ]}
+      />,
+    );
+    expect(screen.getByText(/universal/)).toBeInTheDocument();
+    expect(screen.getByText(/fallback/)).toBeInTheDocument();
   });
 
   it("banner de estado mostra motivo e pendências", () => {

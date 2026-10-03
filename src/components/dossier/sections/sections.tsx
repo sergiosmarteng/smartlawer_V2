@@ -31,12 +31,39 @@ export function OverviewSection({
         {asText(coverage.pages_extracted ?? 0)}/
         {asText(coverage.pages_total ?? 0)}
       </p>
+      <ModuleActivationsLine activations={content.module_activations} />
       {limitations.map((lim, i) => (
         <p key={i} className="text-sm">
           ⚠ <SafeText value={lim.message} />
         </p>
       ))}
     </div>
+  );
+}
+
+/** Especializações ativas e limitações declaradas (Onda 1, spec §13.5). */
+export function ModuleActivationsLine({
+  activations,
+}: {
+  activations: unknown;
+}) {
+  const items = asArray(activations);
+  if (!items.length) return null;
+  return (
+    <p className="text-sm">
+      Módulos:{" "}
+      {items.map((activation, i) => (
+        <span key={asText(activation.module_id ?? i)}>
+          {i > 0 ? " · " : ""}
+          <SafeText value={activation.module_id} /> (
+          <SafeText value={activation.status} />
+          {asText(activation.reason)
+            ? [" — ", <SafeText key="r" value={activation.reason} />]
+            : null}
+          )
+        </span>
+      ))}
+    </p>
   );
 }
 
