@@ -1,0 +1,128 @@
+{
+  "description": "Corpus sintético do módulo consumidor v1.0 (sem dados pessoais reais). 7 casos §9.",
+  "module_id": "consumer",
+  "module_version": "1.0.0",
+  "cases": [
+    {
+      "id": "consumo-favoravel",
+      "schema_version": "3.0",
+      "claims": [{ "id": "c1", "title": "Restituição", "source_refs": ["s1"] }],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Cobrança indevida em fatura",
+          "source_refs": ["s1"]
+        }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }]
+    },
+    {
+      "id": "consumo-adverso",
+      "schema_version": "3.0",
+      "claims": [{ "id": "c1", "title": "Dano moral", "source_refs": ["s1"] }],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Serviço prestado a contento",
+          "source_refs": ["s1"]
+        }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }]
+    },
+    {
+      "id": "consumo-incompleto",
+      "schema_version": "3.0",
+      "claims": [
+        { "id": "c1", "title": "Vício do produto", "source_refs": ["s1"] }
+      ],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Defeito alegado sem laudo",
+          "source_refs": ["s1"]
+        }
+      ],
+      "evidence": [],
+      "sources": [{ "id": "s1" }]
+    },
+    {
+      "id": "consumo-multiarea",
+      "schema_version": "3.0",
+      "claims": [
+        { "id": "c1", "title": "Restituição", "source_refs": ["s1"] },
+        { "id": "c2", "title": "Cobrança contratual", "source_refs": ["s2"] }
+      ],
+      "facts": [
+        { "id": "f1", "statement": "Fatura de consumo", "source_refs": ["s1"] },
+        {
+          "id": "f2",
+          "statement": "Contrato de prestação",
+          "source_refs": ["s2"]
+        }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }, { "id": "s2" }]
+    },
+    {
+      "id": "consumo-longo-pedido-final",
+      "schema_version": "3.0",
+      "claims": [
+        {
+          "id": "c1",
+          "title": "Repetição de indébito ao final",
+          "source_refs": ["s1"]
+        }
+      ],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Pagamentos em duplicidade",
+          "source_refs": ["s1"]
+        }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }]
+    },
+    {
+      "id": "consumo-com-imagem",
+      "schema_version": "3.0",
+      "claims": [
+        { "id": "c1", "title": "Vício aparente", "source_refs": ["s1"] }
+      ],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Fotografia do produto",
+          "source_refs": ["s1"]
+        }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }],
+      "visuals": [
+        { "id": "v1", "storage_key": "opaque-v1", "thumbnail_key": "opaque-t1" }
+      ]
+    },
+    {
+      "id": "consumo-norma-alterada",
+      "schema_version": "3.0",
+      "claims": [
+        {
+          "id": "c1",
+          "title": "Revisão sob regulamento antigo",
+          "source_refs": ["s1"]
+        }
+      ],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Fato anterior à norma setorial vigente",
+          "source_refs": ["s1"]
+        }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }]
+    }
+  ]
+}
