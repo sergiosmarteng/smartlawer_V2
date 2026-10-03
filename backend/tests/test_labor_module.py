@@ -36,7 +36,7 @@ def _artifact():
 
 def test_module_descriptor_registered():
     assert DESCRIPTOR["module_id"] == "labor"
-    assert DESCRIPTOR["version"] == "1.0"
+    assert DESCRIPTOR["version"] == "1.0.0"
     assert get_module("labor") is DESCRIPTOR
     assert "relacao_trabalho" in DESCRIPTOR["required_sections"]
 
@@ -47,10 +47,16 @@ def test_matrix_covers_seven_dimensions():
         {
             "seguranca": {"treinamento": ["trein-src"]},
             "evento": {"dinamica": ["foto-equip"]},
-        }
+        },
+        evidence=[
+            {"id": "trein-src", "kind": "document", "presence_status": "examined"},
+            {"id": "foto-equip", "kind": "photo", "presence_status": "mentioned_not_located"},
+        ],
     )
     by_key = {(r.dimension, r.item): r for r in results}
     assert by_key[("seguranca", "treinamento")].status == "documented"
+    # Onda 1 spec §6: referência a alegação não torna o item documented.
+    assert by_key[("evento", "dinamica")].status == "alleged"
     assert by_key[("seguranca", "manutencao")].status == "missing"
     assert by_key[("seguranca", "manutencao")].action  # lacuna vira ação
 

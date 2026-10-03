@@ -1,0 +1,132 @@
+{
+  "description": "Corpus sintético do módulo trabalhista v1.0 (sem dados pessoais reais). 7 casos §9.",
+  "module_id": "labor",
+  "module_version": "1.0.0",
+  "cases": [
+    {
+      "id": "trabalhista-favoravel",
+      "schema_version": "3.0",
+      "claims": [
+        { "id": "c1", "title": "Verbas rescisórias", "source_refs": ["s1"] }
+      ],
+      "facts": [
+        { "id": "f1", "statement": "Vínculo de emprego", "source_refs": ["s1"] }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }]
+    },
+    {
+      "id": "trabalhista-adverso",
+      "schema_version": "3.0",
+      "claims": [
+        { "id": "c1", "title": "Horas extras", "source_refs": ["s1"] }
+      ],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Banco de horas válido",
+          "source_refs": ["s1"]
+        }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }]
+    },
+    {
+      "id": "trabalhista-incompleto",
+      "schema_version": "3.0",
+      "claims": [
+        {
+          "id": "c1",
+          "title": "Adicional de insalubridade",
+          "source_refs": ["s1"]
+        }
+      ],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Exposição alegada sem laudo",
+          "source_refs": ["s1"]
+        }
+      ],
+      "evidence": [],
+      "sources": [{ "id": "s1" }]
+    },
+    {
+      "id": "trabalhista-multiarea",
+      "schema_version": "3.0",
+      "claims": [
+        { "id": "c1", "title": "Verbas rescisórias", "source_refs": ["s1"] },
+        { "id": "c2", "title": "Cobrança de contrato", "source_refs": ["s2"] }
+      ],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Vínculo de emprego",
+          "source_refs": ["s1"]
+        },
+        {
+          "id": "f2",
+          "statement": "Contrato de prestação",
+          "source_refs": ["s2"]
+        }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }, { "id": "s2" }]
+    },
+    {
+      "id": "trabalhista-longo-pedido-final",
+      "schema_version": "3.0",
+      "claims": [
+        { "id": "c1", "title": "Pensão mensal ao final", "source_refs": ["s1"] }
+      ],
+      "facts": [
+        { "id": "f1", "statement": "Acidente típico", "source_refs": ["s1"] }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }]
+    },
+    {
+      "id": "trabalhista-com-imagem",
+      "schema_version": "3.0",
+      "claims": [
+        {
+          "id": "c1",
+          "title": "Indenização por acidente",
+          "source_refs": ["s1"]
+        }
+      ],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Fotografia do equipamento",
+          "source_refs": ["s1"]
+        }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }],
+      "visuals": [
+        { "id": "v1", "storage_key": "opaque-v1", "thumbnail_key": "opaque-t1" }
+      ]
+    },
+    {
+      "id": "trabalhista-norma-alterada",
+      "schema_version": "3.0",
+      "claims": [
+        {
+          "id": "c1",
+          "title": "Adicional sob NR antiga",
+          "source_refs": ["s1"]
+        }
+      ],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Fato anterior à NR vigente",
+          "source_refs": ["s1"]
+        }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }]
+    }
+  ]
+}

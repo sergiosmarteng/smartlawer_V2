@@ -99,26 +99,44 @@ class MatrixResult:
 def evaluate_matrix(
     extracted: dict[str, dict[str, list[str]]],
     *,
+    evidence: list[dict] | None = None,
     impact_for_missing: str = "Lacuna probatória: tese depende de prova ainda não localizada.",
     action_for_missing: str = "Incluir em diligências e quesitos.",
 ) -> list[MatrixResult]:
-    """Cruza matriz x refs extraídas (alegação ≠ prova, §4).
+    """Cruza matriz x refs extraídas (alegação ≠ prova, §4 + Onda 1 spec §6).
 
-    ``extracted``: {dimensão: {item: [source_refs]}}. Sem refs, o item
-    é lacuna — nunca fato confirmado.
+    ``extracted``: {dimensão: {item: [source_refs]}}. Referência a
+    alegação NÃO torna o item ``documented``: só evidência com tipo e
+    suporte verificados (``presence_status == "examined"``) confirma.
+    ``evidence``: [{id, kind, presence_status}]; refs sem evidência
+    examinada correspondente viram ``alleged``. Sem refs: lacuna.
     """
+    examined = {
+        str(e.get("id")) for e in (evidence or [])
+        if e.get("presence_status") == "examined"
+    }
     results: list[MatrixResult] = []
     for dimension in WORK_ACCIDENT_MATRIX:
         items_refs = extracted.get(dimension.key, {})
         for item in dimension.items:
             item_refs = list(items_refs.get(item.key, []))
-            if item_refs:
+            verified = [ref for ref in item_refs if ref in examined]
+            if verified:
                 results.append(
                     MatrixResult(
                         dimension.key, item.key, "documented",
-                        source_refs=item_refs,
-                        impact="Suportado por fonte do conjunto.",
+                        source_refs=verified,
+                        impact="Suportado por evidência examinada.",
                         action="Conferir aderência ao pedido afetado.",
+                    )
+                )
+            elif item_refs:
+                results.append(
+                    MatrixResult(
+                        dimension.key, item.key, "alleged",
+                        source_refs=item_refs,
+                        impact="Somente alegado: referência sem exame verificado.",
+                        action="Localizar a evidência e juntar ao conjunto.",
                     )
                 )
             else:
