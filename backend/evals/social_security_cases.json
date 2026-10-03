@@ -1,0 +1,116 @@
+{
+  "description": "Corpus sintético do módulo previdenciário v1.0 (sem dados pessoais reais). 7 casos §9.",
+  "module_id": "social_security",
+  "module_version": "1.0.0",
+  "cases": [
+    {
+      "id": "previd-favoravel",
+      "schema_version": "3.0",
+      "claims": [
+        { "id": "c1", "title": "Aposentadoria", "source_refs": ["s1"] }
+      ],
+      "facts": [
+        { "id": "f1", "statement": "CNIS completo", "source_refs": ["s1"] }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }]
+    },
+    {
+      "id": "previd-adverso",
+      "schema_version": "3.0",
+      "claims": [
+        { "id": "c1", "title": "Auxílio-doença", "source_refs": ["s1"] }
+      ],
+      "facts": [
+        { "id": "f1", "statement": "Perícia contrária", "source_refs": ["s1"] }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }]
+    },
+    {
+      "id": "previd-incompleto",
+      "schema_version": "3.0",
+      "claims": [
+        { "id": "c1", "title": "Pensão por morte", "source_refs": ["s1"] }
+      ],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Dependência alegada sem prova",
+          "source_refs": ["s1"]
+        }
+      ],
+      "evidence": [],
+      "sources": [{ "id": "s1" }]
+    },
+    {
+      "id": "previd-multiarea",
+      "schema_version": "3.0",
+      "claims": [
+        { "id": "c1", "title": "Aposentadoria", "source_refs": ["s1"] },
+        { "id": "c2", "title": "Verbas rescisórias", "source_refs": ["s2"] }
+      ],
+      "facts": [
+        { "id": "f1", "statement": "CNIS", "source_refs": ["s1"] },
+        { "id": "f2", "statement": "Vínculo de emprego", "source_refs": ["s2"] }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }, { "id": "s2" }]
+    },
+    {
+      "id": "previd-longo-pedido-final",
+      "schema_version": "3.0",
+      "claims": [
+        { "id": "c1", "title": "Retroativos ao final", "source_refs": ["s1"] }
+      ],
+      "facts": [
+        { "id": "f1", "statement": "DER antiga", "source_refs": ["s1"] }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }]
+    },
+    {
+      "id": "previd-com-imagem",
+      "schema_version": "3.0",
+      "claims": [
+        {
+          "id": "c1",
+          "title": "Benefício por incapacidade",
+          "source_refs": ["s1"]
+        }
+      ],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Exame de imagem anexado",
+          "source_refs": ["s1"]
+        }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }],
+      "visuals": [
+        { "id": "v1", "storage_key": "opaque-v1", "thumbnail_key": "opaque-t1" }
+      ]
+    },
+    {
+      "id": "previd-norma-alterada",
+      "schema_version": "3.0",
+      "claims": [
+        {
+          "id": "c1",
+          "title": "Benefício sob regra antiga",
+          "source_refs": ["s1"]
+        }
+      ],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Fato anterior à reforma",
+          "source_refs": ["s1"]
+        }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }]
+    }
+  ]
+}
