@@ -1,0 +1,110 @@
+{
+  "description": "Corpus sintético do módulo família v1.0 (sem dados pessoais reais). 7 casos §9: favorável, adverso, incompleto, multiarea, longo-com-pedido-final, com-imagem, norma-temporal-alterada.",
+  "module_id": "family",
+  "module_version": "1.0.0",
+  "cases": [
+    {
+      "id": "familia-favoravel",
+      "schema_version": "3.0",
+      "claims": [
+        { "id": "c1", "title": "Guarda compartilhada", "source_refs": ["s1"] }
+      ],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Filho menor sob guarda",
+          "source_refs": ["s1"]
+        }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }]
+    },
+    {
+      "id": "familia-adverso",
+      "schema_version": "3.0",
+      "claims": [
+        { "id": "c1", "title": "Guarda unilateral", "source_refs": ["s1"] }
+      ],
+      "facts": [
+        { "id": "f1", "statement": "Genitor ausente", "source_refs": ["s1"] }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }]
+    },
+    {
+      "id": "familia-incompleto",
+      "schema_version": "3.0",
+      "claims": [{ "id": "c1", "title": "Alimentos", "source_refs": ["s1"] }],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Renda alegada sem prova",
+          "source_refs": ["s1"]
+        }
+      ],
+      "evidence": [],
+      "sources": [{ "id": "s1" }]
+    },
+    {
+      "id": "familia-multiarea",
+      "schema_version": "3.0",
+      "claims": [
+        { "id": "c1", "title": "Guarda compartilhada", "source_refs": ["s1"] },
+        { "id": "c2", "title": "Cobrança de aluguel", "source_refs": ["s2"] }
+      ],
+      "facts": [
+        { "id": "f1", "statement": "Filho menor", "source_refs": ["s1"] },
+        {
+          "id": "f2",
+          "statement": "Contrato de locação",
+          "source_refs": ["s2"]
+        }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }, { "id": "s2" }]
+    },
+    {
+      "id": "familia-longo-pedido-final",
+      "schema_version": "3.0",
+      "claims": [
+        {
+          "id": "c1",
+          "title": "Partilha no final da peça",
+          "source_refs": ["s1"]
+        }
+      ],
+      "facts": [
+        { "id": "f1", "statement": "Imóvel comum", "source_refs": ["s1"] }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }]
+    },
+    {
+      "id": "familia-com-imagem",
+      "schema_version": "3.0",
+      "claims": [{ "id": "c1", "title": "Guarda", "source_refs": ["s1"] }],
+      "facts": [
+        { "id": "f1", "statement": "Frequência escolar", "source_refs": ["s1"] }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }],
+      "visuals": [
+        { "id": "v1", "storage_key": "opaque-v1", "thumbnail_key": "opaque-t1" }
+      ]
+    },
+    {
+      "id": "familia-norma-alterada",
+      "schema_version": "3.0",
+      "claims": [{ "id": "c1", "title": "Alimentos", "source_refs": ["s1"] }],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Binômio anterior à vigência atual",
+          "source_refs": ["s1"]
+        }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }]
+    }
+  ]
+}
