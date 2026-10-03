@@ -43,6 +43,12 @@ class Settings(BaseSettings):
     DOSSIER_V3_SHADOW_MODE: bool = False
     DOSSIER_V3_ALLOWED_USER_IDS: str = ""
     DOSSIER_V3_MAX_CONCURRENT_RUNS: int = 2
+    # Onda 1: rollout de um módulo por vez (spec §10); off por padrão.
+    DOSSIER_MODULE_CIVIL_PROCEDURE: bool = False
+    DOSSIER_MODULE_FAMILY: bool = False
+    DOSSIER_MODULE_LABOR: bool = False
+    DOSSIER_MODULE_CONSUMER: bool = False
+    DOSSIER_MODULE_SOCIAL_SECURITY: bool = False
 
     model_config = SettingsConfigDict(
         env_file=".env",

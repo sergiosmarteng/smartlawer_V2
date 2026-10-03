@@ -111,6 +111,40 @@ class ModuleActivation(_Strict):
     reason: str = ""
 
 
+class IssueAssessment(_Strict):
+    """Avaliação de questão especializada (Onda 1, spec §2).
+
+    ``issue_key`` estável e versionado; alteração de regra gera nova
+    versão do módulo. Refs apontam a fontes do artefato (página/região).
+    """
+
+    issue_key: str
+    status: SectionStatus = "complete"
+    conclusion: str = ""
+    factual_refs: list[str] = Field(default_factory=list)
+    supporting_source_refs: list[str] = Field(default_factory=list)
+    adverse_source_refs: list[str] = Field(default_factory=list)
+    missing_inputs: list[str] = Field(default_factory=list)
+    related_claim_ids: list[str] = Field(default_factory=list)
+    action_ids: list[str] = Field(default_factory=list)
+
+
+class ModuleResult(_Strict):
+    """Envelope de módulo especializado (Onda 1, spec §2).
+
+    Extensão opcional formal do schema 3.0: o módulo acrescenta objetos
+    e verificações ao núcleo sem substituir fatos, pedidos ou fontes.
+    """
+
+    module_id: str
+    module_version: str = "1.0.0"
+    status: str = "complete"
+    reason: str = ""
+    issue_assessments: list[IssueAssessment] = Field(default_factory=list)
+    calculation_ids: list[str] = Field(default_factory=list)
+    limitations: list[str] = Field(default_factory=list)
+
+
 class CoverageV3(_Strict):
     pages_total: int = Field(default=0, ge=0)
     pages_extracted: int = Field(default=0, ge=0)
@@ -390,6 +424,7 @@ class ArtifactContentV3(BaseModel):
     review_status: ReviewStatus = "pending"
     scope: AnalysisScope = Field(default_factory=AnalysisScope)
     module_activations: list[ModuleActivation] = Field(default_factory=list)
+    module_results: dict[str, ModuleResult] = Field(default_factory=dict)
     coverage: CoverageV3 = Field(default_factory=CoverageV3)
     section_states: dict[str, SectionState] = Field(default_factory=dict)
     executive_summary: ExecutiveSummary | None = None
@@ -489,6 +524,16 @@ def validate_artifact_v3(artifact: ArtifactContentV3) -> list[str]:
             f"encontrados {len(artifact.claims)}"
         )
 
+    # (6) Módulos (Onda 1, spec §2): refs das avaliações resolvem a fontes.
+    for module_id, result in (artifact.module_results or {}).items():
+        for assessment in result.issue_assessments:
+            for ref in [*assessment.supporting_source_refs, *assessment.adverse_source_refs]:
+                if ref not in known_sources:
+                    errors.append(
+                        f"module {module_id}/{assessment.issue_key}: "
+                        f"fonte inexistente {ref!r}"
+                    )
+
     return errors
 
 
@@ -507,7 +552,9 @@ __all__ = [
     "FactV3",
     "LegalReferenceV3",
     "LimitationV3",
+    "IssueAssessment",
     "ModuleActivation",
+    "ModuleResult",
     "NormalizedRegion",
     "Party",
     "ProceduralIssue",

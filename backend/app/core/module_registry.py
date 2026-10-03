@@ -67,12 +67,20 @@ class LegalModuleRegistry:
     def register(self, module: LegalModule) -> None:
         self._modules[module.module_id] = module
 
-    def resolve(self, classification: ClassificationResult) -> list[LegalModule]:
+    def resolve(
+        self,
+        classification: ClassificationResult,
+        *,
+        enabled: set[str] | None = None,
+    ) -> list[LegalModule]:
+        allowed = set(enabled) if enabled is not None else None
         ordered: list[LegalModule] = [self._modules["universal"]]
         wanted = [classification.primary_area, *classification.related_areas]
         for area in wanted:
             for module in self._modules.values():
                 if module.module_id == "universal":
+                    continue
+                if allowed is not None and module.module_id not in allowed:
                     continue
                 if area in module.supported_areas and module not in ordered:
                     ordered.append(module)

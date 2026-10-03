@@ -25,6 +25,9 @@ class CompositionInputs:
     calculations: list = field(default_factory=list)
     visuals: list = field(default_factory=list)
     sources: list = field(default_factory=list)
+    # Onda 1: ativações do registry + resultados por módulo (opcionais).
+    module_activations: list = field(default_factory=list)
+    module_results: dict = field(default_factory=dict)
 
 
 class ComposedArtifact(ArtifactContentV3):
@@ -62,7 +65,8 @@ def compose_artifact(inputs: CompositionInputs) -> ComposedArtifact:
         "case_id": inputs.case_id,
         "status": "partial",
         "scope": {"document_ids": []},
-        "module_activations": [],
+        "module_activations": list(inputs.module_activations or []),
+        "module_results": dict(inputs.module_results or {}),
         "coverage": {
             "pages_total": int((inputs.coverage or {}).get("pages_total", 0) or 0),
             "pages_extracted": int((inputs.coverage or {}).get("pages_extracted", 0) or 0),
