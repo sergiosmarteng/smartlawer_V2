@@ -1,0 +1,118 @@
+{
+  "description": "Corpus sintético do módulo cível/processo civil v1.0 (sem dados pessoais reais). 7 casos §9.",
+  "module_id": "civil_procedure",
+  "module_version": "1.0.0",
+  "cases": [
+    {
+      "id": "civel-favoravel",
+      "schema_version": "3.0",
+      "claims": [{ "id": "c1", "title": "Cobrança", "source_refs": ["s1"] }],
+      "facts": [
+        { "id": "f1", "statement": "Contrato assinado", "source_refs": ["s1"] }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }]
+    },
+    {
+      "id": "civel-adverso",
+      "schema_version": "3.0",
+      "claims": [{ "id": "c1", "title": "Rescisão", "source_refs": ["s1"] }],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Pagamento comprovado",
+          "source_refs": ["s1"]
+        }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }]
+    },
+    {
+      "id": "civel-incompleto",
+      "schema_version": "3.0",
+      "claims": [{ "id": "c1", "title": "Indenização", "source_refs": ["s1"] }],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Dano alegado sem prova",
+          "source_refs": ["s1"]
+        }
+      ],
+      "evidence": [],
+      "sources": [{ "id": "s1" }]
+    },
+    {
+      "id": "civel-multiarea",
+      "schema_version": "3.0",
+      "claims": [
+        { "id": "c1", "title": "Cobrança", "source_refs": ["s1"] },
+        { "id": "c2", "title": "Guarda compartilhada", "source_refs": ["s2"] }
+      ],
+      "facts": [
+        { "id": "f1", "statement": "Contrato", "source_refs": ["s1"] },
+        { "id": "f2", "statement": "Filho menor", "source_refs": ["s2"] }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }, { "id": "s2" }]
+    },
+    {
+      "id": "civel-longo-pedido-final",
+      "schema_version": "3.0",
+      "claims": [
+        {
+          "id": "c1",
+          "title": "Pedido final de execução",
+          "source_refs": ["s1"]
+        }
+      ],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Sentença transitada",
+          "source_refs": ["s1"]
+        }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }]
+    },
+    {
+      "id": "civel-com-imagem",
+      "schema_version": "3.0",
+      "claims": [
+        { "id": "c1", "title": "Vício de construção", "source_refs": ["s1"] }
+      ],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Fissuras fotografadas",
+          "source_refs": ["s1"]
+        }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }],
+      "visuals": [
+        { "id": "v1", "storage_key": "opaque-v1", "thumbnail_key": "opaque-t1" }
+      ]
+    },
+    {
+      "id": "civel-norma-alterada",
+      "schema_version": "3.0",
+      "claims": [
+        {
+          "id": "c1",
+          "title": "Cobrança sob lei antiga",
+          "source_refs": ["s1"]
+        }
+      ],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Fato anterior à vigência atual",
+          "source_refs": ["s1"]
+        }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }]
+    }
+  ]
+}
