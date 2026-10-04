@@ -1,0 +1,124 @@
+{
+  "description": "Corpus sintético do módulo corporate v1.0 (sem dados pessoais reais). 6 casos §9.",
+  "module_id": "corporate",
+  "module_version": "1.0.0",
+  "cases": [
+    {
+      "id": "corporate-favoravel",
+      "schema_version": "3.0",
+      "claims": [
+        { "id": "c1", "title": "Exclusão de sócio", "source_refs": ["s1"] }
+      ],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Contrato social vigente",
+          "source_refs": ["s1"]
+        }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }]
+    },
+    {
+      "id": "corporate-adverso",
+      "schema_version": "3.0",
+      "claims": [
+        {
+          "id": "c1",
+          "title": "Desconsideração da personalidade",
+          "source_refs": ["s1"]
+        }
+      ],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Patrimônios separados",
+          "source_refs": ["s1"]
+        }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }]
+    },
+    {
+      "id": "corporate-incompleto",
+      "schema_version": "3.0",
+      "claims": [
+        { "id": "c1", "title": "Apuração de haveres", "source_refs": ["s1"] }
+      ],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Quotas alegadas sem livro",
+          "source_refs": ["s1"]
+        }
+      ],
+      "evidence": [],
+      "sources": [{ "id": "s1" }]
+    },
+    {
+      "id": "corporate-multiarea",
+      "schema_version": "3.0",
+      "claims": [
+        {
+          "id": "c1",
+          "title": "Reajuste do contrato social",
+          "source_refs": ["s1"]
+        },
+        { "id": "c2", "title": "Cobrança de aluguel", "source_refs": ["s2"] }
+      ],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Aditivo contratual",
+          "source_refs": ["s1"]
+        },
+        {
+          "id": "f2",
+          "statement": "Assembleia societária",
+          "source_refs": ["s2"]
+        }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }, { "id": "s2" }]
+    },
+    {
+      "id": "corporate-norma-antiga",
+      "schema_version": "3.0",
+      "claims": [
+        {
+          "id": "c1",
+          "title": "Recuperação sob lei antiga",
+          "source_refs": ["s1"]
+        }
+      ],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Pedido anterior à vigência atual",
+          "source_refs": ["s1"]
+        }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }]
+    },
+    {
+      "id": "corporate-tabela-imagem",
+      "schema_version": "3.0",
+      "claims": [
+        { "id": "c1", "title": "Rateio de despesas", "source_refs": ["s1"] }
+      ],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Planilha de rateio em imagem",
+          "source_refs": ["s1"]
+        }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }],
+      "visuals": [
+        { "id": "v1", "storage_key": "opaque-v1", "thumbnail_key": "opaque-t1" }
+      ]
+    }
+  ]
+}
