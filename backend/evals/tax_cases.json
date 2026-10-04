@@ -1,0 +1,108 @@
+{
+  "description": "Corpus sintético do módulo tax v1.0 (sem dados pessoais reais). 6 casos §9.",
+  "module_id": "tax",
+  "module_version": "1.0.0",
+  "cases": [
+    {
+      "id": "tax-favoravel",
+      "schema_version": "3.0",
+      "claims": [
+        { "id": "c1", "title": "Anulação de auto", "source_refs": ["s1"] }
+      ],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Auto sem fato gerador",
+          "source_refs": ["s1"]
+        }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }]
+    },
+    {
+      "id": "tax-adverso",
+      "schema_version": "3.0",
+      "claims": [
+        { "id": "c1", "title": "Exclusão de crédito", "source_refs": ["s1"] }
+      ],
+      "facts": [
+        { "id": "f1", "statement": "Lançamento regular", "source_refs": ["s1"] }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }]
+    },
+    {
+      "id": "tax-incompleto",
+      "schema_version": "3.0",
+      "claims": [
+        { "id": "c1", "title": "Repetição de indébito", "source_refs": ["s1"] }
+      ],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Pagamento alegado sem guia",
+          "source_refs": ["s1"]
+        }
+      ],
+      "evidence": [],
+      "sources": [{ "id": "s1" }]
+    },
+    {
+      "id": "tax-multiarea",
+      "schema_version": "3.0",
+      "claims": [
+        { "id": "c1", "title": "Anulação de auto", "source_refs": ["s1"] },
+        {
+          "id": "c2",
+          "title": "Revisão de cláusula penal",
+          "source_refs": ["s2"]
+        }
+      ],
+      "facts": [
+        { "id": "f1", "statement": "Auto de infração", "source_refs": ["s1"] },
+        { "id": "f2", "statement": "Multa contratual", "source_refs": ["s2"] }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }, { "id": "s2" }]
+    },
+    {
+      "id": "tax-norma-antiga",
+      "schema_version": "3.0",
+      "claims": [
+        {
+          "id": "c1",
+          "title": "Regime anterior à reforma",
+          "source_refs": ["s1"]
+        }
+      ],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Fato anterior à vigência atual",
+          "source_refs": ["s1"]
+        }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }]
+    },
+    {
+      "id": "tax-tabela-imagem",
+      "schema_version": "3.0",
+      "claims": [
+        { "id": "c1", "title": "Apuração por planilha", "source_refs": ["s1"] }
+      ],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Tabela de apuração em imagem",
+          "source_refs": ["s1"]
+        }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }],
+      "visuals": [
+        { "id": "v1", "storage_key": "opaque-v1", "thumbnail_key": "opaque-t1" }
+      ]
+    }
+  ]
+}
