@@ -49,6 +49,9 @@ class Settings(BaseSettings):
     DOSSIER_MODULE_LABOR: bool = False
     DOSSIER_MODULE_CONSUMER: bool = False
     DOSSIER_MODULE_SOCIAL_SECURITY: bool = False
+    # Onda 2A: rollout do par coeso contracts+corporate (spec §10); off por padrão.
+    DOSSIER_MODULE_CONTRACTS: bool = False
+    DOSSIER_MODULE_CORPORATE: bool = False
 
     model_config = SettingsConfigDict(
         env_file=".env",

@@ -27,6 +27,7 @@ _AREA_KEYWORDS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("family", ("guarda", "alimentos", "divorcio", "divórcio", "filho menor", "casamento", "herdeiro", "inventario", "inventário")),
     ("civil_procedure", ("rito", "procedimento comum", "juizado", "competencia", "competência", "tutela", "contestacao", "contestação")),
     ("contracts", ("contrato", "clausula", "cláusula", "prestacao de servicos", "prestação de serviços", "reajuste", "aditivo", "minuta")),
+    ("corporate", ("contrato social", "estatuto", "sócio", "sócios", "acionista", "quota", "assembleia", "ata", "recuperação judicial", "falência", "cnpj", "administrador")),
     ("tax", ("tribut", "imposto", "lancamento", "lançamento", "base de calculo", "base de cálculo", "aliquota", "alíquota", "fiscal")),
     ("labor", ("reclamacao trabalhista", "reclamação trabalhista", "vinculo de emprego", "vínculo de emprego", "verbas rescis", "FGTS", "aviso previo", "aviso prévio")),
     ("consumer", ("consumidor", "fornecedor", "vicio", "vício", "defeito do produto")),

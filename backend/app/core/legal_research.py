@@ -153,6 +153,34 @@ def research_issues(
                 }
             )
             continue
+        normative_violations: list[str] = []
+        if isinstance(chosen.get("normative"), dict):
+            from app.core.normative_source import validate_normative_source
+
+            normative_violations = validate_normative_source(
+                chosen["normative"], reference_date=reference_date
+            )
+        if normative_violations:
+            partial = True
+            pending.append(
+                f"Pesquisar '{issue.get('question', issue.get('id', '?'))}': "
+                f"fonte normativa inválida ({'; '.join(normative_violations)})."
+            )
+            results.append(
+                {
+                    "id": issue.get("id", ""),
+                    "question": issue.get("question", ""),
+                    "cited_literal": (cited or {}).get("literal"),
+                    "researched_url": chosen.get("url"),
+                    "url": chosen.get("url"),
+                    "organ": chosen.get("organ"),
+                    "consulted_at": consulted,
+                    "excerpt": chosen.get("excerpt"),
+                    "status": "blocked",
+                    "normative_violations": normative_violations,
+                }
+            )
+            continue
         results.append(
             {
                 "id": issue.get("id", ""),
