@@ -32,25 +32,33 @@ _MODULE_FLAGS = {
     # Onda 2A: par coeso contracts+corporate (spec §10); off por padrão.
     "contracts": "DOSSIER_MODULE_CONTRACTS",
     "corporate": "DOSSIER_MODULE_CORPORATE",
+    # Onda 2B: tax/administrative/real_estate (spec §10); off por padrão.
+    "tax": "DOSSIER_MODULE_TAX",
+    "administrative": "DOSSIER_MODULE_ADMINISTRATIVE",
+    "real_estate": "DOSSIER_MODULE_REAL_ESTATE",
 }
 
 
 def _module_registry():
     """Registry com os 5 módulos da Onda 1 (import tardio, sem ciclo)."""
     from app.core.module_registry import LegalModuleRegistry
+    from app.modules.administrative import AdministrativeModule
     from app.modules.civil_procedure import CivilProcedureModule
     from app.modules.consumer import ConsumerModule
     from app.modules.contracts import ContractsModule
     from app.modules.corporate import CorporateModule
     from app.modules.family import FamilyModule
     from app.modules.labor.module import LaborModule
+    from app.modules.real_estate import RealEstateModule
     from app.modules.social_security import SocialSecurityModule
+    from app.modules.tax import TaxModule
 
     registry = LegalModuleRegistry.with_defaults()
     for module in (
         CivilProcedureModule(), FamilyModule(), LaborModule(),
         ConsumerModule(), SocialSecurityModule(),
         ContractsModule(), CorporateModule(),
+        TaxModule(), AdministrativeModule(), RealEstateModule(),
     ):
         registry.register(module)
     return registry
@@ -95,7 +103,9 @@ def _run_modules(snapshot: dict, reconciled: dict, fixture: dict):
         activations.append({
             "module_id": module.module_id,
             "module_version": getattr(module, "version", "1.0.0"),
-            "status": "active" if status == "complete" else status,
+            # Ativação registra se o módulo rodou (active) ou travou
+            # (blocked); "partial" é estado do resultado, não da ativação.
+            "status": "blocked" if status == "blocked" else "active",
             "reason": "Matriz aplicável examinada",
         })
     seen = {a["module_id"] for a in activations}

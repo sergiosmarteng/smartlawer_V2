@@ -236,12 +236,36 @@ describe("DossierPage", () => {
               issue_assessments: [{ issue_key: "contracts.formacao" }],
               limitations: ["Cláusula sem assinatura"],
             },
+            tax: {
+              status: "blocked",
+              reason: "Fonte do ente indisponível",
+              issue_assessments: [{ issue_key: "tax.competencia" }],
+              limitations: [],
+            },
+            administrative: {
+              status: "complete",
+              reason: "Matriz aplicável examinada",
+              issue_assessments: [{ issue_key: "administrative.licitacao" }],
+              limitations: [],
+            },
+            real_estate: {
+              status: "partial",
+              reason: "Matriz aplicável examinada",
+              issue_assessments: [{ issue_key: "real_estate.registro" }],
+              limitations: ["Certidão atualizada pendente"],
+            },
           },
         }}
       />,
     );
     expect(screen.getByText(/contracts/)).toBeInTheDocument();
     expect(screen.getByText(/Cláusula sem assinatura/)).toBeInTheDocument();
+    expect(screen.getByText(/tax/)).toBeInTheDocument();
+    expect(screen.getByText(/administrative/)).toBeInTheDocument();
+    expect(screen.getByText(/real_estate/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Certidão atualizada pendente/),
+    ).toBeInTheDocument();
   });
 
   it("banner de estado mostra motivo e pendências", () => {
