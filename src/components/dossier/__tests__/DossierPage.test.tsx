@@ -222,6 +222,28 @@ describe("DossierPage", () => {
     expect(screen.getByText(/fallback/)).toBeInTheDocument();
   });
 
+  it("cartões de módulo exibem resultados e limitações", () => {
+    render(
+      <OverviewSection
+        content={{
+          claims: [],
+          coverage: { pages_extracted: 0, pages_total: 0 },
+          limitations: [],
+          module_results: {
+            contracts: {
+              status: "partial",
+              reason: "Matriz aplicável examinada",
+              issue_assessments: [{ issue_key: "contracts.formacao" }],
+              limitations: ["Cláusula sem assinatura"],
+            },
+          },
+        }}
+      />,
+    );
+    expect(screen.getByText(/contracts/)).toBeInTheDocument();
+    expect(screen.getByText(/Cláusula sem assinatura/)).toBeInTheDocument();
+  });
+
   it("banner de estado mostra motivo e pendências", () => {
     render(
       <SectionStateBanner

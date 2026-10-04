@@ -32,6 +32,7 @@ export function OverviewSection({
         {asText(coverage.pages_total ?? 0)}
       </p>
       <ModuleActivationsLine activations={content.module_activations} />
+      <ModuleResultsCards results={content.module_results} />
       {limitations.map((lim, i) => (
         <p key={i} className="text-sm">
           ⚠ <SafeText value={lim.message} />
@@ -64,6 +65,35 @@ export function ModuleActivationsLine({
         </span>
       ))}
     </p>
+  );
+}
+
+/** Cartões especializados por módulo sobre as abas universais (Onda 2A, spec §10). */
+export function ModuleResultsCards({ results }: { results: unknown }) {
+  const entries =
+    results && typeof results === "object"
+      ? Object.entries(results as Record<string, Record<string, unknown>>)
+      : [];
+  if (!entries.length) return null;
+  return (
+    <div className="space-y-2">
+      {entries.map(([moduleId, result]) => (
+        <div key={moduleId} className="rounded border p-3 text-sm">
+          <p className="font-semibold">
+            <SafeText value={moduleId} /> — <SafeText value={result.status} />
+          </p>
+          <p>
+            Questões avaliadas: {asArray(result.issue_assessments).length}
+            {asText(result.reason) ? ` — ${asText(result.reason)}` : ""}
+          </p>
+          {asArray(result.limitations).map((lim, i) => (
+            <p key={i}>
+              ⚠ <SafeText value={typeof lim === "string" ? lim : lim.message} />
+            </p>
+          ))}
+        </div>
+      ))}
+    </div>
   );
 }
 

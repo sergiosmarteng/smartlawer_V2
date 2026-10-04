@@ -29,6 +29,9 @@ _MODULE_FLAGS = {
     "labor": "DOSSIER_MODULE_LABOR",
     "consumer": "DOSSIER_MODULE_CONSUMER",
     "social_security": "DOSSIER_MODULE_SOCIAL_SECURITY",
+    # Onda 2A: par coeso contracts+corporate (spec §10); off por padrão.
+    "contracts": "DOSSIER_MODULE_CONTRACTS",
+    "corporate": "DOSSIER_MODULE_CORPORATE",
 }
 
 
@@ -37,6 +40,8 @@ def _module_registry():
     from app.core.module_registry import LegalModuleRegistry
     from app.modules.civil_procedure import CivilProcedureModule
     from app.modules.consumer import ConsumerModule
+    from app.modules.contracts import ContractsModule
+    from app.modules.corporate import CorporateModule
     from app.modules.family import FamilyModule
     from app.modules.labor.module import LaborModule
     from app.modules.social_security import SocialSecurityModule
@@ -45,6 +50,7 @@ def _module_registry():
     for module in (
         CivilProcedureModule(), FamilyModule(), LaborModule(),
         ConsumerModule(), SocialSecurityModule(),
+        ContractsModule(), CorporateModule(),
     ):
         registry.register(module)
     return registry
