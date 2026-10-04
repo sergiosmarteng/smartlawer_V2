@@ -1,15 +1,17 @@
 {
   "project": "SmartLawer_V2",
   "project_path": "C:/Users/sergi/OneDrive - SSA Soluções Tecnologicas/SSA Solucoes Tecnologicas/Projetos prototipos/SmartLawer_V2",
-  "last_updated": "2026-10-03",
-  "status": "Onda 1 implementada e verificada (fundacao + 1A + 1B + integracao): envelope module_results, runner com falha isolada, 5 flags, 5 modulos (civil_procedure, family, labor, consumer, social_security) com matrizes, gates, calculos, fontes, corpus 7 casos cada, pipeline integrado atras de flags, ativacoes na UI. Todos os gates verdes. Proximo: smoke VPS + piloto (V3+Onda1 atras de flags), depois gate juridico por modulo e Ondas 2-3.",
+  "last_updated": "2026-10-04",
+  "status": "Onda 2A implementada e verificada (fundacao normativa + contracts@1.0.0 + corporate@1.0.0 + integracao do par) - HEAD eb8001b, 4 commits pushed, 360 pytest. Onda 2B (tax+administrative+real_estate) planejada, nao iniciada. Flags DOSSIER_MODULE_CONTRACTS/CORPORATE off por padrao. Proximo: operador (PAT/VPS/smoke/piloto) + gate juridico 2A, depois implementar 2B.",
   "next_steps": [
     "Operador roda PAT rotation conforme docs/runbooks/rotacao-pat-2026-10-02.md (VPS -> SSH deploy key; dev -> fine-grained PAT)",
     "Aplicar migrations na VPS (head 20261002_0013; Onda 1 sem migration nova) com backup pg_dump antes",
     "Operador roda smoke pos-deploy em VPS conforme docs/operacao/smoke-pos-deploy-2026-10-02.md (12 blocos A-K)",
+    "Implementar Onda 2A (contracts@1.0.0 + corporate@1.0.0) conforme docs/superpowers/plans/2026-10-03-dossie-onda-2a-contracts-corporate.md - teste falhando primeiro, flags off por padrao",
+    "Implementar Onda 2B (tax + administrative + real_estate) conforme docs/superpowers/plans/2026-10-03-dossie-onda-2b-tax-administrative-real-estate.md",
     "Shadow runs V3 + piloto 50 execucoes; habilitar DOSSIER_MODULE_<ID> um por vez apos gate proprio",
-    "Gate juridico por modulo: 2 revisores da area sobre o corpus (§9), sem inferir % de exito",
-    "Apos piloto Go + gates juridicos: planejar Onda 2 (empresarial/contratos/tributario/administrativo/imobiliario)"
+    "Gate juridico por modulo: 2 revisores da area sobre o corpus (spec §9), sem inferir % de exito",
+    "Apos piloto Go + gates juridicos da Onda 2: planejar Onda 3"
   ],
   "blockers": [
     "PAT do GitHub exposto em 78c3e36 ainda sem rotacao - bloqueador de seguranca pre-piloto",
@@ -31,7 +33,12 @@
     "DOSSIER_V3_ENABLED=false e DOSSIER_MODULE_<ID>=false por padrao; rollout de um modulo por vez",
     "Frontend nao deriva tese/estrategia/risco de pedidos; composer sem IA; modulos nunca mutam o nucleo",
     "Fotografias/prints nunca provam sozinhos autoria/data/autenticidade/causalidade; laudo ausente fica mentioned_not_located",
-    "Nenhum modulo decide culpa/autenticidade/validade automaticamente; prescricao/decadencia so com marcos sustentados"
+    "Nenhum modulo decide culpa/autenticidade/validade automaticamente; prescricao/decadencia so com marcos sustentados",
+    "Onda 2: nenhuma alteracao silenciosa do schema 3.0; extensao incompativel exigiria nova versao formal (spec §10)",
+    "Onda 2: vinculo juridico nunca afirmado por coocorrencia de nomes; clausula sem assinatura/versao nunca tratada como aceita",
+    "Onda 2: calculos so com clausula vigente, base, indice, termo e periodo; IA sugere regra cadastrada, nunca numero final livre",
+    "Onda 2: falha de um modulo vira blocked + limitacao - nunca impede o dossie universal nem o outro modulo do par",
+    "Onda 2A e par coeso: entidades/fatos/pedidos/fontes compartilhados por IDs estaveis; modulo primario nao absorve o outro"
   ],
   "deliverables_onda1": [
     "fundacao: module_results + ModuleResult/IssueAssessment + runner + 5 flags + registry enabled + composer fill",
@@ -41,6 +48,11 @@
     "1B consumer@1.0.0: matriz 6 temas, gate sem automatismos, print-nao-prova, restituicao_cobranca + duplicidade, fonte CDC, corpus 7",
     "1B social_security@1.0.0: matriz 6 temas, sem diagnostico proprio, sem beneficio presumido, beneficio_cenario, fontes 8213/8212/INSS, corpus 7",
     "integracao: runner no orquestrador atras de flags + module_activations no composer + ModuleActivationsLine na visao geral"
+  ],
+  "deliverables_onda2_planos": [
+    "docs/superpowers/plans/2026-10-03-dossie-onda-2a-contracts-corporate.md (180 linhas, commit c612c67)",
+    "docs/superpowers/plans/2026-10-03-dossie-onda-2b-tax-administrative-real-estate.md (176 linhas, commit c612c67)",
+    "Spec de referencia: docs/superpowers/specs/2026-10-02-dossie-onda-2-design.md"
   ],
   "verification": {
     "pytest": "337 passed",
@@ -55,9 +67,9 @@
   },
   "git_state": {
     "origin": "git@github-smarteng:sergiosmarteng/smartlawer_V2.git",
-    "head": "7cee4c4",
+    "head": "c612c67",
     "ahead_behind": "0 0",
     "migrations_head": "20261002_0013"
   },
-  "resume_prompt_file": ".opencode/sessions/2026-10-03-onda-1-completa.md"
+  "resume_prompt_file": ".opencode/sessions/2026-10-04-onda-2-planejada.md"
 }
