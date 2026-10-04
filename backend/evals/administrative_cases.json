@@ -1,0 +1,112 @@
+{
+  "description": "Corpus sintético do módulo administrative v1.0 (sem dados pessoais reais). 6 casos §9.",
+  "module_id": "administrative",
+  "module_version": "1.0.0",
+  "cases": [
+    {
+      "id": "adm-favoravel",
+      "schema_version": "3.0",
+      "claims": [
+        { "id": "c1", "title": "Anulação de sanção", "source_refs": ["s1"] }
+      ],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Edital sem motivação",
+          "source_refs": ["s1"]
+        }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }]
+    },
+    {
+      "id": "adm-adverso",
+      "schema_version": "3.0",
+      "claims": [
+        { "id": "c1", "title": "Sustação de penalidade", "source_refs": ["s1"] }
+      ],
+      "facts": [
+        { "id": "f1", "statement": "Processo regular", "source_refs": ["s1"] }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }]
+    },
+    {
+      "id": "adm-incompleto",
+      "schema_version": "3.0",
+      "claims": [
+        {
+          "id": "c1",
+          "title": "Reequilíbrio contratual",
+          "source_refs": ["s1"]
+        }
+      ],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Reajuste alegado sem cláusula",
+          "source_refs": ["s1"]
+        }
+      ],
+      "evidence": [],
+      "sources": [{ "id": "s1" }]
+    },
+    {
+      "id": "adm-multiarea",
+      "schema_version": "3.0",
+      "claims": [
+        { "id": "c1", "title": "Anulação de sanção", "source_refs": ["s1"] },
+        { "id": "c2", "title": "Cobrança contratual", "source_refs": ["s2"] }
+      ],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Auto administrativo",
+          "source_refs": ["s1"]
+        },
+        { "id": "f2", "statement": "Cláusula penal", "source_refs": ["s2"] }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }, { "id": "s2" }]
+    },
+    {
+      "id": "adm-norma-antiga",
+      "schema_version": "3.0",
+      "claims": [
+        {
+          "id": "c1",
+          "title": "Licitação sob regime antigo",
+          "source_refs": ["s1"]
+        }
+      ],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Edital anterior à vigência atual",
+          "source_refs": ["s1"]
+        }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }]
+    },
+    {
+      "id": "adm-tabela-imagem",
+      "schema_version": "3.0",
+      "claims": [
+        { "id": "c1", "title": "Medição de obra", "source_refs": ["s1"] }
+      ],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Planilha de medição em imagem",
+          "source_refs": ["s1"]
+        }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }],
+      "visuals": [
+        { "id": "v1", "storage_key": "opaque-v1", "thumbnail_key": "opaque-t1" }
+      ]
+    }
+  ]
+}
