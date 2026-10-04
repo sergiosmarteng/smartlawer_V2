@@ -52,6 +52,10 @@ class Settings(BaseSettings):
     # Onda 2A: rollout do par coeso contracts+corporate (spec §10); off por padrão.
     DOSSIER_MODULE_CONTRACTS: bool = False
     DOSSIER_MODULE_CORPORATE: bool = False
+    # Onda 2B: rollout tax/administrative/real_estate (spec §10); off por padrão.
+    DOSSIER_MODULE_TAX: bool = False
+    DOSSIER_MODULE_ADMINISTRATIVE: bool = False
+    DOSSIER_MODULE_REAL_ESTATE: bool = False
 
     model_config = SettingsConfigDict(
         env_file=".env",
