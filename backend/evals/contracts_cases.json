@@ -1,0 +1,116 @@
+{
+  "description": "Corpus sintético do módulo contracts v1.0 (sem dados pessoais reais). 6 casos §9.",
+  "module_id": "contracts",
+  "module_version": "1.0.0",
+  "cases": [
+    {
+      "id": "contracts-favoravel",
+      "schema_version": "3.0",
+      "claims": [
+        { "id": "c1", "title": "Reajuste contratual", "source_refs": ["s1"] }
+      ],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Cláusula de reajuste vigente",
+          "source_refs": ["s1"]
+        }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }]
+    },
+    {
+      "id": "contracts-adverso",
+      "schema_version": "3.0",
+      "claims": [
+        { "id": "c1", "title": "Rescisão imotivada", "source_refs": ["s1"] }
+      ],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Notificação de cura atendida",
+          "source_refs": ["s1"]
+        }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }]
+    },
+    {
+      "id": "contracts-incompleto",
+      "schema_version": "3.0",
+      "claims": [
+        { "id": "c1", "title": "Multa contratual", "source_refs": ["s1"] }
+      ],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Multa alegada sem cláusula",
+          "source_refs": ["s1"]
+        }
+      ],
+      "evidence": [],
+      "sources": [{ "id": "s1" }]
+    },
+    {
+      "id": "contracts-multiarea",
+      "schema_version": "3.0",
+      "claims": [
+        {
+          "id": "c1",
+          "title": "Reajuste do contrato social",
+          "source_refs": ["s1"]
+        },
+        { "id": "c2", "title": "Exclusão de sócio", "source_refs": ["s2"] }
+      ],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Aditivo contratual",
+          "source_refs": ["s1"]
+        },
+        {
+          "id": "f2",
+          "statement": "Assembleia societária",
+          "source_refs": ["s2"]
+        }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }, { "id": "s2" }]
+    },
+    {
+      "id": "contracts-norma-antiga",
+      "schema_version": "3.0",
+      "claims": [
+        { "id": "c1", "title": "Revisão sob lei antiga", "source_refs": ["s1"] }
+      ],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Contrato anterior à vigência atual",
+          "source_refs": ["s1"]
+        }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }]
+    },
+    {
+      "id": "contracts-tabela-imagem",
+      "schema_version": "3.0",
+      "claims": [
+        { "id": "c1", "title": "Cobrança por medição", "source_refs": ["s1"] }
+      ],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Tabela de preços em imagem",
+          "source_refs": ["s1"]
+        }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }],
+      "visuals": [
+        { "id": "v1", "storage_key": "opaque-v1", "thumbnail_key": "opaque-t1" }
+      ]
+    }
+  ]
+}
