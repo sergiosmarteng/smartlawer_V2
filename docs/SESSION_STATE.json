@@ -2,19 +2,18 @@
   "project": "SmartLawer_V2",
   "project_path": "C:/Users/sergi/OneDrive - SSA Soluções Tecnologicas/SSA Solucoes Tecnologicas/Projetos prototipos/SmartLawer_V2",
   "last_updated": "2026-10-04",
-  "status": "Onda 2A implementada e verificada (fundacao normativa + contracts@1.0.0 + corporate@1.0.0 + integracao do par) - HEAD eb8001b, 4 commits pushed, 360 pytest. Onda 2B (tax+administrative+real_estate) planejada, nao iniciada. Flags DOSSIER_MODULE_CONTRACTS/CORPORATE off por padrao. Proximo: operador (PAT/VPS/smoke/piloto) + gate juridico 2A, depois implementar 2B.",
+  "status": "Release 0.3.0 (tag v0.3.0): Onda 2 completa e verificada - 2A (contracts+corporate) + 2B (tax+administrative+real_estate + regressoes cruzadas). HEAD 3cbaca2, 387 pytest, gates verdes. Todas as 10 flags de modulo off por padrao. Proximo: rotacao PAT (seguranca pre-piloto) + migrations/smoke VPS (in loco), piloto + gates juridicos, depois Onda 3.",
   "next_steps": [
-    "Operador roda PAT rotation conforme docs/runbooks/rotacao-pat-2026-10-02.md (VPS -> SSH deploy key; dev -> fine-grained PAT)",
-    "Aplicar migrations na VPS (head 20261002_0013; Onda 1 sem migration nova) com backup pg_dump antes",
+    "Operador roda PAT rotation conforme docs/runbooks/rotacao-pat-2026-10-02.md (VPS -> SSH deploy key; dev -> fine-grained PAT); conferir remote https schinasergio (auth falhou com 'Invalid username or token')",
+    "Aplicar migrations na VPS (head 20261002_0013; Onda 1 e 2A sem migration nova) com backup pg_dump antes",
     "Operador roda smoke pos-deploy em VPS conforme docs/operacao/smoke-pos-deploy-2026-10-02.md (12 blocos A-K)",
-    "Implementar Onda 2A (contracts@1.0.0 + corporate@1.0.0) conforme docs/superpowers/plans/2026-10-03-dossie-onda-2a-contracts-corporate.md - teste falhando primeiro, flags off por padrao",
-    "Implementar Onda 2B (tax + administrative + real_estate) conforme docs/superpowers/plans/2026-10-03-dossie-onda-2b-tax-administrative-real-estate.md",
+    "Implementar Onda 2B (tax + administrative + real_estate) conforme docs/superpowers/plans/2026-10-03-dossie-onda-2b-tax-administrative-real-estate.md - teste falhando primeiro, flags off por padrao, reusar normative_source + envelope/registry",
     "Shadow runs V3 + piloto 50 execucoes; habilitar DOSSIER_MODULE_<ID> um por vez apos gate proprio",
     "Gate juridico por modulo: 2 revisores da area sobre o corpus (spec §9), sem inferir % de exito",
     "Apos piloto Go + gates juridicos da Onda 2: planejar Onda 3"
   ],
   "blockers": [
-    "PAT do GitHub exposto em 78c3e36 ainda sem rotacao - bloqueador de seguranca pre-piloto",
+    "PAT do GitHub exposto em 78c3e36 ainda sem rotacao - bloqueador de seguranca pre-piloto; remote https schinasergio rejeita auth (token invalido)",
     "VPS nao acessivel desta estacao (Windows) - smoke e deploy precisam ser rodados in loco",
     "E2E playwright nao executado aqui (sem browsers/ambiente de teste)",
     "Gate juridico humano por modulo pendente (2 revisores por area, processo fora da maquina)"
@@ -49,16 +48,23 @@
     "1B social_security@1.0.0: matriz 6 temas, sem diagnostico proprio, sem beneficio presumido, beneficio_cenario, fontes 8213/8212/INSS, corpus 7",
     "integracao: runner no orquestrador atras de flags + module_activations no composer + ModuleActivationsLine na visao geral"
   ],
+  "deliverables_onda2a": [
+    "foundation: backend/app/core/normative_source.py (contrato NormativeSource: campos obrigatorios, norma posterior != fundamento historico, fonte ambigua/nao recuperada = violation) + classify_corporate_and_contracts - commit bf9efcf",
+    "contracts@1.0.0: backend/app/modules/contracts/module.py + backend/evals/contracts_cases.json + backend/tests/test_contracts_module.py (6 temas, reajuste blocked sem params, sem validade em abstrato, diff de versao preserva texto/posicao) - commit 802d3bb",
+    "corporate@1.0.0: backend/app/modules/corporate/module.py + backend/evals/corporate_cases.json + backend/tests/test_corporate_module.py (7 temas, sem responsabilidade pessoal por posicao, estagios de recuperacao, participacao/cenario) - commit 6f23668",
+    "integracao par: backend/app/core/pipeline/orchestrator.py + backend/app/core/pipeline/contracts.py + backend/tests/test_onda2a_integration.py atras de DOSSIER_MODULE_CONTRACTS/CORPORATE - commit eb8001b",
+    "estado: HEAD 71cc811 (docs), 5 commits 2A, 360 pytest verdes, sem migration nova"
+  ],
   "deliverables_onda2_planos": [
     "docs/superpowers/plans/2026-10-03-dossie-onda-2a-contracts-corporate.md (180 linhas, commit c612c67)",
     "docs/superpowers/plans/2026-10-03-dossie-onda-2b-tax-administrative-real-estate.md (176 linhas, commit c612c67)",
     "Spec de referencia: docs/superpowers/specs/2026-10-02-dossie-onda-2-design.md"
   ],
   "verification": {
-    "pytest": "337 passed",
+    "pytest": "360 passed",
     "run_gate_default": "GATE PASSED",
     "run_gate_universal": "UNIVERSAL GATE PASSED (5 cases)",
-    "module_corpora_gates": "35 cases passed (7 por modulo x 5)",
+    "module_corpora_gates": "45 cases passed (7 por modulo x 5 modulos Onda 1 + 2 da Onda 2A)",
     "vitest": "19 passed (3 files)",
     "eslint": "clean",
     "tsc": "clean",
@@ -67,9 +73,10 @@
   },
   "git_state": {
     "origin": "git@github-smarteng:sergiosmarteng/smartlawer_V2.git",
-    "head": "c612c67",
-    "ahead_behind": "0 0",
-    "migrations_head": "20261002_0013"
+    "head": "71cc811",
+    "ahead_behind": "nao verificado desta estacao (ultimo conhecido: 0 0)",
+    "migrations_head": "20261002_0013",
+    "extra_remote": "schinasergio (https, read-only) - auth falhou com 'Invalid username or token' na checagem de 2026-10-04"
   },
-  "resume_prompt_file": ".opencode/sessions/2026-10-04-onda-2-planejada.md"
+  "resume_prompt_file": ".opencode/sessions/2026-10-04-onda-2a-implementada.md"
 }
