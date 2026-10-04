@@ -1,0 +1,106 @@
+{
+  "description": "Corpus sintético do módulo real_estate v1.0 (sem dados pessoais reais). 6 casos §9.",
+  "module_id": "real_estate",
+  "module_version": "1.0.0",
+  "cases": [
+    {
+      "id": "imob-favoravel",
+      "schema_version": "3.0",
+      "claims": [{ "id": "c1", "title": "Adjudicação", "source_refs": ["s1"] }],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Escritura registrada",
+          "source_refs": ["s1"]
+        }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }]
+    },
+    {
+      "id": "imob-adverso",
+      "schema_version": "3.0",
+      "claims": [{ "id": "c1", "title": "Despejo", "source_refs": ["s1"] }],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Posse mansa e pacífica",
+          "source_refs": ["s1"]
+        }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }]
+    },
+    {
+      "id": "imob-incompleto",
+      "schema_version": "3.0",
+      "claims": [{ "id": "c1", "title": "Usucapião", "source_refs": ["s1"] }],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Posse alegada sem certidão",
+          "source_refs": ["s1"]
+        }
+      ],
+      "evidence": [],
+      "sources": [{ "id": "s1" }]
+    },
+    {
+      "id": "imob-multiarea",
+      "schema_version": "3.0",
+      "claims": [
+        { "id": "c1", "title": "Adjudicação", "source_refs": ["s1"] },
+        { "id": "c2", "title": "Exclusão de sócio", "source_refs": ["s2"] }
+      ],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Escritura do imóvel",
+          "source_refs": ["s1"]
+        },
+        { "id": "f2", "statement": "Quotas societárias", "source_refs": ["s2"] }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }, { "id": "s2" }]
+    },
+    {
+      "id": "imob-norma-antiga",
+      "schema_version": "3.0",
+      "claims": [
+        {
+          "id": "c1",
+          "title": "Regularização fundiária",
+          "source_refs": ["s1"]
+        }
+      ],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Zoneamento anterior à lei atual",
+          "source_refs": ["s1"]
+        }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }]
+    },
+    {
+      "id": "imob-tabela-imagem",
+      "schema_version": "3.0",
+      "claims": [
+        { "id": "c1", "title": "Cobrança de parcelas", "source_refs": ["s1"] }
+      ],
+      "facts": [
+        {
+          "id": "f1",
+          "statement": "Planta do imóvel em imagem",
+          "source_refs": ["s1"]
+        }
+      ],
+      "evidence": [{ "id": "e1" }],
+      "sources": [{ "id": "s1" }],
+      "visuals": [
+        { "id": "v1", "storage_key": "opaque-v1", "thumbnail_key": "opaque-t1" }
+      ]
+    }
+  ]
+}
