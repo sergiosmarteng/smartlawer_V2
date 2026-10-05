@@ -166,6 +166,21 @@ def execute_real_stages(
         "unprocessed_block_ids": list(plan.get("unprocessed_block_ids", [])),
         "explicit_claims_found": len(reconciled.get("claims", [])),
     }
+    batch_stats = {
+        "batches_total": len(plan.get("batches", [])),
+        "batches_failed": len(failed_batches),
+        "failed_codes": sorted({fb.get("code", "?") for fb in failed_batches}),
+        "claims_total": len(reconciled.get("claims", [])),
+        "facts_total": len(reconciled.get("facts", [])),
+        "sources_total": len(sources),
+        "blocks_total": len(blocks),
+    }
+    logger.info(
+        "Estágios reais: lotes=%(batches_total)d falhados=%(batches_failed)d "
+        "claims=%(claims_total)d fatos=%(facts_total)d fontes=%(sources_total)d "
+        "blocos=%(blocks_total)d.",
+        batch_stats,
+    )
     return {
         "empty": False,
         "reconciled": reconciled,
@@ -177,6 +192,7 @@ def execute_real_stages(
         "calculations": [],
         "classification": classification,
         "failed_batches": failed_batches,
+        "batch_stats": batch_stats,
         "unprocessed_block_ids": list(plan.get("unprocessed_block_ids", [])),
     }
 

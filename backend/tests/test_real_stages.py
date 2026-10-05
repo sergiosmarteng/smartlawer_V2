@@ -1,6 +1,7 @@
 """W-2 — estágios reais sobre blocos da revisão (sem fixture)."""
 
 import dataclasses
+import json
 
 from app.crud import run as run_crud
 from app.models.analysis_run import AnalysisRun
@@ -116,6 +117,39 @@ def test_batch_markers_reach_provider_prompt(db_session, make_user):
         struct_provider=provider, analysis_provider=_AnalysisProvider())
     assert provider.prompts
     assert any("[bloco b1" in p for p in provider.prompts)
+
+
+def test_batch_prompt_defines_output_schema(db_session, make_user):
+    from app.core.pipeline.orchestrator import execute_real_stages
+
+    _, _, _, run = _seed(db_session, make_user)
+    provider = _StructProvider()
+    execute_real_stages(
+        db_session, run=run,
+        struct_provider=provider, analysis_provider=_AnalysisProvider())
+    assert provider.prompts
+    joined = "\n".join(provider.prompts)
+    for token in ("source_refs", "epistemic_status", "requested_relief",
+                  "original_number", "asserted_by"):
+        assert token in joined
+
+
+def test_batch_stats_report_counts_without_content(db_session, make_user):
+    from app.core.pipeline.orchestrator import execute_real_stages
+
+    _, _, _, run = _seed(db_session, make_user)
+    out = execute_real_stages(
+        db_session, run=run,
+        struct_provider=_StructProvider(
+            payloads={"guarda compartilhada": _payload_b1()}),
+        analysis_provider=_AnalysisProvider())
+    stats = out["batch_stats"]
+    assert stats["batches_total"] >= 1
+    assert stats["batches_failed"] == 0
+    assert stats["claims_total"] == 1
+    assert stats["facts_total"] == 1
+    blob = json.dumps(stats, ensure_ascii=False).lower()
+    assert "guarda" not in blob and "parte a" not in blob
 
 
 def test_failed_batch_is_explicit_and_others_survive(db_session, make_user):

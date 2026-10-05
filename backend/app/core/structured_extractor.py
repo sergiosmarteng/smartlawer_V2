@@ -23,6 +23,23 @@ SYSTEM_PROMPT = (
     "identificadores em source_refs para cada afirmação material."
 )
 
+# Contrato explícito de saída por lote: sem ele o modelo adivinha os
+# campos e devolve arrays vazios. Arrays vazios só quando o lote não
+# contém o objeto; nunca invente ids, valores ou citações.
+OUTPUT_SCHEMA = (
+    "Formato exato da resposta JSON: "
+    '{"claims": [{"id": "c<n>", "title": "<título>", '
+    '"original_number": "<nº ou null>", "requested_relief": "<texto ou null>", '
+    '"source_refs": ["<id de bloco>"]}], '
+    '"facts": [{"id": "f<n>", "statement": "<frase literal>", '
+    '"asserted_by": "<autor ou unknown>", '
+    '"epistemic_status": "<alleged|documented|admitted|disputed|inferred|unknown>", '
+    '"source_refs": ["<id de bloco>"]}], '
+    '"evidence": [{"id": "e<n>", "kind": "<documental|testemunhal|pericial|digital|material|pretendida>", '
+    '"presence_status": "<examined|mentioned_not_located|proposed|unavailable>"}], '
+    '"legal_references": [{"id": "lr<n>", "literal_citation": "<texto>"}]}'
+)
+
 
 class BatchExtractionError(Exception):
     """Falha de um lote: código seguro, sem prompt nem trecho."""
@@ -69,7 +86,10 @@ def extract_batch(
     block_text = "\n".join(
         str(b.get("normalized_text") or b.get("original_text") or "") for b in blocks
     )
-    prompt = f"{SYSTEM_PROMPT}\nLote {batch.get('batch_index', 0)}:\n{block_text[:4000]}"
+    prompt = (
+        f"{SYSTEM_PROMPT}\n{OUTPUT_SCHEMA}\n"
+        f"Lote {batch.get('batch_index', 0)}:\n{block_text[:4000]}"
+    )
     try:
         raw = provider.complete_json(prompt)
     except Exception as exc:
