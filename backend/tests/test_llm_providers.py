@@ -76,6 +76,43 @@ def test_analysis_success_returns_dict():
     assert out == {"theses": []}
 
 
+def test_analysis_prompt_defines_thesis_schema():
+    from app.core.llm_providers import LlmAnalysisProvider
+
+    sent: list[str] = []
+
+    class _Capture:
+        def __init__(self):
+            outer = self
+
+            class _Comp:
+                def create(self, **kwargs):
+                    for message in kwargs.get("messages", []):
+                        if message.get("role") == "user":
+                            sent.append(message.get("content", ""))
+
+                    class _Msg:
+                        content = '{"theses": []}'
+
+                    class _Choice:
+                        message = _Msg()
+
+                    class _Resp:
+                        choices = [_Choice()]
+
+                    return _Resp()
+
+            self.chat = type("H", (), {"completions": _Comp()})()
+
+    provider = LlmAnalysisProvider(client=_Capture(), model="m")
+    provider.analyze({"facts": [{"id": "f1"}]})
+    assert sent
+    joined = sent[0]
+    for token in ("factual_premises", "supporting_refs", "adverse_refs",
+                  "counterargument", "represented_side", "conclusion"):
+        assert token in joined
+
+
 def test_unconfigured_provider_raises_on_construct(monkeypatch):
     from app.core import llm_providers
     from app.core.llm_providers import LlmStructuredProvider

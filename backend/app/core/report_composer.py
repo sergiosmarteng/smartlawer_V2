@@ -51,6 +51,41 @@ def _section_state(items: list, reason: str) -> dict:
     }
 
 
+def _all_section_states(
+    *,
+    claims: list,
+    facts: list,
+    controversies: list,
+    evidence: list,
+    visuals: list,
+    legal_references: list,
+    analysis: dict,
+    calculations: list,
+    sources: list,
+) -> dict:
+    """Estado honesto de todas as seções materiais (bloco E do smoke)."""
+    analysis = analysis or {}
+    return {
+        "claims": _section_state(claims, "Pedidos reconciliados"),
+        "facts": _section_state(facts, "Fatos reconciliados"),
+        "controversies": _section_state(controversies, "Controvérsias reconciliadas"),
+        "evidence": _section_state(evidence, "Provas reconciliadas"),
+        "visuals": _section_state(visuals, "Imagens extraídas"),
+        "legal_references": _section_state(legal_references, "Fundamentos reconciliados"),
+        "procedural_issues": _section_state(
+            analysis.get("procedural_issues") or [], "Questões processuais analisadas"),
+        "theses": _section_state(analysis.get("theses") or [], "Teses bilaterais analisadas"),
+        "calculations": _section_state(calculations, "Cálculos determinísticos"),
+        "risks": _section_state(analysis.get("risks") or [], "Riscos analisados"),
+        "action_plan": _section_state(analysis.get("actions") or [], "Plano de ação"),
+        "client_questions": _section_state(
+            analysis.get("questions") or [], "Perguntas ao cliente"),
+        "sources": _section_state(sources, "Fontes resolvíveis"),
+        "limitations": _section_state(
+            analysis.get("limitations") or [], "Limitações declaradas"),
+    }
+
+
 def compose_artifact(inputs: CompositionInputs) -> ComposedArtifact:
     """Monta ``ArtifactContentV3`` a partir de objetos validados."""
     reconciled = inputs.reconciled or {}
@@ -73,10 +108,15 @@ def compose_artifact(inputs: CompositionInputs) -> ComposedArtifact:
             "unprocessed_block_ids": list((inputs.coverage or {}).get("unprocessed_block_ids", [])),
             "explicit_claims_found": len(claims),
         },
-        "section_states": {
-            "claims": _section_state(claims, "Pedidos reconciliados"),
-            "facts": _section_state(facts, "Fatos reconciliados"),
-        },
+        "section_states": _all_section_states(
+            claims=claims, facts=facts,
+            controversies=reconciled.get("controversies") or [],
+            evidence=reconciled.get("evidence") or [],
+            visuals=inputs.visuals or [],
+            legal_references=reconciled.get("legal_references") or [],
+            analysis=analysis, calculations=inputs.calculations or [],
+            sources=inputs.sources or [],
+        ),
         "executive_summary": {
             "narrative": (
                 f"Dossiê com {len(claims)} pedido(s) e {len(facts)} fato(s) "

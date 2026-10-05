@@ -90,13 +90,35 @@ class LlmStructuredProvider(_BaseLlmProvider):
         return parsed
 
 
+ANALYSIS_OUTPUT_SCHEMA = (
+    "Formato exato da resposta JSON: "
+    '{"procedural_issues": [{"id": "pi<n>", "issue": "<texto>", '
+    '"conclusion": "<texto>", "source_refs": ["<id de fonte>"]}], '
+    '"theses": [{"id": "t<n>", "represented_side": '
+    '"<claimant|respondent|neutral>", "issue": "<texto>", '
+    '"conclusion": "<texto>", "factual_premises": ["<id de fato>"], '
+    '"legal_premises": ["<id de referência>"], '
+    '"supporting_refs": ["<id de fonte>"], "adverse_refs": ["<id de fonte>"], '
+    '"counterargument": "<texto ou null>", "prerequisites": [], '
+    '"requested_evidence": [], "action": "<texto ou null>", '
+    '"limitations": "<texto ou null>"}], '
+    '"risks": [{"id": "r<n>", "issue": "<texto>", "impact": "<texto>"}], '
+    '"actions": [{"id": "a<n>", "description": "<texto>"}], '
+    '"questions": [{"id": "q<n>", "question": "<texto>"}], '
+    '"limitations": []}. '
+    "Teses para ambos os polos; premissas e fontes restritas aos ids "
+    "fornecidos; arrays vazios só quando inexistentes, nunca invente ids."
+)
+
+
 class LlmAnalysisProvider(_BaseLlmProvider):
     """``AnalysisProvider`` real para ``analyze_universal_case``."""
 
     def analyze(self, payload: dict) -> dict:
         content = self._complete(
             system="Responda APENAS com o objeto JSON pedido, sem texto extra.",
-            user=json.dumps(payload, ensure_ascii=False),
+            user=f"{ANALYSIS_OUTPUT_SCHEMA}\nCaso:\n"
+                 f"{json.dumps(payload, ensure_ascii=False)}",
         )
         try:
             parsed = json.loads(content)
