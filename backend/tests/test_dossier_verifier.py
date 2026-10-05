@@ -59,6 +59,13 @@ def test_missing_explicit_claim_blocks_completed():
     assert decide_publication_status(report, has_useful_content=True) != "completed"
 
 
+def test_completed_requires_useful_content_not_just_passed_report():
+    """Núcleo vazio nunca é 'completed', mesmo com gate aprovado (AC-01)."""
+    report = VerificationReportV3(passed=True, errors=[])
+    assert decide_publication_status(report, has_useful_content=True) == "completed"
+    assert decide_publication_status(report, has_useful_content=False) == "failed"
+
+
 def test_empty_section_without_reason_blocks_publication():
     import pydantic
 

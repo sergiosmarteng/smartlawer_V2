@@ -207,7 +207,10 @@ def run_universal_pipeline(db: Session, *, run_id: UUID | str):
     )
     artifact = ArtifactContentV3.model_validate(composed.model_dump(mode="json"))
     report = verify_artifact_v3(artifact, module_requirements=[])
-    status = decide_publication_status(report, has_useful_content=True)
+    has_useful_content = bool(
+        artifact.claims or artifact.facts or artifact.evidence
+    )
+    status = decide_publication_status(report, has_useful_content=has_useful_content)
 
     run.stage = AnalysisRun.STAGE_PUBLICATION
     db.commit()

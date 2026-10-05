@@ -178,8 +178,12 @@ def verify_artifact_v3(artifact, *, module_requirements: list | None = None) -> 
 def decide_publication_status(
     report: VerificationReportV3, *, has_useful_content: bool = True
 ) -> str:
-    """``completed`` só com gate aprovado; parcial com conteúdo útil."""
-    if report.passed:
+    """``completed`` só com gate aprovado E conteúdo útil (AC-01).
+
+    Núcleo vazio nunca é ``completed``: sem conteúdo útil, o resultado é
+    ``failed`` mesmo com relatório aprovado (verdade vacuosa não publica).
+    """
+    if report.passed and has_useful_content:
         return STATUS_COMPLETED
     if has_useful_content:
         return STATUS_PARTIAL
