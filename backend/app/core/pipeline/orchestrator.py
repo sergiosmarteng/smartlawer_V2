@@ -23,6 +23,164 @@ def _load_run(db: Session, run_id: UUID | str) -> AnalysisRun | None:
     return db.query(AnalysisRun).filter(AnalysisRun.id == run_id).one_or_none()
 
 
+def _block_marker(block: dict) -> str:
+    uid = block.get("id", "")
+    page = block.get("page_number", 0)
+    text = block.get("normalized_text") or block.get("original_text") or ""
+    return f"[bloco {uid} p.{page}] {text}"
+
+
+def execute_real_stages(
+    db: Session,
+    *,
+    run,
+    struct_provider=None,
+    analysis_provider=None,
+    max_batch_tokens: int | None = None,
+    max_batches: int | None = None,
+) -> dict:
+    """Executa os estágios V3 sobre os blocos reais da revisão (W-2).
+
+    Lê ``SourceBlock`` da revisão mais recente, classifica, planeja
+    lotes, extrai por lote (falha isolada por lote), reconcilia,
+    analisa e monta fontes/coverage. Sem blocos retorna
+    ``{"empty": True, ...}`` para decisão honesta do chamador.
+    """
+    import dataclasses
+
+    from app.core.classification import classify_blocks
+    from app.core.coverage_planner import plan_revision_batches
+    from app.core.legal_research import research_issues
+    from app.core.reconciler import reconcile_extractions
+    from app.core.structured_extractor import extract_batch
+    from app.core.universal_legal_analyzer import (
+        UniversalAnalysisError,
+        analyze_universal_case,
+    )
+    from app.crud.extraction import (
+        latest_revision_for_document,
+        list_blocks_for_revision,
+    )
+
+    revision = latest_revision_for_document(
+        db, document_id=run.document_id, user_id=run.user_id
+    )
+    if revision is None:
+        return {"empty": True, "reason": "documento sem revisão extraída"}
+    rows = list_blocks_for_revision(
+        db, revision_id=revision.id, user_id=run.user_id
+    )
+    if not rows:
+        return {"empty": True, "reason": "revisão sem blocos extraídos"}
+
+    blocks = [{
+        "id": row.block_uid,
+        "revision_id": str(row.revision_id),
+        "page_number": row.page_number,
+        "normalized_text": row.normalized_text,
+        "original_text": row.original_text,
+        "block_type": row.block_type,
+    } for row in rows]
+
+    classification = classify_blocks([
+        {"normalized_text": b.get("normalized_text"),
+         "original_text": b.get("original_text")} for b in blocks
+    ])
+    plan = plan_revision_batches(
+        blocks, max_batch_tokens=max_batch_tokens, max_batches=max_batches)
+
+    if struct_provider is None:
+        from app.core.llm_providers import LlmStructuredProvider
+
+        struct_provider = LlmStructuredProvider()
+    if analysis_provider is None:
+        from app.core.llm_providers import LlmAnalysisProvider
+
+        analysis_provider = LlmAnalysisProvider()
+
+    by_id = {b["id"]: b for b in blocks}
+    extractions: list[dict] = []
+    failed_batches: list[dict] = []
+    for index, batch in enumerate(plan.get("batches", [])):
+        batch_blocks = [dict(by_id[bid]) for bid in batch.get("block_ids", []) if bid in by_id]
+        for b in batch_blocks:
+            marked = _block_marker(b)
+            b["normalized_text"] = marked
+            b["original_text"] = marked
+        try:
+            result = extract_batch(
+                {"batch_index": index, "block_ids": batch.get("block_ids", []),
+                 "blocks": batch_blocks},
+                provider=struct_provider,
+            )
+        except Exception as exc:
+            failed_batches.append({
+                "batch_index": index,
+                "code": getattr(exc, "code", type(exc).__name__),
+            })
+            continue
+        extractions.append(dataclasses.asdict(result))
+
+    reconciled = reconcile_extractions(extractions)
+    known = {b["id"] for b in blocks}
+    referenced: list[str] = []
+    for item in (reconciled.get("claims", []) + reconciled.get("facts", [])):
+        for ref in item.get("source_refs", []) or []:
+            if ref in known and ref not in referenced:
+                referenced.append(ref)
+    sources = [{
+        "id": ref,
+        "kind": "document",
+        "revision_id": str(revision.id),
+        "page_number": by_id[ref].get("page_number"),
+        "block_id": ref,
+        "quote": (by_id[ref].get("normalized_text") or "")[:500],
+        "verification_status": "unverified",
+    } for ref in referenced]
+
+    snapshot = dict(run.snapshot or {})
+    try:
+        analysis = analyze_universal_case(
+            {"facts": reconciled.get("facts", []),
+             "claims": reconciled.get("claims", []),
+             "evidence": reconciled.get("evidence", []),
+             "sources": [{"id": s["id"]} for s in sources]},
+            modules=[],
+            represented_side=snapshot.get("represented_side", "neutral"),
+            objective=snapshot.get("objective"),
+            reference_date=snapshot.get("reference_date"),
+            provider=analysis_provider,
+        )
+    except UniversalAnalysisError as exc:
+        analysis = {
+            "procedural_issues": [], "theses": [], "risks": [],
+            "actions": [], "questions": [],
+            "limitations": [{"code": exc.code, "message": str(exc)}],
+        }
+    research = research_issues([], sources=[], reference_date=snapshot.get("reference_date"))
+
+    pages = sorted({b.get("page_number", 0) for b in blocks})
+    coverage = {
+        "pages_total": revision.pages_total or (max(pages) if pages else 0),
+        "pages_extracted": revision.pages_total or (max(pages) if pages else 0),
+        "unprocessed_block_ids": list(plan.get("unprocessed_block_ids", [])),
+        "explicit_claims_found": len(reconciled.get("claims", [])),
+    }
+    return {
+        "empty": False,
+        "reconciled": reconciled,
+        "analysis": analysis,
+        "coverage": coverage,
+        "sources": sources,
+        "visuals": [],
+        "research": research,
+        "calculations": [],
+        "classification": classification,
+        "failed_batches": failed_batches,
+        "unprocessed_block_ids": list(plan.get("unprocessed_block_ids", [])),
+    }
+
+
 _MODULE_FLAGS = {
     "civil_procedure": "DOSSIER_MODULE_CIVIL_PROCEDURE",
     "family": "DOSSIER_MODULE_FAMILY",
@@ -64,18 +222,19 @@ def _module_registry():
     return registry
 
 
-def _run_modules(snapshot: dict, reconciled: dict, fixture: dict):
+def _run_modules(snapshot: dict, reconciled: dict, fixture: dict, classification=None):
     """Resolve, filtra por flag e executa módulos (Onda 1, spec §2 + §10)."""
     from app.core.classification import ClassificationResult
     from app.core.config import settings
     from app.core.module_runner import run_module_analyses
 
-    areas = list(snapshot.get("areas") or [])
-    if areas:
-        classification = ClassificationResult(
-            primary_area=areas[0], related_areas=areas[1:], source="model")
-    else:
-        classification = ClassificationResult(primary_area="general", source="fallback")
+    if classification is None:
+        areas = list(snapshot.get("areas") or [])
+        if areas:
+            classification = ClassificationResult(
+                primary_area=areas[0], related_areas=areas[1:], source="model")
+        else:
+            classification = ClassificationResult(primary_area="general", source="fallback")
     registry = _module_registry()
     enabled = {"universal"} | {
         module_id for module_id, flag in _MODULE_FLAGS.items()
@@ -177,30 +336,78 @@ def run_universal_pipeline(db: Session, *, run_id: UUID | str):
             return None
         finish_stage(db, stage_run=stage_run, metrics={"stage": resume})
 
-    reconciled = {
-        "claims": list(fixture.get("claims") or []),
-        "facts": list(fixture.get("facts") or []),
-        "controversies": [],
-        "evidence": list(fixture.get("evidence") or []),
-        "legal_references": list(fixture.get("legal_references") or []),
-    }
-    # Onda 1: módulos especializados atrás de flags individuais.
-    module_results, module_limitations, module_activations = _run_modules(
-        snapshot, reconciled, fixture
-    )
+    if fixture:
+        reconciled = {
+            "claims": list(fixture.get("claims") or []),
+            "facts": list(fixture.get("facts") or []),
+            "controversies": [],
+            "evidence": list(fixture.get("evidence") or []),
+            "legal_references": list(fixture.get("legal_references") or []),
+        }
+        # Onda 1: módulos especializados atrás de flags individuais.
+        module_results, module_limitations, module_activations = _run_modules(
+            snapshot, reconciled, fixture
+        )
+        analysis_base = {"procedural_issues": [], "theses": [], "risks": [],
+                         "actions": [], "questions": [],
+                         "limitations": list(module_limitations)}
+        coverage = dict(fixture.get("coverage") or {"pages_total": 1, "pages_extracted": 1})
+        visuals = list(fixture.get("visuals") or [])
+        sources = list(fixture.get("sources") or [])
+        research = {"results": [], "partial": False}
+        calculations = []
+    else:
+        # W-2: caminho real — estágios sobre os blocos da revisão.
+        from app.core.ai_engine import ProviderUnavailableError
+        from app.crud.run import transition_run
+
+        try:
+            real = execute_real_stages(db, run=run)
+        except ProviderUnavailableError as exc:
+            transition_run(
+                db, run=run, status=AnalysisRun.FAILED,
+                stage=AnalysisRun.STAGE_COMPOSITION,
+                error_code="PROVIDER_UNAVAILABLE", error_message=str(exc),
+            )
+            return None
+        if real.get("empty"):
+            transition_run(
+                db, run=run, status=AnalysisRun.FAILED,
+                stage=AnalysisRun.STAGE_EXTRACTION,
+                error_code="EMPTY_EXTRACTION",
+                error_message=real.get("reason", "sem conteúdo extraído"),
+            )
+            return None
+        reconciled = real["reconciled"]
+        real_analysis = real["analysis"]
+        module_results, module_limitations, module_activations = _run_modules(
+            snapshot, reconciled, {},
+            classification=real["classification"],
+        )
+        analysis_base = {
+            "procedural_issues": real_analysis.get("procedural_issues", []),
+            "theses": real_analysis.get("theses", []),
+            "risks": real_analysis.get("risks", []),
+            "actions": real_analysis.get("actions", []),
+            "questions": real_analysis.get("questions", []),
+            "limitations": list(real_analysis.get("limitations", [])) + list(module_limitations),
+        }
+        coverage = real["coverage"]
+        visuals = real["visuals"]
+        sources = real["sources"]
+        research = real["research"]
+        calculations = real["calculations"]
     composed = compose_artifact(
         CompositionInputs(
             run_id=str(run.id),
             case_id=str(run.case_id) if run.case_id else None,
-            coverage=dict(fixture.get("coverage") or {"pages_total": 1, "pages_extracted": 1}),
+            coverage=coverage,
             reconciled=reconciled,
-            analysis={"procedural_issues": [], "theses": [], "risks": [],
-                      "actions": [], "questions": [],
-                      "limitations": list(module_limitations)},
-            research={"results": [], "partial": False},
-            calculations=[],
-            visuals=list(fixture.get("visuals") or []),
-            sources=list(fixture.get("sources") or []),
+            analysis=analysis_base,
+            research=research,
+            calculations=calculations,
+            visuals=visuals,
+            sources=sources,
             module_activations=module_activations,
             module_results=module_results,
         )
