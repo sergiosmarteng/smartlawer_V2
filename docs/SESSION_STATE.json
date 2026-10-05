@@ -2,18 +2,17 @@
   "project": "SmartLawer_V2",
   "project_path": "C:/Users/sergi/OneDrive - SSA Soluções Tecnologicas/SSA Solucoes Tecnologicas/Projetos prototipos/SmartLawer_V2",
   "last_updated": "2026-10-04",
-  "status": "Release 0.3.0 (tag v0.3.0): Onda 2 completa e verificada - 2A (contracts+corporate) + 2B (tax+administrative+real_estate + regressoes cruzadas). HEAD 3cbaca2, 387 pytest, gates verdes. Todas as 10 flags de modulo off por padrao. Proximo: rotacao PAT (seguranca pre-piloto) + migrations/smoke VPS (in loco), piloto + gates juridicos, depois Onda 3.",
+  "status": "Release 0.3.0 (tag v0.3.0): Onda 2 completa e verificada - 2A (contracts+corporate) + 2B (tax+administrative+real_estate + regressoes cruzadas). HEAD d659778, 387 pytest, gates verdes (27 testes 2B re-executados verdes neste checkpoint). Todas as 10 flags de modulo off por padrao. Proximo: rotacao PAT + migrations/smoke VPS in loco + gates juridicos + shadow runs/piloto 50, depois Onda 3.",
   "next_steps": [
-    "Operador roda PAT rotation conforme docs/runbooks/rotacao-pat-2026-10-02.md (VPS -> SSH deploy key; dev -> fine-grained PAT); conferir remote https schinasergio (auth falhou com 'Invalid username or token')",
-    "Aplicar migrations na VPS (head 20261002_0013; Onda 1 e 2A sem migration nova) com backup pg_dump antes",
+    "PAT rotacionado em 2026-10-04 (chaves smartlawer_smarteng2_V2/schinasergio2_V2 validas; origin fetch OK em d659778); pendente: deploy key read-only da VPS + purga BFG opcional",
+    "Aplicar migrations na VPS (head 20261002_0013; Onda 1, 2A e 2B sem migration nova) com backup pg_dump antes",
     "Operador roda smoke pos-deploy em VPS conforme docs/operacao/smoke-pos-deploy-2026-10-02.md (12 blocos A-K)",
-    "Implementar Onda 2B (tax + administrative + real_estate) conforme docs/superpowers/plans/2026-10-03-dossie-onda-2b-tax-administrative-real-estate.md - teste falhando primeiro, flags off por padrao, reusar normative_source + envelope/registry",
+    "Gate juridico humano por modulo da Onda 2: 2 revisores da area sobre o corpus (spec §9), sem inferir % de exito (ordem sugerida contracts -> corporate -> tax -> administrative -> real_estate)",
     "Shadow runs V3 + piloto 50 execucoes; habilitar DOSSIER_MODULE_<ID> um por vez apos gate proprio",
-    "Gate juridico por modulo: 2 revisores da area sobre o corpus (spec §9), sem inferir % de exito",
     "Apos piloto Go + gates juridicos da Onda 2: planejar Onda 3"
   ],
   "blockers": [
-    "PAT do GitHub exposto em 78c3e36 ainda sem rotacao - bloqueador de seguranca pre-piloto; remote https schinasergio rejeita auth (token invalido)",
+    "Deploy key read-only da VPS ainda pendente + purga BFG opcional (PAT dev rotacionado em 2026-10-04; pre-piloto parcial)",
     "VPS nao acessivel desta estacao (Windows) - smoke e deploy precisam ser rodados in loco",
     "E2E playwright nao executado aqui (sem browsers/ambiente de teste)",
     "Gate juridico humano por modulo pendente (2 revisores por area, processo fora da maquina)"
@@ -22,7 +21,7 @@
     "Landing nao promete percentuais de produtividade nem cobertura integral de jurisprudencia",
     "Rollback/ativacao somente via docker compose -f docker-compose.prod.yml com --no-deps",
     "Auditoria 100% + HITL: ai_draft/requires_human_review; proibicao de protocolo automatico (CONSTITUTION)",
-    ".env nunca versionado; PAT do GitHub ainda pendente de rotacao",
+    ".env nunca versionado; PAT dev rotacionado em 2026-10-04 (deploy key VPS pendente)",
     "Testes do pipeline devem rodar com Celery real E stub (helpers .func/.run)",
     "Sem chave de IA, analises falham alto (PROVIDER_UNAVAILABLE) - comportamento correto",
     "Nao anunciar 'analise completa': piloto ainda pendente",
@@ -37,7 +36,11 @@
     "Onda 2: vinculo juridico nunca afirmado por coocorrencia de nomes; clausula sem assinatura/versao nunca tratada como aceita",
     "Onda 2: calculos so com clausula vigente, base, indice, termo e periodo; IA sugere regra cadastrada, nunca numero final livre",
     "Onda 2: falha de um modulo vira blocked + limitacao - nunca impede o dossie universal nem o outro modulo do par",
-    "Onda 2A e par coeso: entidades/fatos/pedidos/fontes compartilhados por IDs estaveis; modulo primario nao absorve o outro"
+    "Onda 2A e par coeso: entidades/fatos/pedidos/fontes compartilhados por IDs estaveis; modulo primario nao absorve o outro",
+    "Onda 2B: fonte local ausente -> limitacao + pergunta ao advogado, nunca regra federal aproximada (§8)",
+    "Onda 2B: reforma tributaria exige tabela de vigencia/efeitos por tributo e periodo; texto consolidado atual nunca substitui regra do fato pretérito (§5)",
+    "Onda 2B: competencia do ente, jurisdicao e data explicitas antes de qualquer regra (§9.3)",
+    "Onda 2B: noticia/denuncia/relatorio preliminar != sancao final (§6); matricula antiga != titularidade atual, exige certidao atual (§7)"
   ],
   "deliverables_onda1": [
     "fundacao: module_results + ModuleResult/IssueAssessment + runner + 5 flags + registry enabled + composer fill",
@@ -55,28 +58,37 @@
     "integracao par: backend/app/core/pipeline/orchestrator.py + backend/app/core/pipeline/contracts.py + backend/tests/test_onda2a_integration.py atras de DOSSIER_MODULE_CONTRACTS/CORPORATE - commit eb8001b",
     "estado: HEAD 71cc811 (docs), 5 commits 2A, 360 pytest verdes, sem migration nova"
   ],
+  "deliverables_onda2b": [
+    "foundation 2B: backend/app/core/classification.py (areas administrative + real_estate, tax estendida ICMS/ISS/IPTU/ITBI/IRPJ/PIS/COFINS/reforma) + flags DOSSIER_MODULE_TAX/ADMINISTRATIVE/REAL_ESTATE=False + backend/tests/test_onda2b_foundation.py - commit 22ea805",
+    "tax@1.0.0: backend/app/modules/tax/module.py + checklist.py + backend/evals/tax_cases.json + backend/tests/test_tax_module.py (competencia datada; reforma exige tabela de vigencia/efeitos em effective_from/effective_to; aliquota de outro ente recusada; prescricao/decadencia sem marco -> blocked) - commit b0d8066",
+    "administrative@1.0.0: backend/app/modules/administrative/module.py + checklist.py + backend/evals/administrative_cases.json + backend/tests/test_administrative_module.py (noticia/denuncia/preliminar != sancao final; Lei 14.133 so com regime verificado) - commit 6e69650",
+    "real_estate@1.0.0: backend/app/modules/real_estate/module.py + checklist.py + backend/evals/real_estate_cases.json + backend/tests/test_real_estate_module.py (matricula antiga != titularidade atual; posse x dominio x obrigacional; area nunca corrigida pela imagem) - commit d065992",
+    "integracao 2B: backend/app/core/pipeline/orchestrator.py (_MODULE_FLAGS + registry +3) + backend/tests/test_onda2_regressions.py (contracts+tax e corporate+real_estate sem duplicacao, §9) + src/components/dossier/sections/sections.tsx (ModuleResultsCards) + src/components/dossier/__tests__/DossierPage.test.tsx - commit d585691",
+    "release: bump 0.3.0 (3cbaca2) + tag v0.3.0 + docs/SESSION_STATE.json (d659778) = HEAD; 7 commits 2B, 387 pytest, sem migration nova (head alembic 20261002_0013)"
+  ],
   "deliverables_onda2_planos": [
     "docs/superpowers/plans/2026-10-03-dossie-onda-2a-contracts-corporate.md (180 linhas, commit c612c67)",
     "docs/superpowers/plans/2026-10-03-dossie-onda-2b-tax-administrative-real-estate.md (176 linhas, commit c612c67)",
     "Spec de referencia: docs/superpowers/specs/2026-10-02-dossie-onda-2-design.md"
   ],
   "verification": {
-    "pytest": "360 passed",
-    "run_gate_default": "GATE PASSED",
-    "run_gate_universal": "UNIVERSAL GATE PASSED (5 cases)",
-    "module_corpora_gates": "45 cases passed (7 por modulo x 5 modulos Onda 1 + 2 da Onda 2A)",
-    "vitest": "19 passed (3 files)",
-    "eslint": "clean",
-    "tsc": "clean",
-    "next_build": "OK",
+    "pytest_2B_suite": "27 passed em 15.46s (test_onda2b_foundation + tax + administrative + real_estate + regressoes) - re-executado neste checkpoint 2026-10-04",
+    "pytest_total": "387 coletados em backend/tests; release 0.3.0 registrou '387 pytest, gates verdes'",
+    "run_gate_universal": "UNIVERSAL GATE PASSED (release 0.3.0)",
+    "module_corpora_gates": "corpus da Onda 2 (2A + 2B) no universal_gate (release 0.3.0)",
+    "vitest": "19 passed (3 files) - registrado no checkpoint 2A",
+    "eslint": "clean - registrado no checkpoint 2A",
+    "tsc": "clean - registrado no checkpoint 2A",
+    "next_build": "OK - registrado no checkpoint 2A",
     "e2e": "nao executado (sem browsers/ambiente de teste)"
   },
   "git_state": {
     "origin": "git@github-smarteng:sergiosmarteng/smartlawer_V2.git",
-    "head": "71cc811",
-    "ahead_behind": "nao verificado desta estacao (ultimo conhecido: 0 0)",
+    "head": "d659778",
+    "tag": "v0.3.0",
+    "ahead_behind": "nao verificado desta estacao",
     "migrations_head": "20261002_0013",
     "extra_remote": "schinasergio (https, read-only) - auth falhou com 'Invalid username or token' na checagem de 2026-10-04"
   },
-  "resume_prompt_file": ".opencode/sessions/2026-10-04-onda-2a-implementada.md"
+  "resume_prompt_file": ".opencode/sessions/2026-10-04-onda-2b-implementada.md"
 }
