@@ -8,6 +8,7 @@ documento ou chave no erro.
 
 import hashlib
 import json
+import logging
 import uuid
 from datetime import datetime, timezone
 
@@ -18,6 +19,9 @@ from app.api import deps
 from app.core.pipeline.contracts import PIPELINE_STAGES, calculate_progress
 from app.crud import run as run_crud
 from app.crud.document import get_document_for_user
+from app.tasks.document_tasks import process_run_task
+
+logger = logging.getLogger(__name__)
 from app.models.analysis_artifact import AnalysisArtifact
 from app.models.analysis_run import AnalysisRun
 from app.models.source_reference import SourceReference
@@ -323,6 +327,12 @@ def reanalyze(
         idempotency_key=f"reanalyze:{artifact.id}:{uuid.uuid4().hex[:8]}",
         snapshot={**snapshot, "reanalysis_of": str(artifact.id)},
     )
+    try:
+        process_run_task.delay(str(new_run.id))
+    except Exception as exc:
+        logger.warning(
+            "Fila indisponível para run %s (%s); seguirá queued.", new_run.id, exc
+        )
     return CreateRunResponse(
         run_id=new_run.id,
         status_url=f"/api/v2/analysis-runs/{new_run.id}",

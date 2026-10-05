@@ -62,6 +62,56 @@ def get_run(db, run_id):
     return db.query(AnalysisRun).filter(AnalysisRun.id == run_id).one_or_none()
 
 
+@celery_app.task(bind=True, max_retries=3)
+def process_run_task(self, run_id: str):
+    """Processa uma run existente pelo pipeline V3 (W-3, despacho do reanalyze).
+
+    Cancelada ou já publicada: retorna sem tocar em nada (sem trabalho
+    tardio nem duplicado). Pipeline sem artefato + run FAILED: documento
+    vai a ERROR com mensagem acionável. Original preservado: reanálises
+    sempre criam run/artefato novos, nunca sobrescrevem.
+    """
+    from app.core.pipeline.orchestrator import run_universal_pipeline
+
+    db = SessionLocal()
+    try:
+        run = get_run(db, run_id)
+        if run is None:
+            logger.warning("Run %s inexistente; nada a processar.", run_id)
+            return None
+        if run.status == AnalysisRun.CANCELLED or run.published_artifact_id is not None:
+            return None
+        document_id = run.document_id
+        if document_id is not None:
+            update_document_state(
+                db, id=document_id, status=Document.STATUS_PROCESSING,
+                status_detail="Reprocessing analysis", error_message=None,
+            )
+        artifact = run_universal_pipeline(db, run_id=run.id)
+        if artifact is None:
+            fresh = get_run(db, run.id)
+            if (
+                fresh is not None
+                and fresh.status == AnalysisRun.FAILED
+                and fresh.document_id is not None
+            ):
+                update_document_state(
+                    db, id=fresh.document_id, status=Document.STATUS_ERROR,
+                    status_detail="Analysis failed; see run for details",
+                    error_message=fresh.error_message or "Falha no pipeline V3.",
+                )
+            return None
+        if document_id is not None:
+            update_document_state(
+                db, id=document_id, status=Document.STATUS_COMPLETED,
+                status_detail="Analysis ready", error_message=None,
+                completed_at=datetime.now(timezone.utc),
+            )
+        return artifact
+    finally:
+        db.close()
+
+
 def prepare_analysis_input(document_id: str, file_path: str, raw_text: str) -> str:
     """Return the text the AI should analyze, persisting extraction outputs.
 
