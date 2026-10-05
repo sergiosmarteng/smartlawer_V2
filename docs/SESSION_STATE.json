@@ -2,7 +2,7 @@
   "project": "SmartLawer_V2",
   "project_path": "C:/Users/sergi/OneDrive - SSA Soluções Tecnologicas/SSA Solucoes Tecnologicas/Projetos prototipos/SmartLawer_V2",
   "last_updated": "2026-10-04",
-  "status": "Release 0.3.0 (tag v0.3.0): Onda 2 completa e verificada - 2A (contracts+corporate) + 2B (tax+administrative+real_estate + regressoes cruzadas). HEAD d659778, 387 pytest, gates verdes (27 testes 2B re-executados verdes neste checkpoint). Todas as 10 flags de modulo off por padrao. Proximo: rotacao PAT + migrations/smoke VPS in loco + gates juridicos + shadow runs/piloto 50, depois Onda 3.",
+  "status": "Smoke VPS 2026-10-05: deploy 4192fa0 em prod (0.3.0, alembic 20261002_0013, V3 flag ON, site 200). Smoke NAO-GO p/ piloto: bloco E FAIL - pipeline V3 em producao desconectado (orquestrador compoe so de fixtures de teste; stages reais nunca executam) -> todo doc real sai failed-vazio (honesto, pos-fix AC-01 4192fa0). Gaps: reanalyze nunca despacha (runs presas em queued); reprocessar doc completed nao gera nova run. Banco integro (18/10/7). PAT vivo em docs/CLAUDE.md:87 exige revoke urgente. Proximo: engenharia do wiring V3 prod + revoke PAT + mover backup .dump p/ fora do repo.",
   "next_steps": [
     "PAT rotacionado em 2026-10-04 (chaves smartlawer_smarteng2_V2/schinasergio2_V2 validas; origin fetch OK em d659778); pendente: deploy key read-only da VPS + purga BFG opcional",
     "Aplicar migrations na VPS (head 20261002_0013; Onda 1, 2A e 2B sem migration nova) com backup pg_dump antes",
@@ -12,8 +12,10 @@
     "Apos piloto Go + gates juridicos da Onda 2: planejar Onda 3"
   ],
   "blockers": [
-    "Deploy key read-only da VPS ainda pendente + purga BFG opcional (PAT dev rotacionado em 2026-10-04; pre-piloto parcial)",
-    "VPS nao acessivel desta estacao (Windows) - smoke e deploy precisam ser rodados in loco",
+    "SMOKE NAO-GO: wiring V3 prod ausente - orquestrador so compoe de fixtures; todo doc real -> failed-vazio (requer task de engenharia)",
+    "Reanalyze nunca despacha trabalho (runs presas em queued); reprocessar doc completed nao cria nova run",
+    "PAT vivo em docs/CLAUDE.md:87 - REVOGAR urgente no GitHub + limpar do arquivo",
+    "Backup backup_before_v030_2026-10-05.dump dentro de /opt/smartlawer (untracked) - mover p/ ~/backups",
     "E2E playwright nao executado aqui (sem browsers/ambiente de teste)",
     "Gate juridico humano por modulo pendente (2 revisores por area, processo fora da maquina)"
   ],
