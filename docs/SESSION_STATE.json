@@ -2,7 +2,7 @@
   "project": "SmartLawer_V2",
   "project_path": "C:/Users/sergi/OneDrive - SSA Soluções Tecnologicas/SSA Solucoes Tecnologicas/Projetos prototipos/SmartLawer_V2",
   "last_updated": "2026-10-06",
-  "status": "Fix frontend useDossier em prod (c5ad2a0): routeId=documento com 404 agora cai para resolucao via runs; dossiê 3.0 do doc d8d882bc abre. Suite vitest 21 passed. Proximo: validacao do usuario no navegador (com hard refresh) + piloto 50 + gates juridicos + Onda 3.",
+  "status": "Fix useDossier v2 em prod (bf75057): fallback via runs usa routeId quando sem ?document_id=; cobre URL com e sem query. Suite vitest 22 passed. Proximo: validacao do usuario no navegador + piloto 50 + gates juridicos + Onda 3.",
   "next_steps": [
     "Recrutar/acionar revisores e iniciar piloto 50 execucoes com o pacote pronto (docs/operacao/pacote-revisor.md + protocolo-holdout.md + rubrica-piloto-v1.md + backend/evals/pilot_metrics.py)",
     "Operador in loco na VPS: backup pg_dump antes; conferir migrations (head 20261002_0013; wiring e piloto sem migration nova); rodar smoke formal pos-deploy blocos A-K (docs/operacao/smoke-pos-deploy-2026-10-02.md)",
