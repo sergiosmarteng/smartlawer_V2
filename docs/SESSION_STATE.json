@@ -1,10 +1,10 @@
 {
   "project": "SmartLawer_V2",
   "project_path": "C:/Users/sergi/OneDrive - SSA Soluções Tecnologicas/SSA Solucoes Tecnologicas/Projetos prototipos/SmartLawer_V2",
-  "last_updated": "2026-10-04",
+  "last_updated": "2026-10-06",
   "status": "Smoke VPS 2026-10-05: GO P/ PILOTO (nucleo V3). Wiring W-1/W-2/W-3 em prod (5785539): peticao real 35p -> artefato 3.0 completed com 14 secoes, 2 claims, 4 fatos, 19 fontes, 4 teses. Reanalyze despacha de verdade. Banco integro; docs de smoke removidos. PAT vivo em docs/CLAUDE.md:87 exige revoke urgente. Proximo: piloto 50 + gates juridicos + Onda 3.",
   "next_steps": [
-    "PAT rotacionado em 2026-10-04 (chaves smartlawer_smarteng2_V2/schinasergio2_V2 validas; origin fetch OK em d659778); pendente: deploy key read-only da VPS + purga BFG opcional",
+    "PURGA BFG do PAT (aguardando confirmacao explicita p/ force-push) + reset --hard na VPS; pacote piloto pronto p/ recrutar revisores",
     "Aplicar migrations na VPS (head 20261002_0013; Onda 1, 2A e 2B sem migration nova) com backup pg_dump antes",
     "Operador roda smoke pos-deploy em VPS conforme docs/operacao/smoke-pos-deploy-2026-10-02.md (12 blocos A-K)",
     "Gate juridico humano por modulo da Onda 2: 2 revisores da area sobre o corpus (spec §9), sem inferir % de exito (ordem sugerida contracts -> corporate -> tax -> administrative -> real_estate)",
@@ -13,8 +13,8 @@
   ],
   "blockers": [
     "Calibragem pendente: 2 claims extraidos vs 11 do legado na mesma peca (recall de extracao a medir no piloto)",
-    "PAT vivo em docs/CLAUDE.md:87 - REVOGAR urgente no GitHub + limpar do arquivo",
-    "Backup backup_before_v030_2026-10-05.dump dentro de /opt/smartlawer (untracked) - mover p/ ~/backups",
+    "Purga BFG pendente de confirmacao explicita (force-push irreversivel p/ clones alheios)",
+    "PAT em docs/CLAUDE.md:87 ja revogado no GitHub e removido do arquivo (commit caf9300); BFG remove do historico",
     "E2E playwright nao executado aqui (sem browsers/ambiente de teste)",
     "Gate juridico humano por modulo pendente (2 revisores por area, processo fora da maquina)"
   ],
@@ -91,5 +91,10 @@
     "migrations_head": "20261002_0013",
     "extra_remote": "schinasergio (https, read-only) - auth falhou com 'Invalid username or token' na checagem de 2026-10-04"
   },
-  "resume_prompt_file": ".opencode/sessions/2026-10-04-onda-2b-implementada.md"
+  "deliverables_piloto": [
+    "rubrica congelada v1: docs/operacao/rubrica-piloto-v1.md + backend/evals/rubric_pilot_v1.toml (tomllib stdlib, sem dependencia nova)",
+    "protocolo holdout + pacote do revisor: docs/operacao/protocolo-holdout.md + docs/operacao/pacote-revisor.md",
+    "agregador: backend/evals/pilot_metrics.py + backend/tests/test_pilot_metrics.py (Go/non-go contra thresholds do TOML)"
+  ],
+  "resume_prompt_file": ".opencode/sessions/2026-10-06-piloto-purga.md"
 }
