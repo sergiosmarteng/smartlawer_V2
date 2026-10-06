@@ -1,0 +1,53 @@
+# Rubrica congelada do piloto — v1 (imutável até D+14).
+# Fonte normativa: docs/operacao/piloto-50-execucoes-2026-10-02.md §7-§8.
+# Lida com tomllib (stdlib); sem dependência nova.
+
+version = "v1"
+frozen = true
+frozen_at = "2026-10-06"
+scale_min = 1
+scale_max = 5
+
+[dimensions.visao_geral]
+utilidade = "1=inútil, 5=substitui leitura do PDF"
+precisao_factual = "fatos corretos e conferíveis"
+cobertura = "cobertura do caso"
+limitacoes_explicitas = "bool: há declaração honesta de lacuna"
+
+[dimensions.pedidos]
+completude = "% dos pedidos representados"
+fontes_resolvidas = "quão fácil abrir a fonte"
+valores_extraidos = "valores presentes e corretos"
+
+[dimensions.provas]
+identificacao = "provas identificadas"
+matriz_pedido_x_prova = "1=ausente, 5=matriz completa"
+
+[dimensions.direito]
+pertinencia = "normas pertinentes ao caso"
+verificacao = "vigência e verificação"
+
+[dimensions.calculos]
+corretude = "números corretos"
+reproducao = "rodar de novo = mesmo número"
+erro_grave = "bool: erro grave de cálculo (AC-08)"
+
+[dimensions.estrategia_acoes]
+utilidade = "plano acionável"
+cobertura_risco = "riscos cobertos"
+
+[dimensions.revisao]
+facilidade_correcao = "corrigir é simples"
+historico_versoes = "versões preservadas"
+
+[thresholds.go]
+utilidade_media_min = 3.5
+afirmacao_sem_fonte_max_pct = 10
+erro_calculo_grave_max_pct = 5
+incidentes_privacidade_max = 0
+
+[thresholds.nongo]
+utilidade_media_max = 2.5
+afirmacao_sem_fonte_min_pct = 10
+tese_inventada_min_pct = 1
+custo_mult_max = 2.0
