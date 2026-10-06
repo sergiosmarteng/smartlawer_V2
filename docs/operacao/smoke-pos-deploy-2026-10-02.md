@@ -25,7 +25,7 @@ cd /opt/smartlawer
 Pré-condições (todas devem estar **PASS** antes de iniciar):
 
 - [ ] VPS acessível sem PAT (`ssh -T git@github.com` na VPS retorna saudação de sucesso).
-- [ ] Tag `v0.2.0` no submódulo `origin/main`.
+- [ ] Tag `v0.3.0` em `origin/main`.
 - [ ] Sem segredos em scripts de deploy: `grep -rnE 'ghp_|github_pat_|https://[^:]+:[^@]+@github' /opt/smartlawer/scripts/` → **vazio**.
 - [ ] Sem `coerce_legacy_analysis()` em caminho de produção (`grep -rn 'coerce_legacy_analysis' backend/app/tasks/ backend/app/core/pipeline/` → apenas imports legados para leitura, não produção).
 
@@ -41,7 +41,7 @@ docker compose -f docker-compose.prod.yml ps --format json | jq -r '.[] | "\(.Na
 
 | Esperado | Resultado |
 |---|---|
-| `smartlawer-backend` `running` `healthy` | `<…>` |
+| `smartlawer-api` `running` `healthy` | `<…>` |
 | `smartlawer-worker` `running` `healthy` | `<…>` |
 | `smartlawer-frontend` `running` `n/a` | `<…>` |
 | `smartlawer-db` `running` `healthy` | `<…>` |
@@ -52,30 +52,30 @@ docker compose -f docker-compose.prod.yml ps --format json | jq -r '.[] | "\(.Na
 ### Bloco B — Versão, migração e tag
 
 ```bash
-# Versão do backend
-docker compose -f docker-compose.prod.yml exec -T backend \
-  python -c 'from app import __version__; print(__version__)'
-# Esperado: 0.2.0
+# Versão do backend (o pacote não expõe `__version__`; conferir via git + API)
+git -C /opt/smartlawer rev-parse --short HEAD
+curl -sS -o /dev/null -w "%{http_code}\n" https://smartlawer.com.br/
+# Esperado: hash do main atual; site 200
 
 # HEAD do submódulo
-docker compose -f docker-compose.prod.yml exec -T backend \
+docker compose -f docker-compose.prod.yml exec -T api \
   git -C /opt/smartlawer rev-parse --short HEAD
-# Esperado: hash que começa com 8b3ab0e (merge release 0.2.0) ou mais novo
+# Esperado: hash do main atual (igual ao `git rev-parse --short HEAD` local)
 
 # Migração
-docker compose -f docker-compose.prod.yml exec -T backend alembic current
-# Esperado: 20260925_0010 (head)
+docker compose -f docker-compose.prod.yml exec -T api alembic current
+# Esperado: 20261002_0013 (head)
 
 # Sem drift
-docker compose -f docker-compose.prod.yml exec -T backend alembic heads --verbose
+docker compose -f docker-compose.prod.yml exec -T api alembic heads --verbose
 # Esperado: 1 head, sem "(head) para migrations" extras
 ```
 
 | Esperado | Resultado |
 |---|---|
-| `0.2.0` | `<…>` |
-| HEAD em release 0.2.0+ | `<…>` |
-| alembic current = `20260925_0010 (head)` | `<…>` |
+| `0.3.0` | `<…>` |
+| HEAD em main atual | `<…>` |
+| alembic current = `20261002_0013 (head)` | `<…>` |
 | Sem drift de head | `<…>` |
 
 **Pass / Fail:** `<…>` | **Evidência:** `<…>`
@@ -83,11 +83,11 @@ docker compose -f docker-compose.prod.yml exec -T backend alembic heads --verbos
 ### Bloco C — Variáveis de ambiente (chaves IA, modelos, Docling)
 
 ```bash
-docker compose -f docker-compose.prod.yml exec -T backend \
+docker compose -f docker-compose.prod.yml exec -T api \
   sh -c 'env | grep -E "^(OPENAI|GEMINI|OPENROUTER|ANTHROPIC)_API_KEY=" | sed "s/=.*/=<REDACTED>/"'
 # Esperado: >=1 chave não vazia
 
-docker compose -f docker-compose.prod.yml exec -T backend \
+docker compose -f docker-compose.prod.yml exec -T api \
   sh -c 'env | grep -E "^(CHAT_MODEL|DOCLING_ENABLED|AI_PROVIDER|MAX_RUN_TOKENS|MAX_RUN_USD)"'
 # Esperado: CHAT_MODEL=gemini-3.8-flash; DOCLING_ENABLED=true; AI_PROVIDER conforme chave
 ```
@@ -105,7 +105,7 @@ docker compose -f docker-compose.prod.yml exec -T backend \
 
 ```bash
 # 1. Listar artefatos legados (schema 2.0) ainda legíveis
-docker compose -f docker-compose.prod.yml exec -T backend python <<'PY'
+docker compose -f docker-compose.prod.yml exec -T api python <<'PY'
 from app.core.schemas_v2 import coerce_legacy_analysis  # leitura
 print("coerce_legacy_analysis disponível para leitura:", coerce_legacy_analysis is not None)
 
@@ -115,12 +115,12 @@ print("artefatos legados 2.0:", legados)
 PY
 
 # 2. Garantir que coerce_legacy_analysis NÃO está em produção
-docker compose -f docker-compose.prod.yml exec -T backend \
-  grep -rn 'coerce_legacy_analysis' /opt/smartlawer/backend/app/tasks/ 2>/dev/null || echo "OK: não referenciado em tasks"
+docker compose -f docker-compose.prod.yml exec -T api \
+  grep -rn 'coerce_legacy_analysis' /app/app/tasks/ 2>/dev/null || echo "OK: não referenciado em tasks"
 # Esperado: "OK: não referenciado em tasks"
 
-docker compose -f docker-compose.prod.yml exec -T backend \
-  grep -rn 'coerce_legacy_analysis' /opt/smartlawer/backend/app/core/pipeline/ 2>/dev/null || echo "OK: não no pipeline V3"
+docker compose -f docker-compose.prod.yml exec -T api \
+  grep -rn 'coerce_legacy_analysis' /app/app/core/pipeline/ 2>/dev/null || echo "OK: não no pipeline V3"
 # Esperado: "OK: não no pipeline V3"
 ```
 
@@ -136,26 +136,35 @@ docker compose -f docker-compose.prod.yml exec -T backend \
 
 ```bash
 # 1. Pegar um documento real já analisado em prod (NÃO criar novo agora — usar existente)
-DOC_ID=$(docker compose -f docker-compose.prod.yml exec -T backend python <<'PY'
+# O artefato liga-se ao documento via run -> document_id (sem join direto)
+DOC_ID=$(docker compose -f docker-compose.prod.yml exec -T api python <<'PY'
 from app.models.analysis_artifact import AnalysisArtifact
-from app.models.document import Document
-from app.db.session import SessionLocal
+from app.models.analysis_run import AnalysisRun
+from app.core.database import SessionLocal
 db = SessionLocal()
-art = db.query(AnalysisArtifact).join(Document).filter(
+arts = db.query(AnalysisArtifact).filter(
     AnalysisArtifact.schema_version == "3.0",
     AnalysisArtifact.status.in_(["completed", "partial"]),
-).order_by(AnalysisArtifact.created_at.desc()).first()
-print(art.document_id if art else "")
+).order_by(AnalysisArtifact.created_at.desc()).all()
+doc_id = ""
+for art in arts:
+    run = db.query(AnalysisRun).filter(AnalysisRun.id == art.run_id).first()
+    if run is not None and run.document_id:
+        doc_id = run.document_id
+        break
+print(doc_id)
 PY
 )
 echo "DOC_ID=$DOC_ID"
 
 # 2. Conferir que schema_version=3.0 e SectionStates presentes
-docker compose -f docker-compose.prod.yml exec -T backend python <<PY
+docker compose -f docker-compose.prod.yml exec -T api python <<PY
 from app.models.analysis_artifact import AnalysisArtifact
-from app.db.session import SessionLocal
+from app.models.analysis_run import AnalysisRun
+from app.core.database import SessionLocal
 db = SessionLocal()
-art = db.query(AnalysisArtifact).filter(AnalysisArtifact.document_id == "$DOC_ID").order_by(AnalysisArtifact.created_at.desc()).first()
+run = db.query(AnalysisRun).filter(AnalysisRun.document_id == "$DOC_ID").order_by(AnalysisRun.created_at.desc()).first()
+art = db.query(AnalysisArtifact).filter(AnalysisArtifact.run_id == run.id).first() if run else None
 content = art.content if art else None
 print("schema_version:", content.get("schema_version") if content else None)
 print("section_states:", len(content.get("section_states", {})) if content else 0)
@@ -178,11 +187,13 @@ PY
 
 ```bash
 # Pegar um source_id do artefato acima
-docker compose -f docker-compose.prod.yml exec -T backend python <<PY
+docker compose -f docker-compose.prod.yml exec -T api python <<PY
 from app.models.analysis_artifact import AnalysisArtifact
-from app.db.session import SessionLocal
+from app.models.analysis_run import AnalysisRun
+from app.core.database import SessionLocal
 db = SessionLocal()
-art = db.query(AnalysisArtifact).filter(AnalysisArtifact.document_id == "$DOC_ID").order_by(AnalysisArtifact.created_at.desc()).first()
+run = db.query(AnalysisRun).filter(AnalysisRun.document_id == "$DOC_ID").order_by(AnalysisRun.created_at.desc()).first()
+art = db.query(AnalysisArtifact).filter(AnalysisArtifact.run_id == run.id).first() if run else None
 content = art.content if art else {}
 sources = content.get("sources", []) if content else []
 print("n_sources:", len(sources))
@@ -190,14 +201,25 @@ print("sample_source:", sources[0] if sources else None)
 PY
 # Esperado: n_sources >= 1; cada source tem document_id + revision_id + (page number | region)
 
-# Tentar resolver uma fonte via API
-ART_ID=$(curl -fsS -b /tmp/cookies.txt "https://smartlawer.com.br/api/v2/analyses?document_id=$DOC_ID" | jq -r '.[0].artifact_id')
-SOURCE_ID=$(docker compose -f docker-compose.prod.yml exec -T backend python <<PY
+# Tentar resolver uma fonte via API (ART_ID via DB, sem endpoint de listagem)
+ART_ID=$(docker compose -f docker-compose.prod.yml exec -T api python <<PY
 from app.models.analysis_artifact import AnalysisArtifact
-from app.db.session import SessionLocal
+from app.models.analysis_run import AnalysisRun
+from app.core.database import SessionLocal
 db = SessionLocal()
-art = db.query(AnalysisArtifact).filter(AnalysisArtifact.artifact_id == "$ART_ID").first()
-print(art.content.get("sources", [{}])[0].get("id") if art and art.content.get("sources") else "")
+run = db.query(AnalysisRun).filter(AnalysisRun.document_id == "$DOC_ID").order_by(AnalysisRun.created_at.desc()).first()
+art = db.query(AnalysisArtifact).filter(AnalysisArtifact.run_id == run.id).first() if run else None
+print(art.id if art else "")
+PY
+)
+SOURCE_ID=$(docker compose -f docker-compose.prod.yml exec -T api python <<PY
+from app.models.analysis_artifact import AnalysisArtifact
+from app.models.analysis_run import AnalysisRun
+from app.core.database import SessionLocal
+db = SessionLocal()
+run = db.query(AnalysisRun).filter(AnalysisRun.document_id == "$DOC_ID").order_by(AnalysisRun.created_at.desc()).first()
+art = db.query(AnalysisArtifact).filter(AnalysisArtifact.run_id == run.id).first() if run else None
+print((art.content.get("sources", [{}])[0].get("id") if art and art.content.get("sources") else ""))
 PY
 )
 curl -fsS -o /dev/null -w "%{http_code}\n" -b /tmp/cookies.txt \
@@ -225,7 +247,7 @@ cat /tmp/r.json | jq '. | {has_code: (.code != null), has_stack: (.stack != null
 # Esperado: {has_code: true, has_stack: false, has_prompt: false}
 
 # Buscar nos logs do backend se houve alguma exceção recente com stack trace ou chave
-docker compose -f docker-compose.prod.yml logs --since=10m backend 2>&1 | \
+docker compose -f docker-compose.prod.yml logs --since=10m api 2>&1 | \
   grep -E 'Traceback|ghp_|sk-ant=|Authorization:' | head -5
 # Esperado: vazio
 ```
@@ -271,10 +293,10 @@ curl -sS -o /tmp/r.json -w "%{http_code}\n" -b /tmp/cookies_b.txt \
 
 ```bash
 # Se houver cálculos registrados no artefato, conferir reprodutibilidade
-docker compose -f docker-compose.prod.yml exec -T backend python <<PY
+docker compose -f docker-compose.prod.yml exec -T api python <<PY
 from app.models.analysis_artifact import AnalysisArtifact
 from app.models.calculation_result import CalculationResult
-from app.db.session import SessionLocal
+from app.core.database import SessionLocal
 db = SessionLocal()
 arts = db.query(AnalysisArtifact).filter(
     AnalysisArtifact.schema_version == "3.0"
@@ -300,7 +322,7 @@ PY
 ### Bloco J — Telemetria e custos (Review Focus)
 
 ```bash
-docker compose -f docker-compose.prod.yml logs --since=10m backend 2>&1 | \
+docker compose -f docker-compose.prod.yml logs --since=10m api 2>&1 | \
   grep -E 'run_id|tokens_in|tokens_out|cost_usd|stage' | head -20
 # Esperado: telemetria por run e estágio, sem conteúdo jurídico nem chave
 ```
@@ -369,7 +391,7 @@ Qualquer um:
 
 1. Não abrir o piloto para advogado externo.
 2. Reportar bloco(s) FAIL com evidência em `docs/operacao/incidente-<data>.md`.
-3. Reverter via `release-0.2.0-vps.md` (retag `before-v020`, `up --no-deps`, restore pg_dump se necessário).
+3. Reverter via release doc vigente em `docs/implementation/` (retag `before-v030`, `up --no-deps`, restore pg_dump se necessário).
 4. Corrigir root cause em branch apropriada; novo deploy só após smoke **PASS** em **todos os blocos**.
 
 ## 6. Não-objetivos
