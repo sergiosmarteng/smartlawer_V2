@@ -90,14 +90,16 @@ export function useDossier(input: UseDossierInput): UseDossierResult {
             { headers },
           );
         } catch (error) {
-          // routeId pode ser um document_id (link "Abrir dossiê"): 404 no
-          // artefato resolve pela última execução publicada do documento.
+          // routeId pode ser um document_id (link "Abrir dossiê"), com ou
+          // sem ?document_id=: 404 no artefato resolve pela última execução
+          // publicada do documento.
           const code =
             error && typeof error === "object"
               ? (error as { code?: unknown }).code
               : null;
-          if (code !== "NOT_FOUND" || !input.documentId) throw error;
-          resolvedId = await resolveByDocument(input.documentId);
+          const documentCandidate = input.documentId ?? input.artifactId;
+          if (code !== "NOT_FOUND" || !documentCandidate) throw error;
+          resolvedId = await resolveByDocument(documentCandidate);
           result = await fetchJson(
             `/api/v2/analyses/${encodeURIComponent(resolvedId)}`,
             { headers },

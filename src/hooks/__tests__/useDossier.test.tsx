@@ -100,6 +100,40 @@ describe("useDossier", () => {
     expect(result.current.artifact?.id).toBe("art-9");
   });
 
+  it("routeId=documento sem query param também resolve via runs", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse(
+          {
+            detail: {
+              code: "NOT_FOUND",
+              user_message: "Análise não encontrada.",
+              correlation_id: "c8",
+            },
+          },
+          404,
+        ),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse([{ run_id: "r2", artifact_id: "art-9" }]),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          id: "art-9",
+          run_id: "r2",
+          schema_version: "3.0",
+          status: "completed",
+          content: {},
+        }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+    const { result } = renderHook(() => useDossier({ artifactId: "doc-1" }));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.errorMessage).toBeNull();
+    expect(result.current.artifact?.id).toBe("art-9");
+  });
+
   it("ETag 304 preserva conteúdo anterior", async () => {
     const first = {
       id: "art-1",
