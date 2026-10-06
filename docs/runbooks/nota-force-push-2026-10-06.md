@@ -1,7 +1,9 @@
 # Nota de force-push — purga do PAT (2026-10-06)
 
-**Status:**_histórico limpo localmente (mirror em `%TEMP%\smartlawer_V2.git`).
-**FALTA:** `push --force` + reset dos clones. **NÃO EXECUTADO — aguarda confirmação explícita.**
+**Status: ARQUIVADA — preparada-mas-não-executada (decisão 2026-10-06).**
+Reativar somente se um auditor solicitar: basta confirmar o force-push
+abaixo. Mirror pronto em `%TEMP%\smartlawer_V2.git` (se o TEMP for limpo,
+reexecutar é barato — procedimento integral nesta nota).
 
 ## O que foi purgado
 

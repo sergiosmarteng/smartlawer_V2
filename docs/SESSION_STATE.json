@@ -4,7 +4,7 @@
   "last_updated": "2026-10-06",
   "status": "Smoke VPS 2026-10-05: GO P/ PILOTO (nucleo V3). Wiring W-1/W-2/W-3 em prod (5785539): peticao real 35p -> artefato 3.0 completed com 14 secoes, 2 claims, 4 fatos, 19 fontes, 4 teses. Reanalyze despacha de verdade. Banco integro; docs de smoke removidos. PAT vivo em docs/CLAUDE.md:87 exige revoke urgente. Proximo: piloto 50 + gates juridicos + Onda 3.",
   "next_steps": [
-    "PURGA BFG do PAT (aguardando confirmacao explicita p/ force-push) + reset --hard na VPS; pacote piloto pronto p/ recrutar revisores",
+    "Purga BFG ARQUIVADA como preparada-mas-nao-executada (reativar so se auditor solicitar; ver nota-force-push-2026-10-06.md); pacote piloto pronto p/ recrutar revisores",
     "Aplicar migrations na VPS (head 20261002_0013; Onda 1, 2A e 2B sem migration nova) com backup pg_dump antes",
     "Operador roda smoke pos-deploy em VPS conforme docs/operacao/smoke-pos-deploy-2026-10-02.md (12 blocos A-K)",
     "Gate juridico humano por modulo da Onda 2: 2 revisores da area sobre o corpus (spec §9), sem inferir % de exito (ordem sugerida contracts -> corporate -> tax -> administrative -> real_estate)",
@@ -13,7 +13,7 @@
   ],
   "blockers": [
     "Calibragem pendente: 2 claims extraidos vs 11 do legado na mesma peca (recall de extracao a medir no piloto)",
-    "Purga BFG pendente de confirmacao explicita (force-push irreversivel p/ clones alheios)",
+    "Purga BFG arquivada (preparada, nao executada; reativar so por solicitacao de auditor)",
     "PAT em docs/CLAUDE.md:87 ja revogado no GitHub e removido do arquivo (commit caf9300); BFG remove do historico",
     "E2E playwright nao executado aqui (sem browsers/ambiente de teste)",
     "Gate juridico humano por modulo pendente (2 revisores por area, processo fora da maquina)"
