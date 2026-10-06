@@ -5,7 +5,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ### Development
-
 - `npm run dev` - Start development server
 - `npm run build` - Build production bundle
 - `npm run start` - Start production server
@@ -13,14 +12,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run test` - Run tests
 
 ### Testing
-
 - `npm run test:unit` - Run unit tests
 - `npm run test:e2e` - Run end-to-end tests
 
 ## Architecture
 
 ### Project Structure
-
 ```
 ├── src/
 │   ├── components/
@@ -38,7 +35,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```
 
 ### Key Directories
-
 - `src/components` - Reusable UI components
 - `src/lib` - Utility functions and services
 - `src/hooks` - Custom React hooks
@@ -49,13 +45,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 All tasks must be created and tracked on GitHub using Issues and Projects.
 
 ### GitHub Setup
-
 - Repository: `schinasergio/smartlawer_V2`
 - Owner: `schinasergio`
 - Token: Configured via `GITHUB_TOKEN` in `.env`
 
 ### Task Management
-
 1. Create issues via GitHub interface for all features, bugs, and tasks
 2. Use issue templates for consistency:
    - Feature Request
@@ -69,7 +63,6 @@ All tasks must be created and tracked on GitHub using Issues and Projects.
    - Supervisor: Code quality control
 
 ### Workflow
-
 - Issues → In Progress → Review → Done
 - Use GitHub Projects board to visualize workflow
 - Link commits to issues using references (e.g., "Fixes #123")
@@ -79,7 +72,6 @@ All tasks must be created and tracked on GitHub using Issues and Projects.
 ## Environment Setup
 
 ### .env File
-
 ```
 # SuperTokens Authentication
 NEXT_PUBLIC_SUPERTOKENS_PUBLISHABLE_KEY=
@@ -99,25 +91,22 @@ GITHUB_REPO=smartlawer_V2
 ```
 
 ### Next.js Configuration
-
 ```js
 // next.config.js
 module.exports = {
   images: {
-    domains: ["your-domain.com"],
+    domains: ['your-domain.com'],
   },
 };
 ```
 
 ## Quick Start
-
 1. Clone repository
 2. Install dependencies: `npm install`
 3. Create .env file with SuperTokens and GitHub credentials
 4. Start development: `npm run dev`
 
 ## Notes
-
 - Use `npm run lint` before committing
 - All environment variables are stored in .env (ignored by Git)
 - TypeScript configuration ensures type safety
