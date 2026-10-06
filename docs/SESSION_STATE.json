@@ -2,21 +2,24 @@
   "project": "SmartLawer_V2",
   "project_path": "C:/Users/sergi/OneDrive - SSA Soluções Tecnologicas/SSA Solucoes Tecnologicas/Projetos prototipos/SmartLawer_V2",
   "last_updated": "2026-10-06",
-  "status": "Smoke VPS 2026-10-05: GO P/ PILOTO (nucleo V3). Wiring W-1/W-2/W-3 em prod (5785539): peticao real 35p -> artefato 3.0 completed com 14 secoes, 2 claims, 4 fatos, 19 fontes, 4 teses. Reanalyze despacha de verdade. Banco integro; docs de smoke removidos. PAT vivo em docs/CLAUDE.md:87 exige revoke urgente. Proximo: piloto 50 + gates juridicos + Onda 3.",
+  "status": "Smoke VPS 2026-10-06: GO P/ PILOTO (nucleo V3 + fontes). Fix source-index em prod (18ad5f0): peticao real 35p -> 3.0 completed, 21 fontes indexadas, /sources e /sources/{id} 200 com pagina/bloco/quote. Suite 412 passed. Docs de smoke removidos; banco integro. Proximo: piloto 50 + gates juridicos + Onda 3.",
   "next_steps": [
-    "Purga BFG ARQUIVADA como preparada-mas-nao-executada (reativar so se auditor solicitar; ver nota-force-push-2026-10-06.md); pacote piloto pronto p/ recrutar revisores",
-    "Aplicar migrations na VPS (head 20261002_0013; Onda 1, 2A e 2B sem migration nova) com backup pg_dump antes",
-    "Operador roda smoke pos-deploy em VPS conforme docs/operacao/smoke-pos-deploy-2026-10-02.md (12 blocos A-K)",
-    "Gate juridico humano por modulo da Onda 2: 2 revisores da area sobre o corpus (spec §9), sem inferir % de exito (ordem sugerida contracts -> corporate -> tax -> administrative -> real_estate)",
+    "Recrutar/acionar revisores e iniciar piloto 50 execucoes com o pacote pronto (docs/operacao/pacote-revisor.md + protocolo-holdout.md + rubrica-piloto-v1.md + backend/evals/pilot_metrics.py)",
+    "Operador in loco na VPS: backup pg_dump antes; conferir migrations (head 20261002_0013; wiring e piloto sem migration nova); rodar smoke formal pos-deploy blocos A-K (docs/operacao/smoke-pos-deploy-2026-10-02.md)",
+    "Gate juridico humano por modulo da Onda 2 (2 revisores da area sobre o corpus; spec §9), sem inferir % de exito (ordem sugerida contracts -> corporate -> tax -> administrative -> real_estate)",
     "Shadow runs V3 + piloto 50 execucoes; habilitar DOSSIER_MODULE_<ID> um por vez apos gate proprio",
+    "Concluir rotaçao do PAT: deploy key VPS (GitHub)",
+    "Purga BFG ARQUIVADA: reativar SOMENTE se auditor solicitar (nota-force-push-2026-10-06.md); pacote piloto pronto p/ recrutar revisores",
     "Apos piloto Go + gates juridicos da Onda 2: planejar Onda 3"
   ],
   "blockers": [
     "Calibragem pendente: 2 claims extraidos vs 11 do legado na mesma peca (recall de extracao a medir no piloto)",
     "Purga BFG arquivada (preparada, nao executada; reativar so por solicitacao de auditor)",
-    "PAT em docs/CLAUDE.md:87 ja revogado no GitHub e removido do arquivo (commit caf9300); BFG remove do historico",
+    "PAT revogado no GitHub e removido de docs/CLAUDE.md (commits caf9300/0b15711); BFG remove do historico apenas se a purga for executada",
+    "Deploy key VPS pendente (parte restante da rotaçao do PAT)",
     "E2E playwright nao executado aqui (sem browsers/ambiente de teste)",
-    "Gate juridico humano por modulo pendente (2 revisores por area, processo fora da maquina)"
+    "Gate juridico humano por modulo pendente (2 revisores por area, processo fora da maquina)",
+    "Suíte pytest nao re-executada no checkpoint 2026-10-06 (410 funcoes test_ contadas em backend/tests; sem alegar verde sem rodar)"
   ],
   "active_constraints": [
     "Landing nao promete percentuais de produtividade nem cobertura integral de jurisprudencia",
@@ -41,7 +44,10 @@
     "Onda 2B: fonte local ausente -> limitacao + pergunta ao advogado, nunca regra federal aproximada (§8)",
     "Onda 2B: reforma tributaria exige tabela de vigencia/efeitos por tributo e periodo; texto consolidado atual nunca substitui regra do fato pretérito (§5)",
     "Onda 2B: competencia do ente, jurisdicao e data explicitas antes de qualquer regra (§9.3)",
-    "Onda 2B: noticia/denuncia/relatorio preliminar != sancao final (§6); matricula antiga != titularidade atual, exige certidao atual (§7)"
+    "Onda 2B: noticia/denuncia/relatorio preliminar != sancao final (§6); matricula antiga != titularidade atual, exige certidao atual (§7)",
+    "Purga BFG do historico e force-push somente com confirmacao explicita/auditoria; se executada, reset obrigatorio em todos os clones (VPS/WSL/devs) e backups",
+    "Piloto nao declara % de exito; Go/non-go pelos thresholds da rubrica congelada v1 (backend/evals/rubric_pilot_v1.toml) + protocolo holdout",
+    "Analise com nucleo vazio NUNCA publica completed (AC-01, verdade vacuosa); wiring V3 exige section_states de todas as secoes no artefato"
   ],
   "deliverables_onda1": [
     "fundacao: module_results + ModuleResult/IssueAssessment + runner + 5 flags + registry enabled + composer fill",
@@ -74,7 +80,8 @@
   ],
   "verification": {
     "pytest_2B_suite": "27 passed em 15.46s (test_onda2b_foundation + tax + administrative + real_estate + regressoes) - re-executado neste checkpoint 2026-10-04",
-    "pytest_total": "387 coletados em backend/tests; release 0.3.0 registrou '387 pytest, gates verdes'",
+    "pytest_total": "410 funcoes test_ contadas em backend/tests no checkpoint 2026-10-06 (release 0.3.0 registrou '387 pytest, gates verdes'); suíte NAO re-executada neste checkpoint",
+    "checkpoint_2026_10_06": "smoke VPS GO (wiring V3) + pacote piloto + purga arquivada; HEAD 0e4654e; head alembic 20261002_0013; nenhuma migration nova",
     "run_gate_universal": "UNIVERSAL GATE PASSED (release 0.3.0)",
     "module_corpora_gates": "corpus da Onda 2 (2A + 2B) no universal_gate (release 0.3.0)",
     "vitest": "19 passed (3 files) - registrado no checkpoint 2A",
@@ -85,16 +92,29 @@
   },
   "git_state": {
     "origin": "git@github-smarteng:sergiosmarteng/smartlawer_V2.git",
-    "head": "d659778",
+    "head": "0e4654e",
     "tag": "v0.3.0",
-    "ahead_behind": "nao verificado desta estacao",
+    "ahead_behind": "main ahead 133 / behind 2 vs schinasergio/master (verificado 2026-10-06)",
     "migrations_head": "20261002_0013",
-    "extra_remote": "schinasergio (https, read-only) - auth falhou com 'Invalid username or token' na checagem de 2026-10-04"
+    "extra_remote": "schinasergio (https, read-only) - auth nao reverificada apos revogacao do PAT (2026-10-04 falhou com 'Invalid username or token')"
   },
   "deliverables_piloto": [
-    "rubrica congelada v1: docs/operacao/rubrica-piloto-v1.md + backend/evals/rubric_pilot_v1.toml (tomllib stdlib, sem dependencia nova)",
-    "protocolo holdout + pacote do revisor: docs/operacao/protocolo-holdout.md + docs/operacao/pacote-revisor.md",
-    "agregador: backend/evals/pilot_metrics.py + backend/tests/test_pilot_metrics.py (Go/non-go contra thresholds do TOML)"
+    "rubrica congelada v1: docs/operacao/rubrica-piloto-v1.md + backend/evals/rubric_pilot_v1.toml (tomllib stdlib, sem dependencia nova) - commit ae5a8d1",
+    "protocolo holdout + pacote do revisor: docs/operacao/protocolo-holdout.md + docs/operacao/pacote-revisor.md - commit 49740e0",
+    "agregador: backend/evals/pilot_metrics.py + backend/tests/test_pilot_metrics.py (Go/non-go contra thresholds do TOML) - commit ae5a8d1",
+    "execucao: docs/operacao/piloto-50-execucoes-2026-10-02.md"
+  ],
+  "deliverables_wiring_v3": [
+    "W-1 adaptadores LLM produtivos para extract/analyze - commit d73d09b",
+    "W-2 estagios reais sobre blocos da revisao no orquestrador - commit 5c2da15",
+    "W-3 reanalyze despacha process_run_task; nova run em reprocessamento - commit eb32699",
+    "fix: schema explicito no prompt de extracao + batch_stats sem conteudo - 7f3efb1; schema explicito na analise + section_states de todas as secoes - 5785539",
+    "gate AC-01: nucleo vazio nunca publica completed (verdade vacuosa) - commit 4192fa0",
+    "smoke VPS 2026-10-05 GO: peticao 35p -> artefato 3.0 com 14 secoes/2 claims/4 fatos/19 fontes/4 teses - commit 07aa46d; pins validados ao vivo - 43f1b44"
+  ],
+  "deliverables_seguranca": [
+    "PAT revogado no GitHub + removido de docs/CLAUDE.md sem reformatar (diff minimo) - commits 0b15711, caf9300; rotaçao registrada - 8b968a6",
+    "purga BFG ARQUIVADA (preparada-mas-nao-executada): docs/runbooks/nota-force-push-2026-10-06.md (hashes antes/depois, mirror em %TEMP%, reset obrigatorio dos clones) - commits cf5c1ec, 0e4654e"
   ],
   "resume_prompt_file": ".opencode/sessions/2026-10-06-piloto-purga.md"
 }
