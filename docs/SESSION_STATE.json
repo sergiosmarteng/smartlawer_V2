@@ -2,7 +2,7 @@
   "project": "SmartLawer_V2",
   "project_path": "C:/Users/sergi/OneDrive - SSA Soluções Tecnologicas/SSA Solucoes Tecnologicas/Projetos prototipos/SmartLawer_V2",
   "last_updated": "2026-10-06",
-  "status": "Fix useDossier v2 em prod (bf75057): fallback via runs usa routeId quando sem ?document_id=; cobre URL com e sem query. Suite vitest 22 passed. Proximo: validacao do usuario no navegador + piloto 50 + gates juridicos + Onda 3.",
+  "status": "Fix auth hooks V2 em prod (507c6f8): useDossier/useAnalysisRun enviam Bearer token; pagina do dossie carrega no browser. Vitest 24 passed, tsc/lint limpos, build 13/13, bundle v2 com token em prod, site 200. Proximo: validacao do usuario no navegador + piloto 50 + gates juridicos + Onda 3.",
   "next_steps": [
     "Recrutar/acionar revisores e iniciar piloto 50 execucoes com o pacote pronto (docs/operacao/pacote-revisor.md + protocolo-holdout.md + rubrica-piloto-v1.md + backend/evals/pilot_metrics.py)",
     "Operador in loco na VPS: backup pg_dump antes; conferir migrations (head 20261002_0013; wiring e piloto sem migration nova); rodar smoke formal pos-deploy blocos A-K (docs/operacao/smoke-pos-deploy-2026-10-02.md)",
@@ -92,7 +92,7 @@
   },
   "git_state": {
     "origin": "git@github-smarteng:sergiosmarteng/smartlawer_V2.git",
-    "head": "0e4654e",
+    "head": "507c6f8",
     "tag": "v0.3.0",
     "ahead_behind": "main ahead 133 / behind 2 vs schinasergio/master (verificado 2026-10-06)",
     "migrations_head": "20261002_0013",
