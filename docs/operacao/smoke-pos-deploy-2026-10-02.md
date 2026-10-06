@@ -39,13 +39,13 @@ Cada gate abaixo é um **bloco de smoke**. Marca **PASS** quando o comando retor
 docker compose -f docker-compose.prod.yml ps --format json | jq -r '.[] | "\(.Name) \(.State) \(.Health.Status // "n/a")"'
 ```
 
-| Esperado | Resultado |
-|---|---|
-| `smartlawer-api` `running` `healthy` | `<…>` |
-| `smartlawer-worker` `running` `healthy` | `<…>` |
-| `smartlawer-frontend` `running` `n/a` | `<…>` |
-| `smartlawer-db` `running` `healthy` | `<…>` |
-| `smartlawer-redis` `running` `healthy` | `<…>` |
+| Esperado                                | Resultado |
+| --------------------------------------- | --------- |
+| `smartlawer-api` `running` `healthy`    | `<…>`     |
+| `smartlawer-worker` `running` `healthy` | `<…>`     |
+| `smartlawer-frontend` `running` `n/a`   | `<…>`     |
+| `smartlawer-db` `running` `healthy`     | `<…>`     |
+| `smartlawer-redis` `running` `healthy`  | `<…>`     |
 
 **Pass / Fail:** `<…>` | **Evidência:** `<…>`
 
@@ -71,12 +71,12 @@ docker compose -f docker-compose.prod.yml exec -T api alembic heads --verbose
 # Esperado: 1 head, sem "(head) para migrations" extras
 ```
 
-| Esperado | Resultado |
-|---|---|
-| `0.3.0` | `<…>` |
-| HEAD em main atual | `<…>` |
-| alembic current = `20261002_0013 (head)` | `<…>` |
-| Sem drift de head | `<…>` |
+| Esperado                                 | Resultado |
+| ---------------------------------------- | --------- |
+| `0.3.0`                                  | `<…>`     |
+| HEAD em main atual                       | `<…>`     |
+| alembic current = `20261002_0013 (head)` | `<…>`     |
+| Sem drift de head                        | `<…>`     |
 
 **Pass / Fail:** `<…>` | **Evidência:** `<…>`
 
@@ -92,12 +92,12 @@ docker compose -f docker-compose.prod.yml exec -T api \
 # Esperado: CHAT_MODEL=gemini-3.8-flash; DOCLING_ENABLED=true; AI_PROVIDER conforme chave
 ```
 
-| Esperado | Resultado |
-|---|---|
-| ≥1 chave de provedor de IA | `<…>` |
-| `CHAT_MODEL=gemini-3.8-flash` | `<…>` |
-| `DOCLING_ENABLED=true` | `<…>` |
-| `AI_PROVIDER` consistente com chave presente | `<…>` |
+| Esperado                                     | Resultado |
+| -------------------------------------------- | --------- |
+| ≥1 chave de provedor de IA                   | `<…>`     |
+| `CHAT_MODEL=gemini-3.8-flash`                | `<…>`     |
+| `DOCLING_ENABLED=true`                       | `<…>`     |
+| `AI_PROVIDER` consistente com chave presente | `<…>`     |
 
 **Pass / Fail:** `<…>` | **Evidência:** `<…>`
 
@@ -124,11 +124,11 @@ docker compose -f docker-compose.prod.yml exec -T api \
 # Esperado: "OK: não no pipeline V3"
 ```
 
-| Esperado | Resultado |
-|---|---|
-| `coerce_legacy_analysis` importável para leitura | `<…>` |
-| **Não** referenciado em `tasks/` (caminho de produção) | `<…>` |
-| **Não** referenciado em `core/pipeline/` | `<…>` |
+| Esperado                                               | Resultado |
+| ------------------------------------------------------ | --------- |
+| `coerce_legacy_analysis` importável para leitura       | `<…>`     |
+| **Não** referenciado em `tasks/` (caminho de produção) | `<…>`     |
+| **Não** referenciado em `core/pipeline/`               | `<…>`     |
 
 **Pass / Fail:** `<…>` | **Evidência:** `<…>`
 
@@ -174,12 +174,12 @@ PY
 #          coverage.pages_total > 0 (não pode ser 0/0 — defeito §3.1 do spec)
 ```
 
-| Esperado | Resultado |
-|---|---|
-| `schema_version = 3.0` | `<…>` |
-| `section_states` cobre todas as seções do spec | `<…>` |
-| `coverage.pages_total > 0` (não 0/0) | `<…>` |
-| Se `coverage.pages_total == 0`: indica defeito — FAIL | `<…>` |
+| Esperado                                              | Resultado |
+| ----------------------------------------------------- | --------- |
+| `schema_version = 3.0`                                | `<…>`     |
+| `section_states` cobre todas as seções do spec        | `<…>`     |
+| `coverage.pages_total > 0` (não 0/0)                  | `<…>`     |
+| Se `coverage.pages_total == 0`: indica defeito — FAIL | `<…>`     |
 
 **Pass / Fail:** `<…>` | **Evidência:** `<…>`
 
@@ -227,11 +227,11 @@ curl -fsS -o /dev/null -w "%{http_code}\n" -b /tmp/cookies.txt \
 # Esperado: 200
 ```
 
-| Esperado | Resultado |
-|---|---|
-| `n_sources >= 1` no artefato | `<…>` |
-| Cada source tem `document_id`+`revision_id`+página/região | `<…>` |
-| `GET /api/v2/sources/{id}` retorna **200** | `<…>` |
+| Esperado                                                  | Resultado |
+| --------------------------------------------------------- | --------- |
+| `n_sources >= 1` no artefato                              | `<…>`     |
+| Cada source tem `document_id`+`revision_id`+página/região | `<…>`     |
+| `GET /api/v2/sources/{id}` retorna **200**                | `<…>`     |
 
 **Pass / Fail:** `<…>` | **Evidência:** `<…>`
 
@@ -252,12 +252,12 @@ docker compose -f docker-compose.prod.yml logs --since=10m api 2>&1 | \
 # Esperado: vazio
 ```
 
-| Esperado | Resultado |
-|---|---|
-| 404 (não 500) para ID inválido | `<…>` |
-| Sem `stack`/`traceback` no JSON | `<…>` |
-| Sem `prompt` no JSON | `<…>` |
-| Logs sem stack trace nem chave | `<…>` |
+| Esperado                        | Resultado |
+| ------------------------------- | --------- |
+| 404 (não 500) para ID inválido  | `<…>`     |
+| Sem `stack`/`traceback` no JSON | `<…>`     |
+| Sem `prompt` no JSON            | `<…>`     |
+| Logs sem stack trace nem chave  | `<…>`     |
 
 **Pass / Fail:** `<…>` | **Evidência:** `<…>`
 
@@ -282,10 +282,10 @@ curl -sS -o /tmp/r.json -w "%{http_code}\n" -b /tmp/cookies_b.txt \
 # PROIBIDO: 200 com o artefato do usuário A
 ```
 
-| Esperado | Resultado |
-|---|---|
-| Sem auth: 401/403 (não 500) | `<…>` |
-| User B: **não** vê artefato do User A | `<…>` |
+| Esperado                              | Resultado |
+| ------------------------------------- | --------- |
+| Sem auth: 401/403 (não 500)           | `<…>`     |
+| User B: **não** vê artefato do User A | `<…>`     |
 
 **Pass / Fail:** `<…>` | **Evidência:** `<…>`
 
@@ -311,11 +311,11 @@ PY
 # Esperado: cada cálculo com formula_version, output_hash e reproducible=True
 ```
 
-| Esperado | Resultado |
-|---|---|
-| Cada cálculo tem `formula_version` | `<…>` |
-| Cada cálculo tem `output_hash` | `<…>` |
-| `reproducible = True` (Decimal + half_up_centavos) | `<…>` |
+| Esperado                                           | Resultado |
+| -------------------------------------------------- | --------- |
+| Cada cálculo tem `formula_version`                 | `<…>`     |
+| Cada cálculo tem `output_hash`                     | `<…>`     |
+| `reproducible = True` (Decimal + half_up_centavos) | `<…>`     |
 
 **Pass / Fail:** `<…>` | **Evidência:** `<…>`
 
@@ -327,11 +327,11 @@ docker compose -f docker-compose.prod.yml logs --since=10m api 2>&1 | \
 # Esperado: telemetria por run e estágio, sem conteúdo jurídico nem chave
 ```
 
-| Esperado | Resultado |
-|---|---|
-| Logs estruturados com run/stage | `<…>` |
-| Sem conteúdo jurídico (texto do doc) | `<…>` |
-| Sem chave/credencial | `<…>` |
+| Esperado                             | Resultado |
+| ------------------------------------ | --------- |
+| Logs estruturados com run/stage      | `<…>`     |
+| Sem conteúdo jurídico (texto do doc) | `<…>`     |
+| Sem chave/credencial                 | `<…>`     |
 
 **Pass / Fail:** `<…>` | **Evidência:** `<…>`
 
@@ -347,29 +347,29 @@ curl -sSI https://smartlawer.com.br/ | grep -iE "^(strict-transport-security|con
 # Esperado: STS presente; CSP presente
 ```
 
-| Esperado | Resultado |
-|---|---|
-| SSL válido | `<…>` |
-| `Strict-Transport-Security` | `<…>` |
-| `Content-Security-Policy` | `<…>` |
+| Esperado                    | Resultado |
+| --------------------------- | --------- |
+| SSL válido                  | `<…>`     |
+| `Strict-Transport-Security` | `<…>`     |
+| `Content-Security-Policy`   | `<…>`     |
 
 **Pass / Fail:** `<…>` | **Evidência:** `<…>`
 
 ## 4. Veredito
 
-| Bloco | Pass / Fail | Evidência |
-|---|---|---|
-| A — containers | `<…>` | `<…>` |
-| B — versão/migração | `<…>` | `<…>` |
-| C — env vars | `<…>` | `<…>` |
-| D — compatibilidade legada | `<…>` | `<…>` |
-| E — schema 3.0 + SectionState | `<…>` | `<…>` |
-| F — fontes resolvíveis | `<…>` | `<…>` |
-| G — erros sem segredo | `<…>` | `<…>` |
-| H — autorização | `<…>` | `<…>` |
-| I — cálculo reproduzível | `<…>` | `<…>` |
-| J — telemetria | `<…>` | `<…>` |
-| K — SSL/headers | `<…>` | `<…>` |
+| Bloco                         | Pass / Fail | Evidência |
+| ----------------------------- | ----------- | --------- |
+| A — containers                | `<…>`       | `<…>`     |
+| B — versão/migração           | `<…>`       | `<…>`     |
+| C — env vars                  | `<…>`       | `<…>`     |
+| D — compatibilidade legada    | `<…>`       | `<…>`     |
+| E — schema 3.0 + SectionState | `<…>`       | `<…>`     |
+| F — fontes resolvíveis        | `<…>`       | `<…>`     |
+| G — erros sem segredo         | `<…>`       | `<…>`     |
+| H — autorização               | `<…>`       | `<…>`     |
+| I — cálculo reproduzível      | `<…>`       | `<…>`     |
+| J — telemetria                | `<…>`       | `<…>`     |
+| K — SSL/headers               | `<…>`       | `<…>`     |
 
 ### Go (liberação do piloto)
 
