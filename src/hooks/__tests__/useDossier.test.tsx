@@ -48,22 +48,56 @@ describe("useDossier", () => {
   it("schema 2.0 mostra estado legado com ação de reprocessamento", async () => {
     vi.stubGlobal(
       "fetch",
-      vi
-        .fn()
-        .mockResolvedValue(
-          jsonResponse({
-            id: "art-old",
-            run_id: "r1",
-            schema_version: "2.0",
-            status: "partial",
-            content: {},
-          }),
-        ),
+      vi.fn().mockResolvedValue(
+        jsonResponse({
+          id: "art-old",
+          run_id: "r1",
+          schema_version: "2.0",
+          status: "partial",
+          content: {},
+        }),
+      ),
     );
     const { result } = renderHook(() => useDossier({ artifactId: "art-old" }));
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.isLegacy).toBe(true);
     expect(result.current.artifact?.schema_version).toBe("2.0");
+  });
+
+  it("routeId=documento com 404 cai para resolução via runs", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse(
+          {
+            detail: {
+              code: "NOT_FOUND",
+              user_message: "Análise não encontrada.",
+              correlation_id: "c9",
+            },
+          },
+          404,
+        ),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse([{ run_id: "r2", artifact_id: "art-9" }]),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          id: "art-9",
+          run_id: "r2",
+          schema_version: "3.0",
+          status: "completed",
+          content: {},
+        }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+    const { result } = renderHook(() =>
+      useDossier({ artifactId: "doc-1", documentId: "doc-1" }),
+    );
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.errorMessage).toBeNull();
+    expect(result.current.artifact?.id).toBe("art-9");
   });
 
   it("ETag 304 preserva conteúdo anterior", async () => {
@@ -96,20 +130,18 @@ describe("useDossier", () => {
   it("erro seguro do backend vira mensagem em português", async () => {
     vi.stubGlobal(
       "fetch",
-      vi
-        .fn()
-        .mockResolvedValue(
-          jsonResponse(
-            {
-              detail: {
-                code: "NOT_FOUND",
-                user_message: "Análise não encontrada.",
-                correlation_id: "c1",
-              },
+      vi.fn().mockResolvedValue(
+        jsonResponse(
+          {
+            detail: {
+              code: "NOT_FOUND",
+              user_message: "Análise não encontrada.",
+              correlation_id: "c1",
             },
-            404,
-          ),
+          },
+          404,
         ),
+      ),
     );
     const { result } = renderHook(() => useDossier({ artifactId: "missing" }));
     await waitFor(() => expect(result.current.loading).toBe(false));
