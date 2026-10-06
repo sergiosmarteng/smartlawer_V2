@@ -443,5 +443,49 @@ def run_universal_pipeline(db: Session, *, run_id: UUID | str):
     published = publish_artifact_v3(
         db, run=run, artifact=content, report=report,
     )
+    _index_artifact_sources(db, run=run, sources=content.get("sources") or [])
     logger.info("Pipeline V3 publicou artefato %s com status %s.", published.id, status)
     return published
+
+
+_V3_TO_TABLE_STATUS = {
+    "matched": "matched",
+    "insufficient": "insufficient",
+    "contradictory": "contradictory",
+}
+
+
+def _index_artifact_sources(db: Session, *, run, sources: list) -> int:
+    """Persiste o índice resolvível de fontes do artefato (bloco F do smoke).
+
+    Sem ele, `GET .../sources` e `/sources/{id}` (lidos da tabela
+    `source_references`) retornam vazio/404 para artefatos V3. Falha aqui
+    não desfaz a publicação — mas é registrada com erro explícito.
+    """
+    from app.crud.run import add_source_reference
+
+    indexed = 0
+    for source in sources or []:
+        if not isinstance(source, dict) or not source.get("id"):
+            continue
+        status = _V3_TO_TABLE_STATUS.get(
+            source.get("verification_status"), "unverified")
+        try:
+            add_source_reference(
+                db, run=run,
+                kind=source.get("kind") or "document",
+                revision_id=source.get("revision_id"),
+                page_number=source.get("page_number"),
+                block_id=source.get("block_id") or source.get("id"),
+                quote=(source.get("quote") or "")[:2000] or None,
+                url=source.get("url"),
+                verification_status=status,
+                extra={"source_id": source.get("id")},
+            )
+            indexed += 1
+        except Exception as exc:
+            logger.warning(
+                "Índice de fonte %r não persistido na run %s (%s).",
+                source.get("id"), run.id, exc,
+            )
+    return indexed
