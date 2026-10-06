@@ -16,6 +16,7 @@ function jsonResponse(body: unknown, status = 200, etag: string | null = null) {
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
+  window.localStorage.clear();
 });
 
 describe("useDossier", () => {
@@ -180,5 +181,27 @@ describe("useDossier", () => {
     const { result } = renderHook(() => useDossier({ artifactId: "missing" }));
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.errorMessage).toBe("Análise não encontrada.");
+  });
+
+  it("envia Bearer token do localStorage em todas as chamadas", async () => {
+    window.localStorage.setItem("access_token", "tok-dossie-1");
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({
+        id: "art-7",
+        run_id: "r7",
+        schema_version: "3.0",
+        status: "completed",
+        content: {},
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const { result } = renderHook(() => useDossier({ artifactId: "art-7" }));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.errorMessage).toBeNull();
+    expect(fetchMock).toHaveBeenCalled();
+    for (const call of fetchMock.mock.calls) {
+      const init = call[1] as { headers?: Record<string, string> } | undefined;
+      expect(init?.headers?.Authorization).toBe("Bearer tok-dossie-1");
+    }
   });
 });

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DossierArtifactV3, toUserMessage } from "@/types/dossier";
+import { bearerHeaders } from "@/lib/apiAuth";
 
 export interface UseDossierInput {
   artifactId?: string;
@@ -18,7 +19,10 @@ async function fetchJson(
   input: string,
   init?: RequestInit,
 ): Promise<{ status: number; etag: string | null; body: unknown }> {
-  const response = await fetch(input, init);
+  const response = await fetch(input, {
+    ...init,
+    headers: { ...bearerHeaders(), ...(init?.headers ?? {}) },
+  });
   const etag = response.headers.get("etag");
   if (response.status === 304) return { status: 304, etag, body: null };
   if (!response.ok) {

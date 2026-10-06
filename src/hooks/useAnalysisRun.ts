@@ -5,6 +5,7 @@ import {
   isTerminalRunStatus,
   toUserMessage,
 } from "@/types/dossier";
+import { bearerHeaders } from "@/lib/apiAuth";
 
 export interface UseAnalysisRunResult {
   run: AnalysisRunStatus | null;
@@ -38,6 +39,7 @@ export function useAnalysisRun(runId?: string): UseAnalysisRunResult {
       try {
         const response = await fetch(
           `/api/v2/analysis-runs/${encodeURIComponent(runId as string)}`,
+          { headers: bearerHeaders() },
         );
         if (!response.ok) {
           let detail: unknown = null;
