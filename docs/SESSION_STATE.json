@@ -19,7 +19,7 @@
     "Deploy key VPS pendente (parte restante da rotaçao do PAT)",
     "E2E playwright nao executado aqui (sem browsers/ambiente de teste)",
     "Gate juridico humano por modulo pendente (2 revisores por area, processo fora da maquina)",
-    "Suíte pytest nao re-executada no checkpoint 2026-10-06 (410 funcoes test_ contadas em backend/tests; sem alegar verde sem rodar)"
+    "Suíte pytest re-executada integralmente em 2026-10-15: 415 passed, 0 failed"
   ],
   "active_constraints": [
     "Landing nao promete percentuais de produtividade nem cobertura integral de jurisprudencia",
@@ -80,7 +80,7 @@
   ],
   "verification": {
     "pytest_2B_suite": "27 passed em 15.46s (test_onda2b_foundation + tax + administrative + real_estate + regressoes) - re-executado neste checkpoint 2026-10-04",
-    "pytest_total": "410 funcoes test_ contadas em backend/tests no checkpoint 2026-10-06 (release 0.3.0 registrou '387 pytest, gates verdes'); suíte NAO re-executada neste checkpoint",
+    "pytest_total": "415 passed, 0 failed (4 lotes paralelos, exit 0) - re-executado no /verify 2026-10-15",
     "checkpoint_2026_10_06": "smoke VPS GO (wiring V3) + pacote piloto + purga arquivada; HEAD 0e4654e; head alembic 20261002_0013; nenhuma migration nova",
     "run_gate_universal": "UNIVERSAL GATE PASSED (release 0.3.0)",
     "module_corpora_gates": "corpus da Onda 2 (2A + 2B) no universal_gate (release 0.3.0)",
