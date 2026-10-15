@@ -23,3 +23,11 @@ class ChatResponse(BaseModel):
     model: str
     ai_draft: bool = True
     requires_human_review: bool = True
+
+
+class ChatExportDocxRequest(BaseModel):
+    question: str = Field(default="", max_length=4000)
+    answer: str = Field(min_length=1, max_length=60000)
+    document_id: str | None = None
+    citations: list[Citation] = Field(default_factory=list)
+

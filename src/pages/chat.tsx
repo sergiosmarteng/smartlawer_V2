@@ -1,15 +1,18 @@
-import Head from 'next/head';
-import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
-import AuthGuard from '../components/auth/AuthGuard';
-import Layout from '../components/layout';
-import api, { getApiErrorMessage } from '../lib/axios';
+import Head from "next/head";
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
+import AuthGuard from "../components/auth/AuthGuard";
 import {
-  isSuccessStatus,
-  type ProcessItem,
-} from '../types/workflow';
+  ChatFormattedText,
+  downloadChatAnswerDocx,
+} from "../components/chat/ChatFormattedText";
+import Layout from "../components/layout";
+import api, { getApiErrorMessage } from "../lib/axios";
+import { isSuccessStatus, type ProcessItem } from "../types/workflow";
 
-const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1').replace(/\/+$/, '');
+const API_BASE = (
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1"
+).replace(/\/+$/, "");
 
 interface Citation {
   ref: string;
@@ -21,7 +24,7 @@ interface Citation {
 }
 
 interface ChatMessage {
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   text: string;
   citations?: Citation[];
   suggestions?: string[];
@@ -29,10 +32,10 @@ interface ChatMessage {
 
 function parseSseEvents(raw: string): Array<Record<string, unknown>> {
   const events: Array<Record<string, unknown>> = [];
-  for (const line of raw.split('\n')) {
-    if (line.startsWith('data: ')) {
+  for (const line of raw.split("\n")) {
+    if (line.startsWith("data: ")) {
       try {
-        events.push(JSON.parse(line.slice('data: '.length)));
+        events.push(JSON.parse(line.slice("data: ".length)));
       } catch {
         // Ignore partial frames; the next flush completes them.
       }
@@ -43,24 +46,30 @@ function parseSseEvents(raw: string): Array<Record<string, unknown>> {
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [documents, setDocuments] = useState<ProcessItem[]>([]);
   const [docsLoading, setDocsLoading] = useState(true);
-  const [docsError, setDocsError] = useState('');
-  const [documentId, setDocumentId] = useState('');
+  const [docsError, setDocsError] = useState("");
+  const [documentId, setDocumentId] = useState("");
+  const [downloadingIndex, setDownloadingIndex] = useState<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     const fetchDocuments = async () => {
       setDocsLoading(true);
-      setDocsError('');
+      setDocsError("");
       try {
-        const response = await api.get<ProcessItem[]>('/processes');
+        const response = await api.get<ProcessItem[]>("/processes");
         setDocuments(Array.isArray(response.data) ? response.data : []);
       } catch (fetchError) {
-        setDocsError(getApiErrorMessage(fetchError, 'Não foi possível carregar o histórico.'));
+        setDocsError(
+          getApiErrorMessage(
+            fetchError,
+            "Não foi possível carregar o histórico.",
+          ),
+        );
       } finally {
         setDocsLoading(false);
       }
@@ -73,8 +82,8 @@ export default function ChatPage() {
     setIsStreaming(false);
     setDocumentId(nextDocumentId);
     setMessages([]);
-    setError('');
-    setInput('');
+    setError("");
+    setInput("");
   };
 
   const sendMessage = async (override?: string) => {
@@ -86,30 +95,39 @@ export default function ChatPage() {
     // Backend requires min_length=3 (ChatRequest); fail fast with a
     // friendly message instead of a bare "HTTP 422".
     if (query.length < 3) {
-      setError('Escreva uma pergunta com pelo menos 3 caracteres.');
+      setError("Escreva uma pergunta com pelo menos 3 caracteres.");
       return;
     }
 
-    const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+    const token =
+      typeof window !== "undefined"
+        ? localStorage.getItem("access_token")
+        : null;
     if (!token) {
-      setError('Sessão expirada. Entre novamente.');
+      setError("Sessão expirada. Entre novamente.");
       return;
     }
 
-    setError('');
-    setInput('');
+    setError("");
+    setInput("");
     setIsStreaming(true);
-    setMessages((current) => [...current, { role: 'user', text: query }, { role: 'assistant', text: '' }]);
+    setMessages((current) => [
+      ...current,
+      { role: "user", text: query },
+      { role: "assistant", text: "" },
+    ]);
 
     try {
       abortRef.current = new AbortController();
       const response = await fetch(`${API_BASE}/chat/stream`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(documentId ? { query, document_id: documentId } : { query }),
+        body: JSON.stringify(
+          documentId ? { query, document_id: documentId } : { query },
+        ),
         signal: abortRef.current.signal,
       });
 
@@ -119,7 +137,7 @@ export default function ChatPage() {
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
-      let buffer = '';
+      let buffer = "";
       let streamError: string | null = null;
 
       for (;;) {
@@ -133,21 +151,25 @@ export default function ChatPage() {
         setMessages((current) => {
           const next = [...current];
           const last = next[next.length - 1];
-          let text = '';
+          let text = "";
           let citations: Citation[] | undefined;
           let suggestions: string[] | undefined;
           for (const event of events) {
-            if (typeof event.token === 'string') {
+            if (typeof event.token === "string") {
               text += event.token;
             }
-            if (typeof event.error === 'string' && (event.error as string).trim().length > 0) {
+            if (
+              typeof event.error === "string" &&
+              (event.error as string).trim().length > 0
+            ) {
               streamError = event.error as string;
             }
             if (event.done === true) {
               citations = (event.citations as Citation[]) ?? [];
               if (Array.isArray(event.suggested_questions)) {
                 suggestions = (event.suggested_questions as unknown[]).filter(
-                  (item): item is string => typeof item === 'string' && item.trim().length > 0,
+                  (item): item is string =>
+                    typeof item === "string" && item.trim().length > 0,
                 );
               } else {
                 suggestions = [];
@@ -172,12 +194,54 @@ export default function ChatPage() {
         setError(streamError);
       }
     } catch (err) {
-      if (err instanceof DOMException && err.name === 'AbortError') {
+      if (err instanceof DOMException && err.name === "AbortError") {
         return;
       }
-      setError(getApiErrorMessage(err, 'Falha ao conversar com os documentos.'));
+      setError(
+        getApiErrorMessage(err, "Falha ao conversar com os documentos."),
+      );
     } finally {
       setIsStreaming(false);
+    }
+  };
+
+  const handleExportMessageDocx = async (messageIndex: number) => {
+    const target = messages[messageIndex];
+    if (
+      !target ||
+      target.role !== "assistant" ||
+      !target.text.trim() ||
+      downloadingIndex !== null
+    ) {
+      return;
+    }
+
+    let question = "";
+    for (let i = messageIndex - 1; i >= 0; i--) {
+      if (messages[i]?.role === "user") {
+        question = messages[i].text;
+        break;
+      }
+    }
+
+    setDownloadingIndex(messageIndex);
+    setError("");
+    try {
+      await downloadChatAnswerDocx({
+        question,
+        answer: target.text,
+        document_id: documentId || null,
+        citations: target.citations ?? [],
+      });
+    } catch (exportError) {
+      setError(
+        getApiErrorMessage(
+          exportError,
+          "Não foi possível gerar o arquivo .docx desta resposta.",
+        ),
+      );
+    } finally {
+      setDownloadingIndex(null);
     }
   };
 
@@ -190,10 +254,15 @@ export default function ChatPage() {
 
         <div className="mx-auto flex h-[calc(100vh-10rem)] max-w-5xl flex-col bg-papel px-4 text-tinta sm:px-6">
           <div className="mb-4">
-            <p className="font-mono text-[9px] uppercase tracking-[2.25px] text-latiim-texto">Chat jurídico</p>
-            <h1 className="mt-2 font-display text-3xl font-normal tracking-tight text-tinta">Pergunte com fundamento</h1>
+            <p className="font-mono text-[9px] uppercase tracking-[2.25px] text-latiim-texto">
+              Chat jurídico
+            </p>
+            <h1 className="mt-2 font-display text-3xl font-normal tracking-tight text-tinta">
+              Pergunte com fundamento
+            </h1>
             <p className="mt-1 text-sm text-tinta-suave">
-              Selecione o caso no histórico e questione. Cada afirmação vem com a fonte clicável.
+              Selecione o caso no histórico e questione. Cada afirmação vem com
+              a fonte clicável.
             </p>
           </div>
 
@@ -215,16 +284,27 @@ export default function ChatPage() {
               {documents.map((document) => (
                 <option key={document.id} value={document.id}>
                   {document.title}
-                  {isSuccessStatus(document.status) ? '' : ` — ${document.status}`}
+                  {isSuccessStatus(document.status)
+                    ? ""
+                    : ` — ${document.status}`}
                 </option>
               ))}
             </select>
-            {docsLoading && <p className="mt-2 text-xs text-tinta-muda">Carregando histórico…</p>}
-            {docsError && <p className="mt-2 text-xs text-red-700">{docsError}</p>}
+            {docsLoading && (
+              <p className="mt-2 text-xs text-tinta-muda">
+                Carregando histórico…
+              </p>
+            )}
+            {docsError && (
+              <p className="mt-2 text-xs text-red-700">{docsError}</p>
+            )}
             {!docsLoading && !docsError && documents.length === 0 && (
               <p className="mt-2 text-xs text-tinta-muda">
-                Nenhum documento no histórico ainda.{' '}
-                <Link href="/upload" className="text-latiim-texto underline underline-offset-4 hover:text-tinta-profunda">
+                Nenhum documento no histórico ainda.{" "}
+                <Link
+                  href="/upload"
+                  className="text-latiim-texto underline underline-offset-4 hover:text-tinta-profunda"
+                >
                   Envie o primeiro PDF
                 </Link>
                 .
@@ -236,14 +316,15 @@ export default function ChatPage() {
             {messages.length === 0 && (
               <div className="space-y-3">
                 <p className="text-sm text-tinta-muda">
-                  Selecione o caso acima e pergunte como a um sócio sênior — o assistente
-                  passa a atuar como especialista na área daquele documento.
+                  Selecione o caso acima e pergunte como a um sócio sênior — o
+                  assistente passa a atuar como especialista na área daquele
+                  documento.
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {[
-                    'Qual a tese de defesa mais forte deste caso?',
-                    'Monte uma estratégia de ataque focando o juiz nos pontos da contestação',
-                    'O que devo elucidar antes de protocolar?',
+                    "Qual a tese de defesa mais forte deste caso?",
+                    "Monte uma estratégia de ataque focando o juiz nos pontos da contestação",
+                    "O que devo elucidar antes de protocolar?",
                   ].map((suggestion) => (
                     <button
                       key={suggestion}
@@ -260,17 +341,46 @@ export default function ChatPage() {
             )}
 
             {messages.map((message, index) => (
-              <div key={index} className={message.role === 'user' ? 'flex justify-end' : 'flex justify-start'}>
+              <div
+                key={index}
+                className={
+                  message.role === "user"
+                    ? "flex justify-end"
+                    : "flex justify-start"
+                }
+              >
                 <div
                   className={`max-w-[85%] rounded-[5px] px-4 py-3 text-sm leading-6 ${
-                    message.role === 'user'
-                      ? 'bg-papel-areia text-tinta'
-                      : 'border border-linha bg-white text-tinta shadow-[0_4px_10px_rgba(41,69,50,0.05)]'
+                    message.role === "user"
+                      ? "bg-papel-areia text-tinta"
+                      : "border border-linha bg-white text-tinta shadow-[0_4px_10px_rgba(41,69,50,0.05)]"
                   }`}
                 >
-                  <p className="whitespace-pre-wrap">{message.text || '…'}</p>
+                  {message.role === "assistant" ? (
+                    <ChatFormattedText text={message.text} />
+                  ) : (
+                    <p className="whitespace-pre-wrap">{message.text || "…"}</p>
+                  )}
 
-                  {message.role === 'assistant' &&
+                  {message.role === "assistant" &&
+                    message.text.trim().length > 0 &&
+                    !(isStreaming && index === messages.length - 1) && (
+                      <div className="mt-3 flex justify-end border-t border-linha pt-2.5">
+                        <button
+                          type="button"
+                          onClick={() => handleExportMessageDocx(index)}
+                          disabled={downloadingIndex !== null}
+                          aria-label="Baixar resposta em .docx"
+                          className="inline-flex items-center gap-1.5 rounded-[5px] border border-linha bg-papel-alta px-3 py-1.5 text-xs font-medium text-tinta-profunda transition-colors hover:border-latiim hover:bg-latiim-clara/30 disabled:opacity-50"
+                        >
+                          {downloadingIndex === index
+                            ? "Gerando .docx…"
+                            : "Baixar .docx"}
+                        </button>
+                      </div>
+                    )}
+
+                  {message.role === "assistant" &&
                     message.suggestions &&
                     message.suggestions.length > 0 && (
                       <div className="mt-3 border-t border-linha pt-3">
@@ -295,18 +405,23 @@ export default function ChatPage() {
 
                   {message.citations && message.citations.length > 0 && (
                     <div className="mt-3 space-y-2 border-t border-linha pt-3">
-                      <p className="font-mono text-[9px] uppercase tracking-[2.25px] text-tinta-muda">Fontes</p>
+                      <p className="font-mono text-[9px] uppercase tracking-[2.25px] text-tinta-muda">
+                        Fontes
+                      </p>
                       {message.citations.map((citation) => {
-                        const isPrecedent = citation.document_name.startsWith('[Jurisprudência]');
+                        const isPrecedent =
+                          citation.document_name.startsWith("[Jurisprudência]");
                         const body = (
                           <>
                             <p className="text-xs font-medium text-tinta-profunda">
                               {citation.ref} {citation.document_name}
-                              {typeof citation.page_start === 'number'
+                              {typeof citation.page_start === "number"
                                 ? ` · p. ${citation.page_start}`
-                                : ''}
+                                : ""}
                             </p>
-                            <p className="mt-1 line-clamp-2 text-xs text-tinta-suave">{citation.excerpt}</p>
+                            <p className="mt-1 line-clamp-2 text-xs text-tinta-suave">
+                              {citation.excerpt}
+                            </p>
                           </>
                         );
                         // Precedent chunks have no analysis page — render as a
@@ -335,14 +450,18 @@ export default function ChatPage() {
             ))}
           </div>
 
-          {error && <p className="mt-3 rounded-[5px] border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+          {error && (
+            <p className="mt-3 rounded-[5px] border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              {error}
+            </p>
+          )}
 
           <div className="mt-4 flex gap-2">
             <input
               value={input}
               onChange={(event) => setInput(event.target.value)}
               onKeyDown={(event) => {
-                if (event.key === 'Enter' && !event.shiftKey) {
+                if (event.key === "Enter" && !event.shiftKey) {
                   event.preventDefault();
                   sendMessage();
                 }
@@ -358,13 +477,14 @@ export default function ChatPage() {
               disabled={isStreaming || !input.trim()}
               className="rounded-[5px] bg-tinta-profunda px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-tinta disabled:opacity-50"
             >
-              {isStreaming ? 'Aguarde…' : 'Enviar'}
+              {isStreaming ? "Aguarde…" : "Enviar"}
             </button>
           </div>
 
           <p className="mt-2 text-xs text-tinta-muda">
-            Parecer e estratégia elaborados por IA — fatos com fonte citada; a decisão e a
-            responsabilidade são do advogado. Nunca protocola sozinho.
+            Parecer e estratégia elaborados por IA — fatos com fonte citada; a
+            decisão e a responsabilidade são do advogado. Nunca protocola
+            sozinho.
           </p>
         </div>
       </Layout>

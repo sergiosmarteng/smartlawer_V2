@@ -2,20 +2,21 @@ import json
 import logging
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.api import deps
 from app.core import rag_answer
 from app.core.audit import record_audit
+from app.core.chat_docx import build_chat_answer_docx
 from app.core.embeddings import embed_query
 from app.core.retrieval import hybrid_search
 from app.core.security_rag import BLOCK_MESSAGE, is_injection_attempt, mask_pii
 from app.crud.document import get_document_for_user
 from app.models.audit_event import AuditEvent
 from app.models.user import User
-from app.schemas.chat import ChatRequest, ChatResponse
+from app.schemas.chat import ChatExportDocxRequest, ChatRequest, ChatResponse
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -216,3 +217,58 @@ def chat_stream(
 
 def _sse(payload: dict) -> str:
     return f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
+
+
+@router.post("/chat/export-docx")
+def export_chat_answer_docx(
+    payload: ChatExportDocxRequest,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_active_user),
+):
+    """Exporta uma resposta individual do chat jurídico em formato .docx."""
+    scoped_document = _resolve_scope(
+        db, current_user=current_user, document_id=payload.document_id
+    )
+    scope_id = scoped_document.id if scoped_document is not None else None
+    document_name = (
+        scoped_document.filename if scoped_document is not None else None
+    )
+
+    docx_bytes = build_chat_answer_docx(
+        question=payload.question,
+        answer=payload.answer,
+        document_name=document_name,
+        citations=payload.citations,
+    )
+
+    record_audit(
+        db,
+        event_type=AuditEvent.DOCX_GENERATED,
+        user_id=current_user.id,
+        entity_type="document" if scope_id else "chat",
+        entity_id=scope_id,
+        meta={
+            "source": "chat",
+            "citations": len(payload.citations or []),
+            "answer_chars": len(payload.answer or ""),
+        },
+    )
+
+    safe_stem = "parecer-chat"
+    if document_name:
+        cleaned = "".join(
+            ch if (ch.isalnum() or ch in ("-", "_")) else "-"
+            for ch in document_name.rsplit(".", 1)[0]
+        ).strip("-")
+        if cleaned:
+            safe_stem = f"parecer-chat-{cleaned[:40]}"
+
+    filename = f"{safe_stem}.docx"
+    return Response(
+        content=docx_bytes,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+        },
+    )
+
