@@ -84,10 +84,10 @@
     "checkpoint_2026_10_06": "smoke VPS GO (wiring V3) + pacote piloto + purga arquivada; HEAD 0e4654e; head alembic 20261002_0013; nenhuma migration nova",
     "run_gate_universal": "UNIVERSAL GATE PASSED (release 0.3.0)",
     "module_corpora_gates": "corpus da Onda 2 (2A + 2B) no universal_gate (release 0.3.0)",
-    "vitest": "19 passed (3 files) - registrado no checkpoint 2A",
-    "eslint": "clean - registrado no checkpoint 2A",
-    "tsc": "clean - registrado no checkpoint 2A",
-    "next_build": "OK - registrado no checkpoint 2A",
+    "vitest": "27 passed (4 files) - verificado em 2026-10-14",
+    "eslint": "clean - verificado em 2026-10-14",
+    "tsc": "clean - verificado em 2026-10-14",
+    "next_build": "OK (13/13) - verificado em 2026-10-14",
     "e2e": "nao executado (sem browsers/ambiente de teste)"
   },
   "git_state": {
@@ -116,5 +116,5 @@
     "PAT revogado no GitHub + removido de docs/CLAUDE.md sem reformatar (diff minimo) - commits 0b15711, caf9300; rotaçao registrada - 8b968a6",
     "purga BFG ARQUIVADA (preparada-mas-nao-executada): docs/runbooks/nota-force-push-2026-10-06.md (hashes antes/depois, mirror em %TEMP%, reset obrigatorio dos clones) - commits cf5c1ec, 0e4654e"
   ],
-  "resume_prompt_file": ".opencode/sessions/2026-10-06-piloto-purga.md"
+  "resume_prompt_file": ".opencode/sessions/2026-10-14-chat-visual-docx.md"
 }
