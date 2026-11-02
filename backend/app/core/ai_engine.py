@@ -108,6 +108,9 @@ class LegalAnalyzer:
         self.api_key = ""
         self.model: str | None = None
         self.client = None
+        # Onda A: a análise V1 legada continua rodando junto do pipeline V3.
+        # Sem contabilizá-la, a telemetria do V3 subestima o custo real.
+        self.usage = {"calls": 0, "prompt_tokens": 0, "completion_tokens": 0}
 
         config = resolve_chat_config()
         if config is None:
@@ -232,6 +235,19 @@ class LegalAnalyzer:
             f"TEXTO DA PETICAO:\n{text}"
         )
 
+    def _record_usage(self, response) -> None:
+        usage = getattr(response, "usage", None)
+        if usage is None:
+            return
+        self.usage["calls"] += 1
+        self.usage["prompt_tokens"] += int(getattr(usage, "prompt_tokens", 0) or 0)
+        self.usage["completion_tokens"] += int(
+            getattr(usage, "completion_tokens", 0) or 0
+        )
+
+    def usage_snapshot(self) -> dict:
+        return dict(self.usage)
+
     def analyze_petition(self, text: str, strategy_prompt: str | None = None) -> dict:
         """Análise real via LLM. Falha explicada, nunca fallback genérico (V2 T01)."""
         if not self.api_key or self.client is None or not self.model:
@@ -259,6 +275,7 @@ class LegalAnalyzer:
                 ],
             )
             content = (response.choices[0].message.content or "").strip()
+            self._record_usage(response)
             if not content:
                 raise OutputInvalidError("Resposta vazia do provedor de IA.")
             try:

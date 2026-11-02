@@ -36,6 +36,12 @@ class Settings(BaseSettings):
     CHAT_MODEL: str = "gpt-4-turbo"
     GEMINI_API_KEY: str = ""
     GEMINI_BASE_URL: str = "https://generativelanguage.googleapis.com/v1beta/openai/"
+    # Onda A: teto de orçamento por execução. MAX_RUN_TOKENS é o teto duro
+    # independente de preço (vale sempre); MAX_RUN_USD só quando o modelo
+    # está na tabela de preços — modelo desconhecido não bloqueia.
+    MAX_RUN_USD: float = 100.0
+    MAX_RUN_TOKENS: int = 2_000_000
+    LLM_PRICES_JSON: str = ""
     GENERATED_KEEP_LATEST: int = 10
     PRECEDENTS_AUTO_SEED: bool = True
     # Onda 0 Task 16: rollout do Dossiê Universal V3 (§22).

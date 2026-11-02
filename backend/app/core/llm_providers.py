@@ -39,6 +39,9 @@ def _build_client(config: dict):
 
 class _BaseLlmProvider:
     def __init__(self, client=None, model: str | None = None):
+        # Onda A: acumula tokens reais do provedor. Sem isso não há como
+        # medir custo nem provar economia — só estimativa por chars.
+        self.usage = {"calls": 0, "prompt_tokens": 0, "completion_tokens": 0}
         if client is not None:
             self.client = client
             self.model = model or "test-model"
@@ -51,6 +54,19 @@ class _BaseLlmProvider:
             raise ProviderUnavailableError(f"Cliente LLM indisponivel: {exc}") from exc
         if self.client is None:
             raise ProviderUnavailableError("Cliente LLM indisponivel.")
+
+    def _record_usage(self, response) -> None:
+        usage = getattr(response, "usage", None)
+        if usage is None:
+            return
+        self.usage["calls"] += 1
+        self.usage["prompt_tokens"] += int(getattr(usage, "prompt_tokens", 0) or 0)
+        self.usage["completion_tokens"] += int(
+            getattr(usage, "completion_tokens", 0) or 0
+        )
+
+    def usage_snapshot(self) -> dict:
+        return dict(self.usage)
 
     def _complete(self, *, system: str, user: str) -> str:
         try:
@@ -67,6 +83,7 @@ class _BaseLlmProvider:
             raise
         except Exception as exc:
             raise ProviderUnavailableError(f"Falha no provedor de IA: {exc}") from exc
+        self._record_usage(response)
         content = ((response.choices[0].message.content) or "").strip()
         if not content:
             raise OutputInvalidError("Resposta vazia do provedor de IA.")

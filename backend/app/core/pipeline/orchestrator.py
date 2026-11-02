@@ -30,6 +30,91 @@ def _block_marker(block: dict) -> str:
     return f"[bloco {uid} p.{page}] {text}"
 
 
+def _provider_usage(provider) -> dict:
+    """Lê a telemetria acumulada do provedor, quando ele a expõe."""
+    snapshot = getattr(provider, "usage_snapshot", None)
+    if not callable(snapshot):
+        return {}
+    try:
+        return dict(snapshot() or {})
+    except Exception:  # telemetria nunca derruba a run
+        return {}
+
+
+def usage_and_cost(*providers) -> dict:
+    """Tokens reais e custo estimado somados entre provedores.
+
+    ``cost_known`` é falso quando algum modelo não está na tabela de preços:
+    nesse caso o guarda **não bloqueia** (não se bloqueia o que não se mede)
+    e a telemetria registra ``cost: "unavailable"``.
+    """
+    from app.core.costs import estimate_cost_usd
+
+    calls = prompt_tokens = completion_tokens = 0
+    cost_usd = 0.0
+    cost_known = True
+    models: list[str] = []
+    for provider in providers:
+        usage = _provider_usage(provider)
+        if not usage:
+            continue
+        model = getattr(provider, "model", None)
+        if model and model not in models:
+            models.append(model)
+        prompt = int(usage.get("prompt_tokens", 0) or 0)
+        completion = int(usage.get("completion_tokens", 0) or 0)
+        calls += int(usage.get("calls", 0) or 0)
+        prompt_tokens += prompt
+        completion_tokens += completion
+        cost = estimate_cost_usd(model, prompt, completion)
+        if cost is None:
+            cost_known = False
+        else:
+            cost_usd += cost
+    return {
+        "calls": calls,
+        "prompt_tokens": prompt_tokens,
+        "completion_tokens": completion_tokens,
+        "tokens_total": prompt_tokens + completion_tokens,
+        "cost_usd": round(cost_usd, 6) if cost_known else None,
+        "cost_known": cost_known,
+        "models": models,
+    }
+
+
+def _enforce_run_budget(
+    *providers,
+    max_usd: float | None,
+    max_tokens: int | None = None,
+    stage: str,
+) -> dict:
+    """Para a execução antes de estourar o teto de custo da run.
+
+    Dois tetos: tokens (sempre vale, independe de preço) e USD (só quando o
+    modelo é precificado). Sem o teto de tokens, um modelo fora da tabela
+    deixaria o guarda inerte — exatamente o caso do modelo de produção.
+    """
+    from app.core.coverage_planner import BudgetExceededError
+
+    status = usage_and_cost(*providers)
+    if max_tokens is not None and status["tokens_total"] > max_tokens:
+        raise BudgetExceededError(
+            f"Orcamento de tokens excedido em {stage}: "
+            f"{status['tokens_total']} > teto {max_tokens}."
+        )
+    if (
+        max_usd is not None
+        and status["cost_known"]
+        and status["cost_usd"] is not None
+        and status["cost_usd"] > max_usd
+    ):
+        raise BudgetExceededError(
+            f"Orcamento excedido em {stage}: US$ {status['cost_usd']:.4f} > "
+            f"teto US$ {max_usd:.2f}."
+        )
+    return status
+
+
 def execute_real_stages(
     db: Session,
     *,
@@ -49,6 +134,7 @@ def execute_real_stages(
     import dataclasses
 
     from app.core.classification import classify_blocks
+    from app.core.config import settings
     from app.core.coverage_planner import plan_revision_batches
     from app.core.legal_research import research_issues
     from app.core.reconciler import reconcile_extractions
@@ -86,8 +172,17 @@ def execute_real_stages(
         {"normalized_text": b.get("normalized_text"),
          "original_text": b.get("original_text")} for b in blocks
     ])
+    # Onda A: o teto de lotes configurado passa a valer no caminho real.
+    # Antes, ``max_batches=None`` desligava o teto e ``check_budget`` era
+    # código morto — o plano podia crescer sem limite declarado.
+    effective_max_batches = (
+        settings.COVERAGE_MAX_BATCHES if max_batches is None else max_batches
+    )
     plan = plan_revision_batches(
-        blocks, max_batch_tokens=max_batch_tokens, max_batches=max_batches)
+        blocks,
+        max_batch_tokens=max_batch_tokens,
+        max_batches=effective_max_batches,
+    )
 
     if struct_provider is None:
         from app.core.llm_providers import LlmStructuredProvider
@@ -101,12 +196,19 @@ def execute_real_stages(
     by_id = {b["id"]: b for b in blocks}
     extractions: list[dict] = []
     failed_batches: list[dict] = []
+    truncated_batches = 0
+    omitted_chars = 0
+    max_run_usd = getattr(settings, "MAX_RUN_USD", None)
+    max_run_tokens = getattr(settings, "MAX_RUN_TOKENS", None)
     for index, batch in enumerate(plan.get("batches", [])):
         batch_blocks = [dict(by_id[bid]) for bid in batch.get("block_ids", []) if bid in by_id]
         for b in batch_blocks:
             marked = _block_marker(b)
             b["normalized_text"] = marked
             b["original_text"] = marked
+        # Orçamento do extrator = limite do modelo (COVERAGE_MAX_BATCH_TOKENS),
+        # não o alvo de agrupamento (max_batch_tokens): um bloco único maior
+        # que o alvo continua precisando caber no contexto.
         try:
             result = extract_batch(
                 {"batch_index": index, "block_ids": batch.get("block_ids", []),
@@ -120,6 +222,15 @@ def execute_real_stages(
             })
             continue
         extractions.append(dataclasses.asdict(result))
+        text_coverage = result.text_coverage or {}
+        if text_coverage.get("truncated"):
+            truncated_batches += 1
+            omitted_chars += int(text_coverage.get("omitted_chars", 0) or 0)
+        # Teto de custo checado a cada lote: para antes de gastar, não depois.
+        _enforce_run_budget(
+            struct_provider, max_usd=max_run_usd,
+            max_tokens=max_run_tokens, stage=f"lote {index}",
+        )
 
     reconciled = reconcile_extractions(extractions)
     known = {b["id"] for b in blocks}
@@ -159,12 +270,46 @@ def execute_real_stages(
         }
     research = research_issues([], sources=[], reference_date=snapshot.get("reference_date"))
 
+    usage = _enforce_run_budget(
+        struct_provider, analysis_provider, max_usd=max_run_usd,
+        max_tokens=max_run_tokens, stage="analise",
+    )
+
+    # Parcialidade explícita: nunca corte mudo (§17).
+    limitations = analysis.setdefault("limitations", [])
+    if plan.get("budget_exceeded"):
+        logger.warning(
+            "Plano parcial: %d lote(s) > teto %s; %d bloco(s) sem processar.",
+            len(plan.get("batches", [])),
+            effective_max_batches,
+            len(plan.get("unprocessed_block_ids", [])),
+        )
+        limitations.append({
+            "code": "BUDGET_EXCEEDED",
+            "message": (
+                f"Teto de {effective_max_batches} lotes atingido; "
+                f"{len(plan.get('unprocessed_block_ids', []))} bloco(s) não processado(s)."
+            ),
+        })
+    if truncated_batches:
+        limitations.append({
+            "code": "BATCH_TEXT_TRUNCATED",
+            "message": (
+                f"{truncated_batches} lote(s) excederam o orçamento de contexto; "
+                f"{omitted_chars} caractere(s) omitido(s) com marcador explícito."
+            ),
+        })
+
     pages = sorted({b.get("page_number", 0) for b in blocks})
     coverage = {
         "pages_total": revision.pages_total or (max(pages) if pages else 0),
         "pages_extracted": revision.pages_total or (max(pages) if pages else 0),
         "unprocessed_block_ids": list(plan.get("unprocessed_block_ids", [])),
         "explicit_claims_found": len(reconciled.get("claims", [])),
+        "budget_exceeded": bool(plan.get("budget_exceeded")),
+        "batches_planned": len(plan.get("batches", [])),
+        "batches_text_truncated": truncated_batches,
+        "chars_omitted": omitted_chars,
     }
     batch_stats = {
         "batches_total": len(plan.get("batches", [])),
@@ -194,6 +339,7 @@ def execute_real_stages(
         "failed_batches": failed_batches,
         "batch_stats": batch_stats,
         "unprocessed_block_ids": list(plan.get("unprocessed_block_ids", [])),
+        "usage": usage,
     }
 
 
@@ -318,6 +464,8 @@ def run_universal_pipeline(db: Session, *, run_id: UUID | str):
     snapshot = dict(run.snapshot or {})
     fail_at = snapshot.get("fail_stage")
     fixture = snapshot.get("fixture") or {}
+    pipeline_started = __import__("time").monotonic()
+    usage_payload: dict | None = None
 
     ordered = list(PIPELINE_STAGES)
     while True:
@@ -375,10 +523,21 @@ def run_universal_pipeline(db: Session, *, run_id: UUID | str):
     else:
         # W-2: caminho real — estágios sobre os blocos da revisão.
         from app.core.ai_engine import ProviderUnavailableError
+        from app.core.coverage_planner import BudgetExceededError
         from app.crud.run import transition_run
 
         try:
             real = execute_real_stages(db, run=run)
+        except BudgetExceededError as exc:
+            logger.warning("Teto de orcamento atingido na run %s: %s", run.id, exc)
+            db.rollback()
+            transition_run(
+                db, run=run, status=AnalysisRun.FAILED,
+                stage=AnalysisRun.STAGE_EXTRACTION,
+                error_code=BudgetExceededError.code,
+                error_message=str(exc),
+            )
+            return None
         except ProviderUnavailableError as exc:
             transition_run(
                 db, run=run, status=AnalysisRun.FAILED,
@@ -396,6 +555,25 @@ def run_universal_pipeline(db: Session, *, run_id: UUID | str):
             return None
         reconciled = real["reconciled"]
         real_analysis = real["analysis"]
+        real_usage = dict(real.get("usage") or {})
+        usage_payload = {
+            "source": "v3_pipeline",
+            "models": list(real_usage.get("models") or []),
+            "model": (real_usage.get("models") or [None])[0],
+            "calls": real_usage.get("calls", 0),
+            "prompt_tokens": real_usage.get("prompt_tokens", 0),
+            "completion_tokens": real_usage.get("completion_tokens", 0),
+            "tokens_total": real_usage.get("tokens_total", 0),
+            "cost_usd": real_usage.get("cost_usd"),
+            "cost": "estimated" if real_usage.get("cost_known") else "unavailable",
+            "batches_planned": real["coverage"].get("batches_planned"),
+            "batches_failed": len(real.get("failed_batches") or []),
+            "chars_omitted": real["coverage"].get("chars_omitted"),
+            "pages_total": real["coverage"].get("pages_total"),
+            "duration_s": round(
+                __import__("time").monotonic() - pipeline_started, 2
+            ),
+        }
         module_results, module_limitations, module_activations = _run_modules(
             snapshot, reconciled, {},
             classification=real["classification"],
@@ -438,6 +616,12 @@ def run_universal_pipeline(db: Session, *, run_id: UUID | str):
     run.stage = AnalysisRun.STAGE_PUBLICATION
     db.commit()
     db.refresh(run)
+    # Onda A: telemetria do caminho V3 (antes ficava sempre vazia — o bloco
+    # de usage do legado só roda quando há artefato V2).
+    if usage_payload is not None:
+        run.usage = usage_payload
+        db.commit()
+        db.refresh(run)
     content = artifact.model_dump(mode="json")
     content["status"] = status
     published = publish_artifact_v3(

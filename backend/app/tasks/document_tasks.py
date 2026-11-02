@@ -62,6 +62,40 @@ def get_run(db, run_id):
     return db.query(AnalysisRun).filter(AnalysisRun.id == run_id).one_or_none()
 
 
+def merge_v1_usage_into_run(db, *, run, analyzer) -> dict:
+    """Soma a chamada LLM legada (V1) à telemetria da run.
+
+    Com V3 ligado, ``analyze_petition`` continua sendo chamado antes do
+    pipeline (defeito de dupla execução conhecido). Se essa chamada não for
+    contabilizada, o ``run.usage`` subestima o custo real e qualquer
+    comparação de economia fica inflada a favor do V3. O detalhe fica em
+    ``usage["v1_legacy"]`` para tornar o desperdício visível.
+    """
+    from app.core.pipeline.orchestrator import usage_and_cost
+
+    if run is None:
+        return {}
+    v1 = usage_and_cost(analyzer)
+    if not v1.get("calls"):
+        return dict(run.usage or {})
+    usage = dict(run.usage or {})
+    usage["v1_legacy"] = v1
+    usage["calls"] = int(usage.get("calls", 0) or 0) + v1["calls"]
+    usage["prompt_tokens"] = int(usage.get("prompt_tokens", 0) or 0) + v1["prompt_tokens"]
+    usage["completion_tokens"] = (
+        int(usage.get("completion_tokens", 0) or 0) + v1["completion_tokens"]
+    )
+    usage["tokens_total"] = usage["prompt_tokens"] + usage["completion_tokens"]
+    if usage.get("cost_usd") is not None and v1.get("cost_usd") is not None:
+        usage["cost_usd"] = round(float(usage["cost_usd"]) + float(v1["cost_usd"]), 6)
+    else:
+        usage["cost_usd"] = None
+        usage["cost"] = "unavailable"
+    run.usage = usage
+    db.commit()
+    return usage
+
+
 @celery_app.task(bind=True, max_retries=3)
 def process_run_task(self, run_id: str):
     """Processa uma run existente pelo pipeline V3 (W-3, despacho do reanalyze).
@@ -418,6 +452,8 @@ def process_pdf_task(self, document_id: str, file_path: str):
                 if v3_artifact is not None:
                     v2_artifact_content = None
                     run = get_run(db, run.id)
+                    # A chamada V1 acima já gastou tokens; registre-a.
+                    merge_v1_usage_into_run(db, run=run, analyzer=analyzer)
                 else:
                     logger.warning("Pipeline V3 sem artefato para %s.", document_id)
             else:
