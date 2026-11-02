@@ -73,8 +73,8 @@ Os 18 claims são pedidos distintos e reais: gratuidade de justiça, danos mater
 
 ## 5. Pendências
 
-- Revisar e commitar a Onda A (nada commitado).
-- Medir recall no corpus do smoke: a hipótese de causa raiz dos "2 claims vs 11" agora está corrigida, mas não foi medida.
+- Commits e push concluídos em 2026-11-02: 45aec80..c69d28b no origin/main (inclui as 8 notas de sessão antigas, varridas antes de entrar).
+- Medir recall no corpus do smoke: a hipótese de causa raiz dos "2 claims vs 11" agora está corrigida e medida localmente (5 → 18), mas falta reconfirmar com `SourceBlock` real na VPS.
 - Onda B (Jev): depende de `TYPESAFE_API_KEY`; gate explícito — sem ganho medido em pt-BR, parar.
 - O telemetria ainda não cobre tokens de embedding/rerank Cohere.
 
