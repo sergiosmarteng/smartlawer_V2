@@ -2,11 +2,12 @@
   "project": "SmartLawer_V2",
   "project_path": "C:/Users/sergi/OneDrive - SSA Soluções Tecnologicas/SSA Solucoes Tecnologicas/Projetos prototipos/SmartLawer_V2",
   "last_updated": "2026-11-01",
-  "status": "Onda A em producao (2026-11-02): deploy na VPS em 7c830a6 com backup pg_dump e imagens pre-ondaA para rollback. API healthy, worker reiniciado, alembic 20261002_0013, site 200, sem erro nos logs. Cobertura do prompt medida nos blocos REAIS de producao (peticao 35p, 1084 blocos): 74,3% -> 97,6% apos corrigir a contabilidade do marcador de bloco. Recuperacao de claims (5 -> 18) foi medida LOCALMENTE, nao ainda na VPS. Antes: validacao do plano Jev (modelo existe; payload da spec invalido; economia real -46%/-36%, nao -55%/-65%).",
+  "status": "Onda A em producao (2026-11-02): deploy na VPS em 7c830a6 com backup pg_dump e imagens pre-ondaA para rollback. API healthy, worker reiniciado, alembic 20261002_0013, site 200, sem erro nos logs. Cobertura do prompt medida nos blocos REAIS de producao (peticao 35p, 1084 blocos): 74,3% -> 97,6% apos corrigir a contabilidade do marcador de bloco. Recall CONFIRMADO na VPS: reanalise de real_pi4.pdf (35p, 1084 blocos) subiu de 2 para 19 claims (fatos 4->13, evidencias 2->3, refs 4->19), com telemetria gravada pela primeira vez em producao (4 chamadas, 57.555 tokens, 112s, 3 lotes, 0 falhas). Gap restante e dedup semantica: ~12-13 pedidos distintos entre os 19 (reconciler usa igualdade exata). Custo USD indisponivel para gemini-3.8-flash. Antes: validacao do plano Jev (modelo existe; payload da spec invalido; economia real -46%/-36%, nao -55%/-65%).",
   "next_steps": [
     "Revisar e commitar a Onda A (7 arquivos alterados + backend/app/core/costs.py + backend/tests/test_onda_a_cobertura_telemetria.py + docs/superpowers/plans/2026-11-01-jev-plan-revisado-validacao.md)",
     "Antes de deploy: decidir COVERAGE_MAX_BATCHES (20 pode virar parcial em docs grandes) e MAX_RUN_TOKENS (2M default); confirmar com o usuario",
-    "Reanalisar UMA peticao existente na VPS (sem upload novo) para medir claims com o codigo deployado; cria run real e consome LLM - requer aprovacao explicita",
+    "Atacar dedup semantica de claims/fatos: parafrases entre lotes sobrepostos geram pedidos duplicados (19 brutos para ~12-13 reais); candidato natural ao System One do Jev (choice) ou a normalizacao deterministica antes do reconciler",
+    "Definir LLM_PRICES_JSON no .env da VPS para o custo sair de 'unavailable' e o teto MAX_RUN_USD voltar a valer",
     "Recrutar/acionar revisores e iniciar piloto 50 execucoes com o pacote pronto (docs/operacao/pacote-revisor.md + protocolo-holdout.md + rubrica-piloto-v1.md + backend/evals/pilot_metrics.py)",
     "Operador in loco na VPS: backup pg_dump antes; conferir migrations (head 20261002_0013; wiring e piloto sem migration nova); rodar smoke formal pos-deploy blocos A-K (docs/operacao/smoke-pos-deploy-2026-10-02.md)",
     "Gate juridico humano por modulo da Onda 2 (2 revisores da area sobre o corpus; spec §9), sem inferir % de exito (ordem sugerida contracts -> corporate -> tax -> administrative -> real_estate)",
@@ -16,7 +17,9 @@
     "Apos piloto Go + gates juridicos da Onda 2: planejar Onda 3"
   ],
   "blockers": [
-    "Calibragem de recall: RESOLVIDA em 2026-11-01 - causa raiz era o corte fixo block_text[:4000] contra orcamento de 8000 tokens; medido na peticao de 35p: texto enviado ao extrator ~19% -> ~96%, claims reconciliados 5 -> 18 (legado 11), fatos 15->15, evidencias 3->4, refs legais 6->10; ver docs/operacao/recall-comparison-2026-11-01.json",
+    "Calibragem de recall: RESOLVIDA e confirmada em producao em 2026-11-02 - causa raiz era o corte fixo block_text[:4000] contra orcamento de 8000 tokens; na VPS, reanalise de real_pi4.pdf (35p) foi de 2 -> 19 claims (fatos 4->13, evidencias 2->3, refs 4->19); ~12-13 pedidos distintos por duplicacao de parafrase; ver docs/operacao/recall-comparison-2026-11-01.json",
+    "Dedup semantica pendente: reconciler usa igualdade exata de (statement, asserted_by) e nao une parafrases entre lotes sobrepostos; a reanalise de producao gerou 19 claims para ~12-13 pedidos reais",
+    "Custo em USD nao calculavel em producao: gemini-3.8-flash nao esta na tabela de precos, entao run.usage grava cost=unavailable e so o MAX_RUN_TOKENS protege a run; definir LLM_PRICES_JSON no .env da VPS",
     "Purga BFG arquivada (preparada, nao executada; reativar so por solicitacao de auditor)",
     "PAT revogado no GitHub e removido de docs/CLAUDE.md (commits caf9300/0b15711); BFG remove do historico apenas se a purga for executada",
     "Deploy key VPS pendente (parte restante da rotaçao do PAT)",
@@ -104,6 +107,7 @@
     "pytest_onda_a": "428 passed, 0 failed, exit 0 (9m08s) - re-executado em 2026-11-01 apos Onda A (415 baseline + 13 novos)",
     "recall_peticao_35p": "medido 2026-11-01 com gemini-3-flash-preview local: reconciliado claims 5->18, fatos 15->15, evidencias 3->4, refs legais 6->10; 6 chamadas, 26.432 tokens de entrada; janela antes 12.000 chars (~19%), depois 59.954 chars (~96%)",
     "deploy_vps_2026_11_02": "HEAD 7c830a6; api healthy, worker reiniciado, alembic 20261002_0013 (head), site 200, POST sem token 401, zero erro nos logs; cobertura do prompt nos blocos reais 74,3% -> 97,6% (3 lotes); rollback pronto (imagens pre-ondaA + pg_dump)",
+    "reanalise_vps_2026_11_02": "real_pi4.pdf (35p, 1084 blocos) reanalisado em run f1e9b83d, artefato 27458429: claims 2->19, fatos 4->13, evidencias 2->3, refs 4->19; usage {calls:4, prompt_tokens:47640, completion_tokens:9915, tokens_total:57555, duration_s:112.79, batches_planned:3, batches_failed:0, chars_omitted:2178, cost:unavailable}; artefato original preservado",
     "eval_gate_onda_a": "GATE PASSED - items=32 mean_faithfulness=0.969 threshold=0.85 (2026-11-01)",
     "checkpoint_2026_10_06": "smoke VPS GO (wiring V3) + pacote piloto + purga arquivada; HEAD 0e4654e; head alembic 20261002_0013; nenhuma migration nova",
     "run_gate_universal": "UNIVERSAL GATE PASSED (release 0.3.0)",
