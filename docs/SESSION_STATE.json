@@ -1,9 +1,12 @@
 {
   "project": "SmartLawer_V2",
   "project_path": "C:/Users/sergi/OneDrive - SSA Soluções Tecnologicas/SSA Solucoes Tecnologicas/Projetos prototipos/SmartLawer_V2",
-  "last_updated": "2026-10-14",
-  "status": "Chat visual natural + exportacao .docx por resposta em prod (c77da62): ChatFormattedText sem Markdown cru + POST /api/v1/chat/export-docx + botao Baixar .docx em cada resposta. Pytest 7 passed, vitest 27 passed, tsc/lint/build OK. Proximo: piloto 50 + gates juridicos + Onda 3.",
+  "last_updated": "2026-11-01",
+  "status": "Onda A concluida + recall medido (nao commitado). Corte de 4000 chars era a causa do bloqueador de recall: na peticao de 35p, claims reconciliados 5 -> 18 (legado tinha 11), texto enviado ao extrator ~19% -> ~96%. Corrigidos tambem duplicacao em build_prompt_window e MAX_RUN_USD inerte para o modelo de producao (novo MAX_RUN_TOKENS). 428 pytest verdes + eval gate PASSED. Antes: validacao do plano Jev (modelo existe; payload da spec invalido; economia real -46%/-36%, nao -55%/-65%). Proximo: commit/revisao + piloto 50 ou Onda B.",
   "next_steps": [
+    "Revisar e commitar a Onda A (7 arquivos alterados + backend/app/core/costs.py + backend/tests/test_onda_a_cobertura_telemetria.py + docs/superpowers/plans/2026-11-01-jev-plan-revisado-validacao.md)",
+    "Antes de deploy: decidir COVERAGE_MAX_BATCHES (20 pode virar parcial em docs grandes) e MAX_RUN_TOKENS (2M default); confirmar com o usuario",
+    "Reavaliar o numero de claims no smoke da VPS com a Onda A (esperado >= legado 11; local deu 18 na peticao de 35p)",
     "Recrutar/acionar revisores e iniciar piloto 50 execucoes com o pacote pronto (docs/operacao/pacote-revisor.md + protocolo-holdout.md + rubrica-piloto-v1.md + backend/evals/pilot_metrics.py)",
     "Operador in loco na VPS: backup pg_dump antes; conferir migrations (head 20261002_0013; wiring e piloto sem migration nova); rodar smoke formal pos-deploy blocos A-K (docs/operacao/smoke-pos-deploy-2026-10-02.md)",
     "Gate juridico humano por modulo da Onda 2 (2 revisores da area sobre o corpus; spec §9), sem inferir % de exito (ordem sugerida contracts -> corporate -> tax -> administrative -> real_estate)",
@@ -13,7 +16,7 @@
     "Apos piloto Go + gates juridicos da Onda 2: planejar Onda 3"
   ],
   "blockers": [
-    "Calibragem pendente: 2 claims extraidos vs 11 do legado na mesma peca (recall de extracao a medir no piloto)",
+    "Calibragem de recall: RESOLVIDA em 2026-11-01 - causa raiz era o corte fixo block_text[:4000] contra orcamento de 8000 tokens; medido na peticao de 35p: texto enviado ao extrator ~19% -> ~96%, claims reconciliados 5 -> 18 (legado 11), fatos 15->15, evidencias 3->4, refs legais 6->10; ver docs/operacao/recall-comparison-2026-11-01.json",
     "Purga BFG arquivada (preparada, nao executada; reativar so por solicitacao de auditor)",
     "PAT revogado no GitHub e removido de docs/CLAUDE.md (commits caf9300/0b15711); BFG remove do historico apenas se a purga for executada",
     "Deploy key VPS pendente (parte restante da rotaçao do PAT)",
@@ -78,9 +81,29 @@
     "docs/superpowers/plans/2026-10-03-dossie-onda-2b-tax-administrative-real-estate.md (176 linhas, commit c612c67)",
     "Spec de referencia: docs/superpowers/specs/2026-10-02-dossie-onda-2-design.md"
   ],
+  "deliverables_jev_validacao": [
+    "docs/superpowers/specs/2026-11-01-jev-system-one-integration-analysis.md (spec externa, NAO versionada ate a Onda A; contem payload invalido)",
+    "docs/superpowers/plans/2026-11-01-jev-deepcode-implementation-plan.md (plano externo, Fase 0 infra-first desaconselhada)",
+    "docs/superpowers/plans/2026-11-01-jev-plan-revisado-validacao.md (validacao com evidencia + ondas A-D)",
+    "Veredito: Jev existe (api.typesafe.ai, $0.042/Mtok entrada, saida gratis, 64k/32k contexto); choice e score usam criteria, NAO options/min/max; ingles e o idioma primario (calibracao pt-BR nao validada); state nao e tratado como hostil (Jev nao serve de guardrail de injection); economia real -46% entrada / -36% saida / -56% chamadas"
+  ],
+  "deliverables_onda_a": [
+    "backend/app/core/structured_extractor.py: block_text[:4000] substituido por build_prompt_window com o orcamento do planejador + BatchExtraction.text_coverage (nunca corte mudo)",
+    "backend/app/core/pipeline/orchestrator.py: COVERAGE_MAX_BATCHES aplicado no caminho real; coverage com budget_exceeded/batches_planned/batches_text_truncated/chars_omitted; limitacoes BUDGET_EXCEEDED e BATCH_TEXT_TRUNCATED explicitas; usage_and_cost + _enforce_run_budget (teto de tokens sempre + teto USD quando precificado)",
+    "backend/app/core/coverage_planner.py: build_prompt_window passa a medir a razao chars/token do proprio texto (antes assumia 4 e duplicava o miolo do lote); devolve intacto quando nao ha o que omitir",
+    "backend/app/core/llm_providers.py + backend/app/core/ai_engine.py: acumulo de tokens reais de response.usage (antes descartado)",
+    "backend/app/core/costs.py: tabela de precos por Mtok, sobrescrevivel por LLM_PRICES_JSON; modelo desconhecido = custo None (nao bloqueia, nao inventa)",
+    "backend/app/core/config.py: MAX_RUN_USD=100.0 + MAX_RUN_TOKENS=2000000 + LLM_PRICES_JSON",
+    "backend/app/tasks/document_tasks.py: merge_v1_usage_into_run registra a chamada V1 duplicada em usage.v1_legacy",
+    "backend/tests/test_onda_a_cobertura_telemetria.py: 11 testes de aceite (corte coerente, truncamento explicito, teto de lotes, telemetria, guarda de orcamento, usage persistido no V3, merge V1)",
+    "NAO feito de proposito: check_budget mantido como API de falha dura (usado por testes); cap no caminho real vem de plan_revision_batches"
+  ],
   "verification": {
     "pytest_2B_suite": "27 passed em 15.46s (test_onda2b_foundation + tax + administrative + real_estate + regressoes) - re-executado neste checkpoint 2026-10-04",
     "pytest_total": "415 passed, 0 failed (4 lotes paralelos, exit 0) - re-executado no /verify 2026-10-15",
+    "pytest_onda_a": "428 passed, 0 failed, exit 0 (9m08s) - re-executado em 2026-11-01 apos Onda A (415 baseline + 13 novos)",
+    "recall_peticao_35p": "medido 2026-11-01 com gemini-3-flash-preview: reconciliado claims 5->18, fatos 15->15, evidencias 3->4, refs legais 6->10; 6 chamadas, 26.432 tokens de entrada; janela antes 12.000 chars (~19%), depois 59.954 chars (~96%)",
+    "eval_gate_onda_a": "GATE PASSED - items=32 mean_faithfulness=0.969 threshold=0.85 (2026-11-01)",
     "checkpoint_2026_10_06": "smoke VPS GO (wiring V3) + pacote piloto + purga arquivada; HEAD 0e4654e; head alembic 20261002_0013; nenhuma migration nova",
     "run_gate_universal": "UNIVERSAL GATE PASSED (release 0.3.0)",
     "module_corpora_gates": "corpus da Onda 2 (2A + 2B) no universal_gate (release 0.3.0)",
@@ -92,7 +115,8 @@
   },
   "git_state": {
     "origin": "git@github-smarteng:sergiosmarteng/smartlawer_V2.git",
-    "head": "c77da62",
+    "head": "44be75d",
+    "working_tree_2026_11_01": "12 entradas pendentes herdadas + Onda A nao commitada (6 arquivos alterados, 2 novos de codigo/teste, 1 doc de plano revisado)",
     "tag": "v0.3.0",
     "ahead_behind": "main ahead 133 / behind 2 vs schinasergio/master (verificado 2026-10-06)",
     "migrations_head": "20261002_0013",
@@ -116,5 +140,5 @@
     "PAT revogado no GitHub + removido de docs/CLAUDE.md sem reformatar (diff minimo) - commits 0b15711, caf9300; rotaçao registrada - 8b968a6",
     "purga BFG ARQUIVADA (preparada-mas-nao-executada): docs/runbooks/nota-force-push-2026-10-06.md (hashes antes/depois, mirror em %TEMP%, reset obrigatorio dos clones) - commits cf5c1ec, 0e4654e"
   ],
-  "resume_prompt_file": ".opencode/sessions/2026-10-14-chat-visual-docx.md"
+  "resume_prompt_file": ".opencode/sessions/2026-11-01-jev-validacao-onda-a.md"
 }
