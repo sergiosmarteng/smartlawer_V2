@@ -14,3 +14,8 @@ pytest-cache-files-*/
 .env*.local
 
 *.tsbuildinfo
+
+# Artefatos locais de execucao e insumos de analise (podem conter dados
+# de caso real: peticao, figuras, comparativos de extracao).
+tmp/
+output/
