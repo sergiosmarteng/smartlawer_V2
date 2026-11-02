@@ -14,27 +14,30 @@ from app.core.reconciler import (
     reconcile_extractions,
 )
 
-# Títulos exatos do artefato 27458429 (reanálise de produção, 2026-11-02).
-PRODUCTION_TITLES = [
-    "Gratuidade de Justiça",
-    "Indenização por Danos Materiais",
-    "Reparação por danos materiais e lucros cessantes",
-    "Danos extrapatrimoniais (morais)",
-    "Danos estéticos",
-    "Pensão vitalícia",
-    "Indenização normativa – CCT",
-    "Honorários advocatícios",
-    "Controle difuso de constitucionalidade dos arts. 790-B e 791-A da CLT",
-    "Justiça Gratuita por critério de renda",
-    "Notificação da Reclamada",
-    "Indenização por danos materiais e lucros cessantes",
-    "Indenização por danos extrapatrimoniais (morais)",
-    "Pensão mensal vitalícia",
-    "Indenização prevista na CCT",
-    "Constituição de Capital",
-    "Processamento pelo procedimento comum",
-    "Honorários sucumbenciais",
-    "Procedência Total",
+# Títulos e números exatos do artefato 435e4d7d (reanálise de produção,
+# 2026-11-02). Note que 17 dos 19 têm original_number: são os pedidos
+# numerados da petição, e as duplicatas vêm dos lotes que os repetiram sem
+# número (ou com uma letra).
+PRODUCTION_CLAIMS = [
+    ("Concessão da Justiça Gratuita por declaração ou controle difuso", "1"),
+    ("Indenização por Danos Materiais", None),
+    ("Reparação de dano material (tratamento e lucros cessantes)", None),
+    ("Indenização por danos morais / extrapatrimoniais", "b"),
+    ("Indenização por danos estéticos", "c"),
+    ("Pensão vitalícia", "d"),
+    ("Indenização normativa – CCT", "e"),
+    ("Honorários advocatícios sucumbenciais", "7"),
+    ("Controle difuso de constitucionalidade dos arts. 790-B e 791-A da CLT", "2"),
+    ("Concessão da Justiça Gratuita pelo critério de renda", "3"),
+    ("Notificação da Reclamada", "4"),
+    ("Indenização por danos materiais e lucros cessantes", "5"),
+    ("Indenização por danos morais", "6"),
+    ("Pensão mensal vitalícia", "8"),
+    ("Indenização prevista na CCT", "9"),
+    ("Constituição de Capital", "10"),
+    ("Processamento pelo procedimento comum", "11"),
+    ("Honorários sucumbenciais", "12"),
+    ("Procedência total da Reclamação Trabalhista", "13"),
 ]
 
 
@@ -66,12 +69,36 @@ def test_lead_ins_do_not_distinguish_claims():
     )
 
 
-def test_production_titles_collapse_to_fourteen():
-    out = _reconcile(*[_claim(t) for t in PRODUCTION_TITLES])
+def test_production_claims_collapse_to_fifteen():
+    """19 claims brutos -> 15 pedidos; os 2 residuais precisam de humano."""
+    out = _reconcile(
+        *[_claim(title, number=number) for title, number in PRODUCTION_CLAIMS]
+    )
 
-    assert len(out["claims"]) == 14, [
-        c["title"] for c in out["claims"]
-    ]
+    assert len(out["claims"]) == 15, [c["title"] for c in out["claims"]]
+
+
+def test_unnumbered_claim_is_absorbed_by_numbered_group():
+    """Lote que repete o pedido sem o número não pode virar pedido novo."""
+    out = _reconcile(
+        _claim("Indenização por Danos Materiais"),
+        _claim("Pensão vitalícia", number="8"),
+        _claim("Indenização por danos materiais e lucros cessantes", number="5"),
+        _claim("Indenização por danos materiais e lucros cessantes"),
+    )
+    assert len(out["claims"]) == 2
+    numeros = {str(c.get("original_number")) for c in out["claims"]}
+    assert numeros == {"8", "5"}
+
+
+def test_numbered_claim_promotes_existing_unnumbered_group():
+    """O numerado chega depois: tem de assumir o grupo, não criar outro."""
+    out = _reconcile(
+        _claim("Pensão vitalícia"),
+        _claim("Pensão mensal vitalícia", number="8"),
+    )
+    assert len(out["claims"]) == 1
+    assert out["claims"][0]["original_number"] == "8"
 
 
 def test_moral_and_esthetic_damages_never_merge():

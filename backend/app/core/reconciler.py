@@ -48,13 +48,32 @@ def normalize_for_match(text: str | None) -> str:
 
 
 def _claim_tokens(text: str | None) -> frozenset[str]:
-    """Tokens que distinguem um pedido dos demais."""
-    tokens = {
-        _MORPHOLOGY.get(token, token)
-        for token in normalize_for_match(text).split()
-        if token not in _STOPWORDS and token not in _LEAD_INS
-    }
+    """Tokens que distinguem um pedido dos demais.
+
+    Inclui singular/plural: "dano material" e "danos materiais" são o mesmo
+    pedido redigido de duas formas pelos lotes.
+    """
+    tokens = set()
+    for token in normalize_for_match(text).split():
+        if token in _STOPWORDS or token in _LEAD_INS:
+            continue
+        tokens.add(_singular(_MORPHOLOGY.get(token, token)))
     return frozenset(tokens)
+
+
+def _singular(token: str) -> str:
+    """Reduz plural para singular, de forma conservadora."""
+    if len(token) <= 4:
+        return token
+    if token.endswith("ais"):
+        return token[:-3] + "al"      # materiais -> material, morais -> moral
+    if token.endswith("eis"):
+        return token[:-3] + "el"      # sucumbenciais -> sucumbencial
+    if token.endswith("ns"):
+        return token[:-2] + "m"       # bens -> bem
+    if token.endswith("s"):
+        return token[:-1]             # danos -> dano, esteticos -> estetico
+    return token
 
 
 def _should_merge(first: frozenset[str], second: frozenset[str]) -> bool:
@@ -170,29 +189,53 @@ def reconcile_extractions(extractions: list[dict]) -> dict:
     by_number: dict[str, dict] = {}
 
     def group_for(claim: dict) -> dict:
-        """Grupo do pedido: número quando existe, senão contenção de tokens."""
+        """Grupo do pedido: número quando existe, senão contenção de tokens.
+
+        Um lote costuma repetir o pedido sem o número (o modelo devolve
+        ``original_number`` nulo ou uma letra). Por isso as duas direções
+        são tratadas: claim sem número encaixa em grupo numerado por
+        contenção, e claim numerado PROMOVE um grupo sem número que já
+        contenha o mesmo pedido. O número do grupo é a fonte autoritativa.
+
+        O id do grupo é estável (``gN``) e não muda quando o número é
+        atribuído depois — senão o mesmo pedido ficaria em duas chaves.
+        """
         number = normalize_claim_number(claim.get("original_number"))
         tokens = _claim_tokens(claim.get("title"))
+
         if number is not None:
             group = by_number.get(number)
-            if group is None:
-                group = {"key": f"num:{number}", "number": number}
-                by_number[number] = group
-                groups.append(group)
-            return group
-        for group in groups:
-            if group["number"] is None and _should_merge(
-                tokens, group["tokens"]
-            ):
+            if group is not None:
                 group["tokens"] = group["tokens"] | tokens
                 return group
-        group = {"key": f"cont:{len(groups)}", "number": None, "tokens": tokens}
+            for candidate in groups:
+                if candidate["number"] is None and _should_merge(
+                    tokens, candidate["tokens"]
+                ):
+                    candidate["number"] = number
+                    candidate["tokens"] = candidate["tokens"] | tokens
+                    by_number[number] = candidate
+                    return candidate
+            group = {"id": f"g{len(groups)}", "number": number, "tokens": tokens}
+            by_number[number] = group
+            groups.append(group)
+            return group
+
+        for group in groups:
+            if group["number"] is not None and _should_merge(tokens, group["tokens"]):
+                group["tokens"] = group["tokens"] | tokens
+                return group
+        for group in groups:
+            if group["number"] is None and _should_merge(tokens, group["tokens"]):
+                group["tokens"] = group["tokens"] | tokens
+                return group
+        group = {"id": f"g{len(groups)}", "number": None, "tokens": tokens}
         groups.append(group)
         return group
 
     for extraction in sorted(extractions, key=lambda e: e.get("batch_index", 0)):
         for claim in extraction.get("claims", []) or []:
-            key = group_for(claim)["key"]
+            key = group_for(claim)["id"]
             refs = list(dict.fromkeys(claim.get("source_refs", []) or []))
             existing = claims.get(key)
             if existing is None:
@@ -205,6 +248,10 @@ def reconcile_extractions(extractions: list[dict]) -> dict:
             for ref in refs:
                 if ref not in existing.setdefault("source_refs", []):
                     existing["source_refs"].append(ref)
+            # Grupo promovido a numerado: o claim armazenado ainda carrega o
+            # número nulo do lote que o criou. O número do grupo é a verdade.
+            if not existing.get("original_number") and claim.get("original_number"):
+                existing["original_number"] = claim.get("original_number")
             existing["occurrences"] = int(existing.get("occurrences", 1) or 1) + int(
                 claim.get("occurrences", 1) or 1
             )
