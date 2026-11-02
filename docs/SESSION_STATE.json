@@ -1,15 +1,15 @@
 {
   "project": "SmartLawer_V2",
   "project_path": "C:/Users/sergi/OneDrive - SSA Soluções Tecnologicas/SSA Solucoes Tecnologicas/Projetos prototipos/SmartLawer_V2",
-  "last_updated": "2026-11-01",
-  "status": "Onda A em producao (2026-11-02): deploy na VPS em 7c830a6 com backup pg_dump e imagens pre-ondaA para rollback. API healthy, worker reiniciado, alembic 20261002_0013, site 200, sem erro nos logs. Cobertura do prompt medida nos blocos REAIS de producao (peticao 35p, 1084 blocos): 74,3% -> 97,6% apos corrigir a contabilidade do marcador de bloco. Recall CONFIRMADO na VPS: reanalise de real_pi4.pdf (35p, 1084 blocos) subiu de 2 para 19 claims (fatos 4->13, evidencias 2->3, refs 4->19), com telemetria gravada pela primeira vez em producao (4 chamadas, 57.555 tokens, 112s, 3 lotes, 0 falhas). Gap de dedup atacado: producao 19 -> 17 na execucao seguinte; re-reconciliando os claims armazenados da 16, e 300 permutacoes de ordem/lote dao sempre 16 (regra estavel; a variacao restante vem dos titulos que o modelo reescreve a cada run). Residuais sao sinonimos (moral x extrapatrimonial, normativa x prevista em CCT). Custo USD indisponivel para gemini-3.8-flash. Antes: validacao do plano Jev (modelo existe; payload da spec invalido; economia real -46%/-36%, nao -55%/-65%).",
+  "last_updated": "2026-11-02",
+  "status": "Onda A em producao (2026-11-02): deploy na VPS em 7c830a6 com backup pg_dump e imagens pre-ondaA para rollback. API healthy, worker reiniciado, alembic 20261002_0013, site 200, sem erro nos logs. Cobertura do prompt medida nos blocos REAIS de producao (peticao 35p, 1084 blocos): 74,3% -> 97,6% apos corrigir a contabilidade do marcador de bloco. Recall CONFIRMADO na VPS: reanalise de real_pi4.pdf (35p, 1084 blocos) subiu de 2 para 19 claims (fatos 4->13, evidencias 2->3, refs 4->19), com telemetria gravada pela primeira vez em producao (4 chamadas, 57.555 tokens, 112s, 3 lotes, 0 falhas). Dedup lexical implementada (ad8f990/2df7871): contencao de tokens + numero autoritativo; producao 19 -> 17, re-reconciliacao dos claims armazenados da 16, 300 permutacoes dao sempre 16. Residuais sao sinonimos (moral x extrapatrimonial, normativa x prevista em CCT) e exigem julgamento semantico. HEAD 94f1a2f == origin/main; deploy registrado da VPS ainda e 7c830a6 (confirmar checkout antes de afirmar que a dedup esta no ar). Custo USD indisponivel para gemini-3.8-flash. Checkpoint 2026-11-02 re-executou 16 testes do reconciler (todos verdes).",
   "next_steps": [
-    "Revisar e commitar a Onda A (7 arquivos alterados + backend/app/core/costs.py + backend/tests/test_onda_a_cobertura_telemetria.py + docs/superpowers/plans/2026-11-01-jev-plan-revisado-validacao.md)",
-    "Antes de deploy: decidir COVERAGE_MAX_BATCHES (20 pode virar parcial em docs grandes) e MAX_RUN_TOKENS (2M default); confirmar com o usuario",
-    "Atacar dedup semantica de claims/fatos: parafrases entre lotes sobrepostos geram pedidos duplicados (19 brutos para ~12-13 reais); candidato natural ao System One do Jev (choice) ou a normalizacao deterministica antes do reconciler",
+    "Deploy conferido em 2026-11-02: /opt/smartlawer em 94f1a2f e containers construidos de 2df7871 (dedup ativa); manter git_state.head e deployed_head separados nos proximos checkpoints",
     "Definir LLM_PRICES_JSON no .env da VPS para o custo sair de 'unavailable' e o teto MAX_RUN_USD voltar a valer",
+    "Revisar com o usuario COVERAGE_MAX_BATCHES (20 pode virar parcial em docs grandes) e MAX_RUN_TOKENS (2M default) em producao",
+    "Dedup semantica dos sinonimos residuais (moral x extrapatrimonial, normativa x prevista em CCT): candidato ao choice do Jev somente apos medir ganho em pt-BR; caso contrario manter 16 e registrar a limitacao",
     "Recrutar/acionar revisores e iniciar piloto 50 execucoes com o pacote pronto (docs/operacao/pacote-revisor.md + protocolo-holdout.md + rubrica-piloto-v1.md + backend/evals/pilot_metrics.py)",
-    "Operador in loco na VPS: backup pg_dump antes; conferir migrations (head 20261002_0013; wiring e piloto sem migration nova); rodar smoke formal pos-deploy blocos A-K (docs/operacao/smoke-pos-deploy-2026-10-02.md)",
+    "Operador in loco na VPS: rodar smoke formal pos-deploy blocos A-K (docs/operacao/smoke-pos-deploy-2026-10-02.md)",
     "Gate juridico humano por modulo da Onda 2 (2 revisores da area sobre o corpus; spec §9), sem inferir % de exito (ordem sugerida contracts -> corporate -> tax -> administrative -> real_estate)",
     "Shadow runs V3 + piloto 50 execucoes; habilitar DOSSIER_MODULE_<ID> um por vez apos gate proprio",
     "Concluir rotaçao do PAT: deploy key VPS (GitHub)",
@@ -18,14 +18,15 @@
   ],
   "blockers": [
     "Calibragem de recall: RESOLVIDA e confirmada em producao em 2026-11-02 - causa raiz era o corte fixo block_text[:4000] contra orcamento de 8000 tokens; na VPS, reanalise de real_pi4.pdf (35p) foi de 2 -> 19 claims (fatos 4->13, evidencias 2->3, refs 4->19); ~12-13 pedidos distintos por duplicacao de parafrase; ver docs/operacao/recall-comparison-2026-11-01.json",
-    "Dedup de claims: producao 19 -> 17 (run seguinte) e 16 ao re-reconciliar os claims armazenados; 300 permutacoes de ordem/lote dao sempre 16, logo a regra e estavel e a variacao vem do modelo. Residuais sao sinonimos (moral x extrapatrimonial, normativa x prevista) - exigem julgamento semantico, nao lexical; candidato natural ao primitivo choice do Jev",
+    "Dedup de claims: PARCIALMENTE RESOLVIDA - regra lexical estavel (producao 19 -> 17; 16 ao re-reconciliar os claims armazenados; 300 permutacoes sempre 16). Residuais sao sinonimos (moral x extrapatrimonial, normativa x prevista em CCT) e exigem julgamento semantico, nao lexical; candidato ao primitivo choice do Jev",
+    "Checkout da VPS apos a dedup nao confirmado: deploy registrado e 7c830a6, mas os commits ad8f990/2df7871 sao posteriores; conferir git rev-parse HEAD em /opt/smartlawer antes de afirmar que a dedup esta no ar",
     "Custo em USD nao calculavel em producao: gemini-3.8-flash nao esta na tabela de precos, entao run.usage grava cost=unavailable e so o MAX_RUN_TOKENS protege a run; definir LLM_PRICES_JSON no .env da VPS",
     "Purga BFG arquivada (preparada, nao executada; reativar so por solicitacao de auditor)",
     "PAT revogado no GitHub e removido de docs/CLAUDE.md (commits caf9300/0b15711); BFG remove do historico apenas se a purga for executada",
     "Deploy key VPS pendente (parte restante da rotaçao do PAT)",
     "E2E playwright nao executado aqui (sem browsers/ambiente de teste)",
     "Gate juridico humano por modulo pendente (2 revisores por area, processo fora da maquina)",
-    "Suíte pytest re-executada integralmente em 2026-10-15: 415 passed, 0 failed"
+    "Suite completa: 441 passed e evidencia dos commits 2df7871; no checkpoint 2026-11-02 foram re-executados 16 testes do reconciler, todos verdes - a suite integral nao foi rodada de novo"
   ],
   "active_constraints": [
     "Landing nao promete percentuais de produtividade nem cobertura integral de jurisprudencia",
@@ -53,7 +54,8 @@
     "Onda 2B: noticia/denuncia/relatorio preliminar != sancao final (§6); matricula antiga != titularidade atual, exige certidao atual (§7)",
     "Purga BFG do historico e force-push somente com confirmacao explicita/auditoria; se executada, reset obrigatorio em todos os clones (VPS/WSL/devs) e backups",
     "Piloto nao declara % de exito; Go/non-go pelos thresholds da rubrica congelada v1 (backend/evals/rubric_pilot_v1.toml) + protocolo holdout",
-    "Analise com nucleo vazio NUNCA publica completed (AC-01, verdade vacuosa); wiring V3 exige section_states de todas as secoes no artefato"
+    "Analise com nucleo vazio NUNCA publica completed (AC-01, verdade vacuosa); wiring V3 exige section_states de todas as secoes no artefato",
+    "Dedup de claims: contencao de tokens e conservadora; fundir pedidos distintos e pior que duplicar; sinonimos sem contencao exigem julgamento semantico (Jev), nao regra lexical"
   ],
   "deliverables_onda1": [
     "fundacao: module_results + ModuleResult/IssueAssessment + runner + 5 flags + registry enabled + composer fill",
@@ -101,6 +103,11 @@
     "backend/tests/test_onda_a_cobertura_telemetria.py: 11 testes de aceite (corte coerente, truncamento explicito, teto de lotes, telemetria, guarda de orcamento, usage persistido no V3, merge V1)",
     "NAO feito de proposito: check_budget mantido como API de falha dura (usado por testes); cap no caminho real vem de plan_revision_batches"
   ],
+  "deliverables_dedup_claims": [
+    "backend/app/core/reconciler.py: normalizacao + contencao de tokens, numero autoritativo, id estavel gN, uniao de source_refs, titulo mais longo e fatos normalizados - commits ad8f990/2df7871",
+    "backend/tests/test_reconciler_dedup.py: regressao com os 19 titulos reais do artefato 27458429 - commit ad8f990, ajustado em 2df7871",
+    "medicao em producao: 19 -> 17 claims na run seguinte; 16 ao re-reconciliar os armazenados; 300 permutacoes de ordem/lote sempre 16 - commit 94f1a2f"
+  ],
   "verification": {
     "pytest_2B_suite": "27 passed em 15.46s (test_onda2b_foundation + tax + administrative + real_estate + regressoes) - re-executado neste checkpoint 2026-10-04",
     "pytest_total": "415 passed, 0 failed (4 lotes paralelos, exit 0) - re-executado no /verify 2026-10-15",
@@ -108,6 +115,7 @@
     "recall_peticao_35p": "medido 2026-11-01 com gemini-3-flash-preview local: reconciliado claims 5->18, fatos 15->15, evidencias 3->4, refs legais 6->10; 6 chamadas, 26.432 tokens de entrada; janela antes 12.000 chars (~19%), depois 59.954 chars (~96%)",
     "deploy_vps_2026_11_02": "HEAD 7c830a6; api healthy, worker reiniciado, alembic 20261002_0013 (head), site 200, POST sem token 401, zero erro nos logs; cobertura do prompt nos blocos reais 74,3% -> 97,6% (3 lotes); rollback pronto (imagens pre-ondaA + pg_dump)",
     "reanalise_vps_2026_11_02": "real_pi4.pdf (35p, 1084 blocos) reanalisado em run f1e9b83d, artefato 27458429: claims 2->19, fatos 4->13, evidencias 2->3, refs 4->19; usage {calls:4, prompt_tokens:47640, completion_tokens:9915, tokens_total:57555, duration_s:112.79, batches_planned:3, batches_failed:0, chars_omitted:2178, cost:unavailable}; artefato original preservado",
+    "checkpoint_2026_11_02": "pytest backend/tests/test_reconciler_dedup.py + test_dossier_reconciler.py -> 16 passed, 0 failed (8.69s); HEAD 94f1a2f == origin/main; suite completa de 441 testes e evidencia do commit 2df7871, nao re-executada neste checkpoint",
     "eval_gate_onda_a": "GATE PASSED - items=32 mean_faithfulness=0.969 threshold=0.85 (2026-11-01)",
     "checkpoint_2026_10_06": "smoke VPS GO (wiring V3) + pacote piloto + purga arquivada; HEAD 0e4654e; head alembic 20261002_0013; nenhuma migration nova",
     "run_gate_universal": "UNIVERSAL GATE PASSED (release 0.3.0)",
@@ -120,12 +128,13 @@
   },
   "git_state": {
     "origin": "git@github-smarteng:sergiosmarteng/smartlawer_V2.git",
-    "head": "7c830a6",
-    "publicado": "2026-11-02: eec3273 e depois 7c830a6 enviados ao origin/main via SSH (github-smarteng), e deployados na VPS (/opt/smartlawer) com build de api+worker",
+    "head": "94f1a2f",
+    "deployed_head": "2df7871 (build em execucao nos containers api/worker); checkout da VPS em 94f1a2f (commit de docs posterior, sem rebuild). Verificado em 2026-11-02: git rev-parse HEAD em /opt/smartlawer = 94f1a2f, codigo do dedup presente no container e reanalise seguinte gerou 17 claims",
+    "publicado": "2026-11-02: HEAD 94f1a2f enviado ao origin/main via SSH (github-smarteng), incluindo ad8f990 e 2df7871. Deploy conferido: /opt/smartlawer em 94f1a2f, containers construidos de 2df7871 (dedup ativa, 17 claims na reanalise seguinte)",
     "rollback_vps": "imagens smartlawer-api:pre-ondaA e smartlawer-worker:pre-ondaA; backup em /home/ubuntu/smartlawer-backups/pre-ondaA-20261102-042430 (pg_dump 3,1 MB + .env)",
     "tracking_aviso": "branch main rastreia schinasergio/master (mirror https read-only), nao origin/main; push sem argumentos falha - usar `git push origin main`",
     "tag": "v0.3.0",
-    "ahead_behind": "main ahead 133 / behind 2 vs schinasergio/master (verificado 2026-10-06)",
+    "ahead_behind": "main ahead 158 / behind 2 vs schinasergio/master (verificado 2026-11-02)",
     "migrations_head": "20261002_0013",
     "extra_remote": "schinasergio (https, read-only) - auth nao reverificada apos revogacao do PAT (2026-10-04 falhou com 'Invalid username or token')"
   },
@@ -147,5 +156,5 @@
     "PAT revogado no GitHub + removido de docs/CLAUDE.md sem reformatar (diff minimo) - commits 0b15711, caf9300; rotaçao registrada - 8b968a6",
     "purga BFG ARQUIVADA (preparada-mas-nao-executada): docs/runbooks/nota-force-push-2026-10-06.md (hashes antes/depois, mirror em %TEMP%, reset obrigatorio dos clones) - commits cf5c1ec, 0e4654e"
   ],
-  "resume_prompt_file": ".opencode/sessions/2026-11-01-jev-validacao-onda-a.md"
+  "resume_prompt_file": ".opencode/sessions/2026-11-02-dedup-claims-producao.md"
 }
