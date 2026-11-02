@@ -1,0 +1,48 @@
+{
+  "medicao": "recall de extracao na peticao de 35 paginas do smoke",
+  "data": "2026-11-01",
+  "model": "gemini-3-flash-preview",
+  "lotes": 3,
+  "nota": "Amostra textual de claims omitida por confidencialidade (dados de caso real). Contagens e comparativo mantidos.",
+  "janela_de_texto": {
+    "chars_documento_por_pagina": 54816,
+    "enviado_ao_extrator_antes": 12000,
+    "enviado_ao_extrator_depois": 59954,
+    "percentual_antes": 0.19,
+    "percentual_depois": 0.96
+  },
+  "bruto_antes_de_reconciliar": {
+    "antigo": {
+      "claims": 5,
+      "facts": 15,
+      "evidence": 7,
+      "legal_references": 16
+    },
+    "novo": {
+      "claims": 21,
+      "facts": 15,
+      "evidence": 10,
+      "legal_references": 25
+    }
+  },
+  "reconciliado": {
+    "antigo": {
+      "claims": 5,
+      "facts": 15,
+      "evidence": 3,
+      "legal_references": 6
+    },
+    "novo": { "claims": 18, "facts": 15, "evidence": 4, "legal_references": 10 }
+  },
+  "uso_do_provedor": {
+    "calls": 6,
+    "prompt_tokens": 26432,
+    "completion_tokens": 7734
+  },
+  "observacoes": [
+    "Antes: o prompt de cada lote recebia apenas joined[:4000] chars.",
+    "Depois: build_prompt_window com COVERAGE_MAX_BATCH_TOKENS=8000; lote 1 omitiu 2460 chars com marcador explicito.",
+    "1 a 2 claims do total novo sao parafrases do mesmo pedido (a dedup e igualdade exata de (statement, asserted_by)).",
+    "Comparacao usa blocos reconstruidos de petition-pages.json (1 por pagina), nao a granularidade exata da extracao do PDF na VPS."
+  ]
+}
