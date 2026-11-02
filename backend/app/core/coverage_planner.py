@@ -167,15 +167,26 @@ def build_prompt_window(
         "tail_included": True,
         "omitted_chars": 0,
     }
-    if total_tokens <= budget_tokens:
+    if total_tokens <= budget_tokens or not text:
         return text, coverage
 
-    approx_chars = budget_tokens * 4
+    # A razão chars/token é medida no próprio texto. Assumir 4 (o padrão de
+    # ``estimate_tokens`` sem tiktoken) superestima o tamanho quando o texto
+    # real tem ~3 chars/token (português jurídico): a "janela" head+tail
+    # ficava maior que o original e DUPLICAVA o miolo do lote no prompt.
+    chars_per_token = len(text) / max(total_tokens, 1)
+    approx_chars = int(budget_tokens * chars_per_token)
+    if approx_chars >= len(text):
+        # Nada a omitir: devolve intacto, sem marcador nem duplicação.
+        return text, coverage
+
     head_chars = int(approx_chars * head_ratio)
-    tail_chars = approx_chars - head_chars
+    tail_chars = max(0, approx_chars - head_chars)
     head = text[:head_chars]
     tail = text[-tail_chars:] if tail_chars > 0 else ""
     omitted = max(0, len(text) - head_chars - len(tail))
+    if omitted <= 0:
+        return text, coverage
     window = head + OMISSION_MARKER + tail
     coverage.update(
         {

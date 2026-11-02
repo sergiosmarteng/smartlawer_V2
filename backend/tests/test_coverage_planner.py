@@ -70,6 +70,24 @@ def test_long_window_preserves_final_requests():
     assert "orçamento" in window or "orcamento" in window
 
 
+def test_window_never_duplicates_the_text():
+    """A janela nunca pode ser maior que o texto original (+ marcador).
+
+    Regressão: com ~3 chars/token (português), a conversão fixa de
+    ``budget_tokens * 4`` produzia head+tail maior que o original e o miolo
+    do lote aparecia DUAS vezes no prompt.
+    """
+    text = "advogado constituido nos autos do processo em epigrafe, vem " * 800
+    window, coverage = build_prompt_window(text, budget_tokens=2000)
+
+    if coverage["truncated"]:
+        assert len(window) <= len(text) + len("x" * 200), (
+            "janela maior que o texto: miolo duplicado no prompt"
+        )
+    assert coverage["omitted_chars"] >= 0
+    assert coverage["tail_included"] is True
+
+
 def _run_pipeline_task(tasks, document_id: str, pdf_path: str) -> None:
     target = getattr(tasks.process_pdf_task, "func", None)
     if target is not None:

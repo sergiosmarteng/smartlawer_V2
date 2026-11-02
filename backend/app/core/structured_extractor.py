@@ -13,6 +13,8 @@ import json
 from dataclasses import dataclass, field
 from typing import Protocol
 
+from app.core.coverage_planner import build_prompt_window
+
 
 SYSTEM_PROMPT = (
     "Você extrai objetos estruturados de documentos jurídicos. "
@@ -62,6 +64,7 @@ class BatchExtraction:
     evidence: list[dict] = field(default_factory=list)
     legal_references: list[dict] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
+    text_coverage: dict = field(default_factory=dict)
 
 
 @dataclass
@@ -79,16 +82,33 @@ def extract_batch(
     *,
     provider: StructuredProvider,
     context=None,
+    budget_tokens: int | None = None,
 ) -> BatchExtraction:
-    """Extrai objetos de um lote via provedor estruturado."""
+    """Extrai objetos de um lote via provedor estruturado.
+
+    O texto do lote é limitado pelo **mesmo orçamento de tokens** usado pelo
+    planejador de cobertura (``COVERAGE_MAX_BATCH_TOKENS``). Antes havia um
+    corte fixo de 4.000 *chars* contra um orçamento de ~32.000 chars, que
+    descartava ~7/8 do lote em silêncio. Se o corte ainda for necessário, a
+    janela preserva início e fim e devolve ``text_coverage`` com o que ficou
+    de fora — nunca corte mudo.
+    """
+    from app.core.config import settings
+
     blocks = batch.get("blocks", []) or []
     block_ids = list(batch.get("block_ids", []) or [b.get("id") for b in blocks])
     block_text = "\n".join(
         str(b.get("normalized_text") or b.get("original_text") or "") for b in blocks
     )
+    budget = (
+        budget_tokens
+        if budget_tokens is not None
+        else getattr(settings, "COVERAGE_MAX_BATCH_TOKENS", 8000)
+    )
+    windowed_text, text_coverage = build_prompt_window(block_text, budget_tokens=budget)
     prompt = (
         f"{SYSTEM_PROMPT}\n{OUTPUT_SCHEMA}\n"
-        f"Lote {batch.get('batch_index', 0)}:\n{block_text[:4000]}"
+        f"Lote {batch.get('batch_index', 0)}:\n{windowed_text}"
     )
     try:
         raw = provider.complete_json(prompt)
@@ -115,4 +135,5 @@ def extract_batch(
         evidence=_as_list(raw.get("evidence")),
         legal_references=_as_list(raw.get("legal_references")),
         errors=[],
+        text_coverage=text_coverage,
     )
