@@ -24,10 +24,11 @@ def _load_run(db: Session, run_id: UUID | str) -> AnalysisRun | None:
 
 
 def _block_marker(block: dict) -> str:
-    uid = block.get("id", "")
-    page = block.get("page_number", 0)
-    text = block.get("normalized_text") or block.get("original_text") or ""
-    return f"[bloco {uid} p.{page}] {text}"
+    from app.core.coverage_planner import block_marker
+
+    return block_marker(block) + (
+        block.get("normalized_text") or block.get("original_text") or ""
+    )
 
 
 def _provider_usage(provider) -> dict:

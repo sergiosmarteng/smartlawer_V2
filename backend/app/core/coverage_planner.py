@@ -32,6 +32,21 @@ def _block_text(block: dict) -> str:
     return block.get("normalized_text") or block.get("original_text") or ""
 
 
+def block_marker(block: dict) -> str:
+    """Prefixo injetado antes do texto de cada bloco no prompt do lote.
+
+    Precisa entrar no orçamento: um documento com 1.000 blocos pequenos
+    gasta ~28k chars só de marcador. Orçar apenas o texto subestima o lote
+    e faz o extrator truncar ~25% do conteúdo em silêncio.
+    """
+    return f"[bloco {block.get('id', '')} p.{block.get('page_number', 0)}] "
+
+
+def _block_prompt_text(block: dict) -> str:
+    """Exatamente o que o orquestrador envia para este bloco."""
+    return block_marker(block) + _block_text(block)
+
+
 def plan_batches(
     blocks: list[dict],
     *,
@@ -59,7 +74,9 @@ def plan_batches(
 
     for block in blocks:
         block_id = block.get("id", "")
-        tokens = estimate_tokens(_block_text(block))
+        # Orça o texto COM o marcador que o orquestrador injeta: é isso que
+        # chega ao modelo. Orçar só o texto faz o lote estourar o contexto.
+        tokens = estimate_tokens(_block_prompt_text(block))
         if current_ids and current_tokens + tokens > max_batch_tokens:
             flush()
             carry = current_ids[-overlap_blocks:] if overlap_blocks > 0 else []

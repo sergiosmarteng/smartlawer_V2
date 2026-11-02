@@ -88,6 +88,35 @@ def test_window_never_duplicates_the_text():
     assert coverage["tail_included"] is True
 
 
+def test_planner_budgets_the_block_marker():
+    """O plano tem de contar o prefixo `[bloco <id> p.<n>] ` que vai no prompt.
+
+    Não contar o marcador subestima o lote e o extrator trunca o excedente.
+    Medido em producao (peticao de 35p, 1084 blocos): cobertura caia de 97%
+    para 74% só por causa do marcador.
+    """
+    from app.core.coverage_planner import block_marker, plan_batches
+    from app.core.legal_chunker import estimate_tokens
+
+    blocks = [
+        {"id": f"{i:016x}", "page_number": 1, "normalized_text": "texto " * 8}
+        for i in range(40)
+    ]
+    plan = plan_batches(blocks, max_batch_tokens=200, overlap_blocks=0)
+    by_id = {b["id"]: b for b in blocks}
+
+    for batch in plan["batches"]:
+        prompt = "".join(
+            block_marker(by_id[bid]) + by_id[bid]["normalized_text"]
+            for bid in batch["block_ids"]
+        )
+        # Um único bloco maior que o teto pode sozinho passar; o resto não.
+        if len(batch["block_ids"]) > 1:
+            assert estimate_tokens(prompt) <= 200 * 1.15, (
+                "lote orçado acima do teto: marcador não entrou na conta"
+            )
+
+
 def _run_pipeline_task(tasks, document_id: str, pdf_path: str) -> None:
     target = getattr(tasks.process_pdf_task, "func", None)
     if target is not None:
