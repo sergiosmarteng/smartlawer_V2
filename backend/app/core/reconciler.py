@@ -5,9 +5,68 @@ duplicados; o reconciliador agrupa por número original/título,
 une referências e preserva cada ocorrência e divergência.
 """
 
+import logging
 import re
+import unicodedata
 
 from app.core.schemas_v2 import Claim
+
+logger = logging.getLogger(__name__)
+
+# Palavras vazias: não distinguem pedidos.
+_STOPWORDS = frozenset(
+    {
+        "a", "ao", "aos", "as", "com", "como", "da", "das", "de", "do", "dos",
+        "e", "em", "entre", "na", "nas", "no", "nos", "o", "os", "ou", "para",
+        "pelo", "pela", "por", "que", "se", "sem", "sob", "um", "uma", "uns",
+        "umas",
+    }
+)
+
+# Aberturas típicas de pedido: dizem o verbo, não o objeto.
+_LEAD_INS = frozenset(
+    {
+        "condenacao", "deferimento", "indenizacao", "indenizatorio", "pagamento",
+        "pedido", "pleiteia", "pleito", "reparacao", "requer", "requerimento",
+    }
+)
+
+# Variantes morfológicas do mesmo termo (não sinônimos de conteúdo).
+_MORPHOLOGY = {
+    "gratuidade": "gratuit",
+    "gratuita": "gratuit",
+    "gratuito": "gratuit",
+}
+
+
+def normalize_for_match(text: str | None) -> str:
+    """Minúsculas, sem acento, sem pontuação, espaço único."""
+    decomposed = unicodedata.normalize("NFKD", text or "")
+    stripped = "".join(c for c in decomposed if not unicodedata.combining(c))
+    cleaned = re.sub(r"[^a-z0-9]+", " ", stripped.casefold())
+    return " ".join(cleaned.split())
+
+
+def _claim_tokens(text: str | None) -> frozenset[str]:
+    """Tokens que distinguem um pedido dos demais."""
+    tokens = {
+        _MORPHOLOGY.get(token, token)
+        for token in normalize_for_match(text).split()
+        if token not in _STOPWORDS and token not in _LEAD_INS
+    }
+    return frozenset(tokens)
+
+
+def _should_merge(first: frozenset[str], second: frozenset[str]) -> bool:
+    """Só funde quando um conjunto CONTÉM o outro.
+
+    Contenção é conservadora por construção: "danos morais" e "danos
+    estéticos" nunca se contêm, então jamais são fundidos. Já "pensão
+    vitalícia" ⊂ "pensão mensal vitalícia" funde sem ambiguidade.
+    """
+    if not first or not second:
+        return False
+    return first <= second or second <= first
 
 
 def normalize_claim_number(raw: str | None) -> str | None:
@@ -107,9 +166,33 @@ def reconcile_extractions(extractions: list[dict]) -> dict:
     evidence: dict[str, dict] = {}
     legal_references: dict[str, dict] = {}
 
+    groups: list[dict] = []
+    by_number: dict[str, dict] = {}
+
+    def group_for(claim: dict) -> dict:
+        """Grupo do pedido: número quando existe, senão contenção de tokens."""
+        number = normalize_claim_number(claim.get("original_number"))
+        tokens = _claim_tokens(claim.get("title"))
+        if number is not None:
+            group = by_number.get(number)
+            if group is None:
+                group = {"key": f"num:{number}", "number": number}
+                by_number[number] = group
+                groups.append(group)
+            return group
+        for group in groups:
+            if group["number"] is None and _should_merge(
+                tokens, group["tokens"]
+            ):
+                group["tokens"] = group["tokens"] | tokens
+                return group
+        group = {"key": f"cont:{len(groups)}", "number": None, "tokens": tokens}
+        groups.append(group)
+        return group
+
     for extraction in sorted(extractions, key=lambda e: e.get("batch_index", 0)):
         for claim in extraction.get("claims", []) or []:
-            key = _dict_claim_key(claim)
+            key = group_for(claim)["key"]
             refs = list(dict.fromkeys(claim.get("source_refs", []) or []))
             existing = claims.get(key)
             if existing is None:
@@ -138,9 +221,15 @@ def reconcile_extractions(extractions: list[dict]) -> dict:
                         "claim_key": key,
                     }
                 )
+            # Título mais longo carrega mais informação (ex.: inclui "lucros
+            # cessantes" que a variante curta omitia).
+            if len(str(claim.get("title") or "")) > len(
+                str(existing.get("title") or "")
+            ):
+                existing["title"] = claim.get("title")
         for fact in extraction.get("facts", []) or []:
-            statement = str(fact.get("statement") or "").casefold().strip()
-            author = str(fact.get("asserted_by") or "unknown").casefold().strip()
+            statement = normalize_for_match(fact.get("statement"))
+            author = normalize_for_match(fact.get("asserted_by") or "unknown")
             key = (statement, author)
             if not statement or key in fact_keys:
                 continue
